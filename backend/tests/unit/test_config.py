@@ -48,8 +48,10 @@ def test_s3_endpoint_none_without_config() -> None:
 
 
 def test_production_requires_secrets() -> None:
+    # Explicit empties: conftest puts test secrets in the environment.
+    missing = dict.fromkeys(PROD_SECRETS, "")
     with pytest.raises(ValidationError, match="JWT_SECRET"):
-        make(env="production")
+        make(env="production", **missing)
 
 
 def test_env_must_be_known() -> None:

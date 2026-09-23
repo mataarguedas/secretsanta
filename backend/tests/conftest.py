@@ -16,7 +16,12 @@ from fastapi import FastAPI
 from httpx import ASGITransport, AsyncClient
 from redis.asyncio import Redis
 from sqlalchemy import make_url, text
-from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, create_async_engine
+from sqlalchemy.ext.asyncio import (
+    AsyncEngine,
+    AsyncSession,
+    async_sessionmaker,
+    create_async_engine,
+)
 
 from app.core.config import get_settings
 
@@ -28,7 +33,16 @@ if not os.environ.get("TEST_DATABASE_URL"):
 TEST_DATABASE_URL = _db_url.render_as_string(hide_password=False)
 TEST_REDIS_URL = os.environ.get("TEST_REDIS_URL") or (_base.redis_url.rsplit("/", 1)[0] + "/15")
 
-os.environ.update(ENV="test", DATABASE_URL=TEST_DATABASE_URL, REDIS_URL=TEST_REDIS_URL)
+os.environ.update(
+    ENV="test",
+    DATABASE_URL=TEST_DATABASE_URL,
+    REDIS_URL=TEST_REDIS_URL,
+    # Deterministic, fake credentials: tests never talk to Google with the real client.
+    APP_BASE_URL="http://localhost:5173",
+    JWT_SECRET="test-jwt-secret-" + "x" * 48,
+    GOOGLE_CLIENT_ID="test-client-id.apps.googleusercontent.com",
+    GOOGLE_CLIENT_SECRET="test-client-secret",
+)
 get_settings.cache_clear()
 
 import app.models  # noqa: E402
@@ -89,6 +103,21 @@ async def db_session(db_engine: AsyncEngine) -> AsyncIterator[AsyncSession]:
 
 
 @pytest.fixture
+async def clean_tables(db_engine: AsyncEngine) -> None:
+    """Empty every table (the app commits for real in API tests)."""
+    names = ", ".join(f'"{t.name}"' for t in reversed(Base.metadata.sorted_tables))
+    if names:
+        async with db_engine.begin() as conn:
+            await conn.execute(text(f"TRUNCATE {names} RESTART IDENTITY CASCADE"))
+
+
+@pytest.fixture
+def db(db_engine: AsyncEngine) -> async_sessionmaker[AsyncSession]:
+    """Sessions that see what the app committed (for assertions and test setup)."""
+    return create_sessionmaker(db_engine)
+
+
+@pytest.fixture
 async def redis_client() -> AsyncIterator["Redis"]:
     client = create_redis(TEST_REDIS_URL)
     await client.flushdb()
@@ -103,7 +132,9 @@ def app() -> FastAPI:
 
 
 @pytest.fixture
-async def client(app: FastAPI, redis_client: "Redis") -> AsyncIterator[AsyncClient]:
+async def client(
+    app: FastAPI, redis_client: "Redis", clean_tables: None
+) -> AsyncIterator[AsyncClient]:
     """httpx client against the ASGI app, with the lifespan (engine, Redis) running."""
     async with app.router.lifespan_context(app):
         transport = ASGITransport(app=app)

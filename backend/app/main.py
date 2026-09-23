@@ -5,11 +5,13 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 
+from app.api import testing
 from app.api.router import API_PREFIX, api_router
 from app.core.config import Settings, get_settings
 from app.core.errors import register_exception_handlers
 from app.core.logging import configure_logging, get_logger
 from app.core.middleware import AccessLogMiddleware, CSRFHeaderMiddleware, UnhandledErrorMiddleware
+from app.core.rate_limit import register_rate_limiting
 from app.core.redis import create_redis
 from app.core.sentry import init_sentry
 from app.db.engine import create_engine
@@ -55,7 +57,11 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.add_middleware(AccessLogMiddleware)
 
     register_exception_handlers(app)
+    register_rate_limiting(app)
     app.include_router(api_router)
+    if settings.is_test:
+        # Test-only login; never mounted in development or production.
+        app.include_router(testing.router, prefix=API_PREFIX)
     return app
 
 

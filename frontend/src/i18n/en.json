@@ -201,6 +201,9 @@
     "CSRF_HEADER_MISSING": "The request was blocked for security. Reload the page.",
     "NETWORK_ERROR": "You're offline. Check your connection and try again.",
     "UNKNOWN_ERROR": "An unexpected error occurred.",
-    "UNAUTHENTICATED": "Your session expired. Please sign in again."
+    "UNAUTHENTICATED": "Your session expired. Please sign in again.",
+    "AUTH_REQUIRED": "Sign in to continue.",
+    "AUTH_REFRESH_INVALID": "Your session expired. Please sign in again.",
+    "AUTH_OAUTH_FAILED": "Google sign-in failed. Please try again."
   }
 }

@@ -24,6 +24,10 @@ ERROR_REGISTRY: Final[dict[str, str]] = {
     "INTERNAL_ERROR": "Something went wrong. Please try again.",
     "HTTP_ERROR": "The request could not be processed.",
     "CSRF_HEADER_MISSING": "The X-Requested-With header is required for this request.",
+    # Auth (Prompt 6)
+    "AUTH_REQUIRED": "Sign in to continue.",
+    "AUTH_REFRESH_INVALID": "Your session has expired. Sign in again.",
+    "AUTH_OAUTH_FAILED": "Google sign-in failed. Please try again.",
 }
 
 _STATUS_TO_CODE: Final[dict[int, str]] = {

@@ -24,6 +24,7 @@ dependencies = [
     "slowapi>=0.1.9",
     "sentry-sdk[fastapi]>=2.19",
     "structlog>=24.4",
+    "tzdata>=2024.1",
 ]
 
 [dependency-groups]
@@ -76,7 +77,9 @@ init_typed = true
 warn_required_dynamic_aliases = true
 
 [[tool.mypy.overrides]]
-module = ["pywebpush.*", "slowapi.*", "pillow_heif.*", "boto3.*", "botocore.*"]
+module = [
+    "authlib.*", "pywebpush.*", "slowapi.*", "pillow_heif.*", "boto3.*", "botocore.*",
+]
 ignore_missing_imports = true
 
 # ── pytest ────────────────────────────────────────────
@@ -90,4 +93,7 @@ filterwarnings = ["error::pytest.PytestUnraisableExceptionWarning"]
 
 [tool.coverage.run]
 source = ["app"]
+# SQLAlchemy's asyncio layer runs ORM calls on greenlets; without this, every line after an
+# `await session.<...>` looks uncovered.
+concurrency = ["greenlet", "thread"]
 omit = ["app/worker/settings.py"]
