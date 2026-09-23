@@ -96,7 +96,7 @@ Always use the app through **:5173**.
 
 ---
 
-## Prompt 1 — Monorepo skeleton and dev stack
+## Prompt 1 — Monorepo skeleton and dev stack - DONE
 
 ```text
 Read CLAUDE.md, PRD.md and DESIGN.md, and the "Rules for every prompt" section of PROMPTS.md. This is Prompt 1 (Milestone 1: Scaffold).
@@ -138,7 +138,7 @@ Don't add a CI workflow yet. Prompts 2 and 3 add the jobs.
 
 ---
 
-## Prompt 2 — Backend skeleton, `/health` and backend CI
+## Prompt 2 — Backend skeleton, `/health` and backend CI - DONE
 
 ```text
 Read CLAUDE.md, PRD.md (§8, §10) and the "Rules for every prompt" section of PROMPTS.md. This is Prompt 2 (Milestone 1).
@@ -204,7 +204,7 @@ Do:
 
 ---
 
-## Prompt 3 — Frontend skeleton, design tokens, fonts, i18n, frontend CI
+## Prompt 3 — Frontend skeleton, design tokens, fonts, i18n, frontend CI - DONE
 
 ```text
 Read CLAUDE.md (§3, §4, §6, §8), DESIGN.md, PRD.md (§4.10, §9) and the "Rules for every prompt" section of PROMPTS.md. This is Prompt 3 (Milestone 1).
@@ -267,7 +267,7 @@ Do:
 
 ---
 
-## Prompt 4 — UI primitives, part 1
+## Prompt 4 — UI primitives, part 1 - DONE
 
 ```text
 Read CLAUDE.md §6 (all of it), DESIGN.md (Components, Do's and Don'ts), PRD.md §9.1 and §9.4, and the "Rules for every prompt" section of PROMPTS.md. This is Prompt 4 (Milestone 1).
@@ -325,7 +325,7 @@ Also:
 
 ---
 
-## Prompt 5 — UI primitives, part 2, layout shells, `apiClient` and formatters
+## Prompt 5 — UI primitives, part 2, layout shells, `apiClient` and formatters - DONE
 
 ```text
 Read CLAUDE.md §6 and §8, DESIGN.md (Carousel Arrow Button, layout), PRD.md §9.2–§9.4 and the "Rules for every prompt" section of PROMPTS.md. This is Prompt 5 (the last one in Milestone 1).
@@ -381,7 +381,7 @@ Goal: finish the primitives, the app shell and the shared libraries.
 
 ---
 
-## Prompt 6 — Backend auth (Google OAuth, cookies, refresh rotation, `/me`)
+## Prompt 6 — Backend auth (Google OAuth, cookies, refresh rotation, `/me`) - DONE
 
 > **Do this first, by hand (≈10 min):**
 > 1. Go to https://console.cloud.google.com, create a project and open **APIs & Services › OAuth consent screen**. Choose External, keep it in *Testing*, and add Google accounts A, B and C as **Test users**.
@@ -445,7 +445,7 @@ Goal: server-side Google sign-in with secure cookie sessions.
 
 ---
 
-## Prompt 7 — Frontend auth: landing, session and protected routes
+## Prompt 7 — Frontend auth: landing, session and protected routes - DONE
 
 ```text
 Read CLAUDE.md §8, PRD.md §4.1, §9.3 (Landing), §9.1 and the "Rules for every prompt" section of PROMPTS.md. This is Prompt 7 (Milestone 2).
@@ -489,7 +489,7 @@ Goal: the signed-in and signed-out experience.
 
 ---
 
-## Prompt 8 — Profile page and language switch
+## Prompt 8 — Profile page and language switch - DONE
 
 ```text
 Read CLAUDE.md §6, §8, PRD.md §4.9 (FR-ACC-1, FR-ACC-2 language only), §4.10, §9.3 (Profile) and the "Rules for every prompt" section of PROMPTS.md. This is Prompt 8 (the last one in Milestone 2).
@@ -573,7 +573,7 @@ Goal: the events API.
    - invite_token is hidden from non-hosts
 ```
 
-### Manual tests — Prompt 9
+### Manual tests — Prompt 9 - DONE
 Sign in as **A** at http://localhost:5173 and open the console helper.
 1. `await api('POST','/events',{name:'Oficina 2026', budget_crc:25000, exchange_at:'2026-12-20T19:00:00-06:00', group_chat_enabled:true})`
    **Expected:** 201 with an `id`. Save it with `const E = (await api('GET','/events?section=hosting')).items[0].id`.
@@ -600,7 +600,7 @@ Sign in as **A** at http://localhost:5173 and open the console helper.
 
 ---
 
-## Prompt 10 — Dashboard and Create Event form
+## Prompt 10 — Dashboard and Create Event form -DONE
 
 ```text
 Read CLAUDE.md §6, §8, PRD.md §4.2 (FR-EVT-1..3), §9.1, §9.3 (Dashboard, Create/Edit) and the "Rules for every prompt" section of PROMPTS.md. This is Prompt 10 (Milestone 3).
@@ -655,7 +655,7 @@ Goal: the signed-in home screen and event creation.
 
 ---
 
-## Prompt 11 — Event page shell, Overview, and edit/delete
+## Prompt 11 — Event page shell, Overview, and edit/delete - DONE
 
 ```text
 Read CLAUDE.md §6, §8 (Routing), PRD.md §3, §4.2 (FR-EVT-4), §9.3 (Event page) and the "Rules for every prompt" section of PROMPTS.md. This is Prompt 11 (Milestone 3).
@@ -697,7 +697,7 @@ Goal: the event page structure.
 
 ---
 
-## Prompt 12 — Invite links and the join flow
+## Prompt 12 — Invite links and the join flow - DONE
 
 ```text
 Read CLAUDE.md §7, §8, PRD.md §4.1 (FR-AUTH-5), §4.3, §8, §9.3 (Manage, Join) and the "Rules for every prompt" section of PROMPTS.md. This is Prompt 12 (Milestone 3).
@@ -753,7 +753,7 @@ Goal: inviting people and joining.
 
 ---
 
-## Prompt 13 — Participants list, leave and remove
+## Prompt 13 — Participants list, leave and remove - DONE
 
 ```text
 Read CLAUDE.md §2 (3), PRD.md §2, §3 (Leave/remove), §4.4 (FR-EXC-3), §8 and the "Rules for every prompt" section of PROMPTS.md. This is Prompt 13 (the last one in Milestone 3).
