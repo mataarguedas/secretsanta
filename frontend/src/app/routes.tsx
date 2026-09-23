@@ -1,6 +1,7 @@
 import type { RouteObject } from 'react-router';
 
 import { CreateEventPage } from '@/features/events/pages/CreateEventPage';
+import { EventPage } from '@/features/events/pages/EventPage';
 import { ProfilePage } from '@/features/profile/pages/ProfilePage';
 
 import { AppLayout } from './layout/AppLayout';
@@ -33,10 +34,7 @@ export const routes: RouteObject[] = [
         element: <ProtectedRoute />,
         children: [
           { path: 'events/new', element: <CreateEventPage /> },
-          {
-            path: 'events/:id/:tab?',
-            element: <PlaceholderPage titleKey="events.detail.title" />,
-          },
+          { path: 'events/:id/:tab?', element: <EventPage /> },
           // TODO(prompt 12): the join screen gets its own sign-in step; until then it
           // redirects to `/?next=` like every other protected route.
           { path: 'join/:token', element: <PlaceholderPage titleKey="invites.join.title" /> },

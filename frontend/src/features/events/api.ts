@@ -1,5 +1,7 @@
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
+import { useNavigate } from 'react-router';
+
 import { apiClient } from '@/lib/apiClient';
 
 /** Backend `app/schemas/events.py`. */
@@ -60,6 +62,9 @@ export interface EventCreatePayload {
   group_chat_enabled: boolean;
 }
 
+/** `PATCH /events/{id}` body: only the fields that changed. */
+export type EventUpdatePayload = Partial<EventCreatePayload>;
+
 export const eventKeys = {
   all: ['events'] as const,
   section: (section: EventSection) => ['events', { section }] as const,
@@ -93,6 +98,39 @@ export function useCreateEvent() {
     onSuccess: async (event) => {
       queryClient.setQueryData(eventKeys.detail(event.id), event);
       await queryClient.invalidateQueries({ queryKey: eventKeys.all, exact: false });
+    },
+  });
+}
+
+export function useUpdateEvent(id: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: EventUpdatePayload) =>
+      apiClient.patch<EventDetail>(`/events/${id}`, payload),
+    onSuccess: async (event) => {
+      queryClient.setQueryData(eventKeys.detail(id), event);
+      // Dashboard cards show name, date and budget.
+      await queryClient.invalidateQueries({
+        queryKey: eventKeys.all,
+        predicate: (query) => query.queryKey[1] !== id,
+      });
+    },
+  });
+}
+
+/**
+ * `DELETE /events/{id}`, then go to the dashboard. Navigating first means the event page
+ * is gone before its query is dropped, so it never refetches into a 404.
+ */
+export function useDeleteEvent(id: string) {
+  const queryClient = useQueryClient();
+  const navigate = useNavigate();
+  return useMutation({
+    mutationFn: () => apiClient.delete<undefined>(`/events/${id}`),
+    onSuccess: async () => {
+      await navigate('/', { replace: true });
+      queryClient.removeQueries({ queryKey: eventKeys.detail(id), exact: true });
+      await queryClient.invalidateQueries({ queryKey: eventKeys.all });
     },
   });
 }

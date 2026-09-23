@@ -87,8 +87,6 @@ describe('AppLayout (signed in)', () => {
 
   it.each([
     ['/events/new', 'Crear evento'],
-    ['/events/123', 'Evento'],
-    ['/events/123/manage', 'Evento'],
     ['/join/tok_abc', 'Unirte al evento'],
     ['/chats', 'Chats'],
     ['/chats/123', 'Conversación'],

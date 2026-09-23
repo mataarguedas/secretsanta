@@ -9,7 +9,7 @@ import { AppProviders } from '@/app/providers';
 import { routes } from '@/app/routes';
 import { ToastProvider } from '@/components/ui';
 import type { Me } from '@/features/auth/api';
-import type { EventSection, EventSummary } from '@/features/events/api';
+import type { EventDetail, EventSection, EventSummary } from '@/features/events/api';
 import i18n from '@/i18n';
 
 export function createTestQueryClient(): QueryClient {
@@ -88,6 +88,7 @@ export function mockSession({
   patchError,
   events = {},
   createEvent,
+  eventDetails = {},
 }: {
   me: Me | null;
   /** Make `PATCH /me` fail with this status (e.g. 500) instead of saving. */
@@ -96,7 +97,10 @@ export function mockSession({
   events?: Partial<Record<EventSection, EventSummary[]>>;
   /** `POST /events` response for a given body (default: 201 with id `new-event`). */
   createEvent?: (body: Record<string, unknown>) => Response;
+  /** Events the user can open (`GET/PATCH/DELETE /events/{id}`); others are 404. */
+  eventDetails?: Record<string, EventDetail>;
 }) {
+  const details = new Map(Object.entries(eventDetails));
   let me = initial;
   const spy = vi.spyOn(globalThis, 'fetch').mockImplementation((input, init) => {
     const url = urlOf(input);
@@ -130,6 +134,26 @@ export function mockSession({
         jsonResponse(200, { items: events[section] ?? [], next_cursor: null }),
       );
     }
+    const detailMatch = /^\/api\/v1\/events\/([^/?]+)$/.exec(url);
+    if (detailMatch?.[1]) {
+      const id = decodeURIComponent(detailMatch[1]);
+      const event = details.get(id);
+      if (!event) {
+        return Promise.resolve(
+          jsonResponse(404, { error: { code: 'EVENT_NOT_FOUND', message: 'Event not found.' } }),
+        );
+      }
+      if (method === 'PATCH') {
+        const updated = { ...event, ...(JSON.parse(init?.body as string) as Partial<EventDetail>) };
+        details.set(id, updated);
+        return Promise.resolve(jsonResponse(200, updated));
+      }
+      if (method === 'DELETE') {
+        details.delete(id);
+        return Promise.resolve(new Response(null, { status: 204 }));
+      }
+      return Promise.resolve(jsonResponse(200, event));
+    }
     if (url === '/api/v1/auth/logout') return Promise.resolve(new Response(null, { status: 204 }));
     return Promise.resolve(jsonResponse(404, { error: { code: 'NOT_FOUND', message: '' } }));
   });
@@ -148,6 +172,29 @@ export function eventSummary(overrides: Partial<EventSummary> = {}): EventSummar
     exchange_at: '2026-12-20T19:00:00-06:00',
     budget_crc: 25000,
     is_host: true,
+    ...overrides,
+  };
+}
+
+export function eventDetail(overrides: Partial<EventDetail> = {}): EventDetail {
+  return {
+    id: 'e1',
+    name: 'Familia',
+    description: ['Traer algo hecho a mano.', 'Nada de tarjetas de regalo.'].join('\n'),
+    budget_crc: 15000,
+    exchange_at: '2026-12-20T19:00:00-06:00',
+    join_deadline: null,
+    location: 'Heredia',
+    is_online: false,
+    group_chat_enabled: true,
+    state: 'open',
+    drawn_at: null,
+    archived_at: null,
+    host: { id: TEST_USER.id, name: TEST_USER.name, avatar_url: TEST_USER.avatar_url },
+    participant_count: 3,
+    my_role: 'host',
+    my_assignment: null,
+    invite_token: 'invite-token',
     ...overrides,
   };
 }

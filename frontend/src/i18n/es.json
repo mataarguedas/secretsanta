@@ -230,7 +230,48 @@
       }
     },
     "detail": {
-      "title": "Evento"
+      "title": "Evento",
+      "loading": "Cargando el evento…",
+      "location": "Lugar",
+      "online": "En línea",
+      "noLocation": "Por definir",
+      "joinDeadline": "Fecha límite para unirse",
+      "host": "Organiza",
+      "details": "Detalles",
+      "groupChatOn": "Activado",
+      "groupChatOff": "Desactivado",
+      "comingSoon": "Esta sección llega pronto.",
+      "tabs": {
+        "label": "Secciones del evento",
+        "overview": "Resumen",
+        "participants": "Participantes",
+        "wishlists": "Listas de deseos",
+        "chat": "Chat",
+        "manage": "Administrar"
+      }
+    },
+    "manage": {
+      "edit": {
+        "title": "Editar evento",
+        "submit": "Guardar cambios",
+        "saved": "Cambios guardados.",
+        "drawnNote": "El sorteo ya se hizo: solo puedes cambiar la descripción, el lugar y la fecha."
+      },
+      "delete": {
+        "title": "Eliminar evento",
+        "body": "Solo se puede eliminar antes del sorteo.",
+        "open": "Eliminar evento",
+        "confirmTitle": "¿Eliminar «{{name}}»?",
+        "warning": "Se borrarán sus participantes, listas de deseos y chats. Esto no se puede deshacer.",
+        "cancel": "Cancelar",
+        "confirm": "Sí, eliminar",
+        "done": "Evento eliminado."
+      }
+    },
+    "notFound": {
+      "title": "No encontramos este evento",
+      "body": "Puede que el enlace esté mal, que lo hayan eliminado o que no participes en él.",
+      "cta": "Volver a tus eventos"
     }
   },
   "invites": {

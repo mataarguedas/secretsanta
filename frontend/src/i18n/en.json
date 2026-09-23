@@ -230,7 +230,48 @@
       }
     },
     "detail": {
-      "title": "Event"
+      "title": "Event",
+      "loading": "Loading the event…",
+      "location": "Location",
+      "online": "Online",
+      "noLocation": "To be decided",
+      "joinDeadline": "Join deadline",
+      "host": "Hosted by",
+      "details": "Details",
+      "groupChatOn": "On",
+      "groupChatOff": "Off",
+      "comingSoon": "This section is coming soon.",
+      "tabs": {
+        "label": "Event sections",
+        "overview": "Overview",
+        "participants": "Participants",
+        "wishlists": "Wishlists",
+        "chat": "Chat",
+        "manage": "Manage"
+      }
+    },
+    "manage": {
+      "edit": {
+        "title": "Edit event",
+        "submit": "Save changes",
+        "saved": "Changes saved.",
+        "drawnNote": "The draw is done: you can only change the description, location and date."
+      },
+      "delete": {
+        "title": "Delete event",
+        "body": "An event can only be deleted before the draw.",
+        "open": "Delete event",
+        "confirmTitle": "Delete “{{name}}”?",
+        "warning": "Its participants, wishlists and chats will be erased. This can't be undone.",
+        "cancel": "Cancel",
+        "confirm": "Yes, delete",
+        "done": "Event deleted."
+      }
+    },
+    "notFound": {
+      "title": "We couldn't find this event",
+      "body": "The link may be wrong, the event may have been deleted, or you're not in it.",
+      "cta": "Back to your events"
     }
   },
   "invites": {

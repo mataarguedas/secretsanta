@@ -16,11 +16,17 @@ import {
   serverFieldMap,
   type EventFormOutput,
   type EventFormValues,
+  type EventSchemaOptions,
 } from '../schemas';
+
+const NONE: ReadonlySet<keyof EventFormValues> = new Set();
 
 export interface EventFormProps {
   submitLabel: string;
   defaultValues?: EventFormValues;
+  /** Read-only fields (e.g. everything but four after the draw). */
+  disabledFields?: ReadonlySet<keyof EventFormValues>;
+  schemaOptions?: EventSchemaOptions;
   /** Resolve on success; throw (e.g. an `ApiError`) to show errors. */
   onSubmit: (values: EventFormOutput) => Promise<unknown>;
 }
@@ -33,11 +39,19 @@ export interface EventFormProps {
 export function EventForm({
   submitLabel,
   defaultValues = emptyEventForm,
+  disabledFields = NONE,
+  schemaOptions,
   onSubmit,
 }: EventFormProps) {
   const { t } = useTranslation();
   const toast = useToast();
-  const schema = useMemo(() => createEventSchema(), []);
+  const originalExchangeAt = schemaOptions?.originalExchangeAt;
+  const schema = useMemo(
+    () =>
+      createEventSchema(undefined, originalExchangeAt === undefined ? {} : { originalExchangeAt }),
+    [originalExchangeAt],
+  );
+  const locked = (field: keyof EventFormValues) => disabledFields.has(field);
   const {
     register,
     control,
@@ -79,6 +93,7 @@ export function EventForm({
         label={t('events.form.name')}
         autoComplete="off"
         maxLength={EVENT_LIMITS.nameMax}
+        disabled={locked('name')}
         error={message(errors.name?.message)}
         {...register('name')}
       />
@@ -86,6 +101,7 @@ export function EventForm({
       <Textarea
         label={t('events.form.description')}
         maxLength={EVENT_LIMITS.descriptionMax}
+        disabled={locked('description')}
         help={t('events.form.descriptionCounter', {
           count: descriptionLength,
           max: EVENT_LIMITS.descriptionMax,
@@ -99,6 +115,7 @@ export function EventForm({
         prefix="₡"
         inputMode="numeric"
         autoComplete="off"
+        disabled={locked('budget')}
         help={t('events.form.budgetHelp')}
         error={message(errors.budget?.message)}
         {...register('budget')}
@@ -109,6 +126,7 @@ export function EventForm({
           type="datetime-local"
           label={t('events.form.exchangeAt')}
           min={minDate}
+          disabled={locked('exchangeAt')}
           error={message(errors.exchangeAt?.message)}
           {...register('exchangeAt')}
         />
@@ -116,6 +134,7 @@ export function EventForm({
           type="datetime-local"
           label={t('events.form.joinDeadline')}
           min={minDate}
+          disabled={locked('joinDeadline')}
           help={t('events.form.joinDeadlineHelp')}
           error={message(errors.joinDeadline?.message)}
           {...register('joinDeadline')}
@@ -127,7 +146,7 @@ export function EventForm({
           label={t('events.form.location')}
           autoComplete="off"
           maxLength={EVENT_LIMITS.locationMax}
-          disabled={isOnline}
+          disabled={isOnline || locked('location')}
           error={isOnline ? undefined : message(errors.location?.message)}
           {...register('location')}
         />
@@ -138,6 +157,7 @@ export function EventForm({
             <Switch
               label={t('events.form.online')}
               description={t('events.form.onlineHelp')}
+              disabled={locked('isOnline')}
               checked={field.value}
               onCheckedChange={field.onChange}
               onBlur={field.onBlur}
@@ -153,6 +173,7 @@ export function EventForm({
           <Switch
             label={t('events.form.groupChat')}
             description={t('events.form.groupChatHelp')}
+            disabled={locked('groupChatEnabled')}
             checked={field.value}
             onCheckedChange={field.onChange}
             onBlur={field.onBlur}

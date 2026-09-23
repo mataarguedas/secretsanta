@@ -1,8 +1,8 @@
 import { z } from 'zod';
 
-import { parseLocalInput, toIsoWithOffset } from '@/lib/datetime';
+import { parseLocalInput, toIsoWithOffset, toLocalInputValue } from '@/lib/datetime';
 
-import type { EventCreatePayload } from './api';
+import type { EventCreatePayload, EventDetail, EventState, EventUpdatePayload } from './api';
 
 /**
  * Mirrors the backend limits exactly (`app/schemas/events.py`, PRD FR-EVT-1). Messages are
@@ -54,8 +54,16 @@ export const emptyEventForm: EventFormValues = {
   groupChatEnabled: true,
 };
 
+export interface EventSchemaOptions {
+  /** Edit form: the saved exchange date. Left as is, it may already be in the past. */
+  originalExchangeAt?: string;
+}
+
 /** `now` is injectable so "must be in the future" is testable. */
-export function createEventSchema(now: () => Date = () => new Date()) {
+export function createEventSchema(
+  now: () => Date = () => new Date(),
+  { originalExchangeAt }: EventSchemaOptions = {},
+) {
   return z
     .object({
       name: z
@@ -74,7 +82,10 @@ export function createEventSchema(now: () => Date = () => new Date()) {
         .string()
         .min(1, E.exchangeRequired)
         .refine((v) => parseLocalInput(v) !== null, E.dateInvalid)
-        .refine((v) => (parseLocalInput(v)?.getTime() ?? 0) > now().getTime(), E.exchangeFuture),
+        .refine(
+          (v) => v === originalExchangeAt || (parseLocalInput(v)?.getTime() ?? 0) > now().getTime(),
+          E.exchangeFuture,
+        ),
       joinDeadline: z
         .string()
         .refine((v) => v === '' || parseLocalInput(v) !== null, E.dateInvalid),
@@ -128,3 +139,59 @@ export const serverFieldMap: Record<string, keyof EventFormValues> = {
   is_online: 'isOnline',
   group_chat_enabled: 'groupChatEnabled',
 };
+
+/** PRD §3: after the draw only these can change (mirrors the backend's DRAWN_EDITABLE). */
+const DRAWN_EDITABLE = new Set<keyof EventFormValues>([
+  'description',
+  'location',
+  'isOnline',
+  'exchangeAt',
+]);
+
+/** Form fields that are read-only in `state` (everything once archived). */
+export function lockedFields(state: EventState): ReadonlySet<keyof EventFormValues> {
+  const all = Object.keys(emptyEventForm) as (keyof EventFormValues)[];
+  if (state === 'open') return new Set();
+  if (state === 'drawn') return new Set(all.filter((field) => !DRAWN_EDITABLE.has(field)));
+  return new Set(all);
+}
+
+/** A saved event → the edit form's starting values (dates in the browser time zone). */
+export function eventToFormValues(event: EventDetail): EventFormValues {
+  const local = (iso: string | null) => (iso ? toLocalInputValue(new Date(iso)) : '');
+  return {
+    name: event.name,
+    description: event.description ?? '',
+    budget: String(event.budget_crc),
+    exchangeAt: local(event.exchange_at),
+    joinDeadline: local(event.join_deadline),
+    location: event.location ?? '',
+    isOnline: event.is_online,
+    groupChatEnabled: event.group_chat_enabled,
+  };
+}
+
+/** Same minute? The inputs have minute precision, so seconds must not count as a change. */
+function sameMinute(a: string | null, b: string | null): boolean {
+  if (a === null || b === null) return a === b;
+  return Math.floor(Date.parse(a) / 60_000) === Math.floor(Date.parse(b) / 60_000);
+}
+
+/** Only what actually changed, so a DRAWN event never sends a locked field. */
+export function toUpdatePayload(values: EventFormOutput, event: EventDetail): EventUpdatePayload {
+  const next = toCreatePayload(values);
+  const patch: EventUpdatePayload = {};
+  if (next.name !== event.name) patch.name = next.name;
+  if (next.description !== event.description) patch.description = next.description;
+  if (next.budget_crc !== event.budget_crc) patch.budget_crc = next.budget_crc;
+  if (!sameMinute(next.exchange_at, event.exchange_at)) patch.exchange_at = next.exchange_at;
+  if (!sameMinute(next.join_deadline, event.join_deadline)) {
+    patch.join_deadline = next.join_deadline;
+  }
+  if (next.location !== event.location) patch.location = next.location;
+  if (next.is_online !== event.is_online) patch.is_online = next.is_online;
+  if (next.group_chat_enabled !== event.group_chat_enabled) {
+    patch.group_chat_enabled = next.group_chat_enabled;
+  }
+  return patch;
+}
