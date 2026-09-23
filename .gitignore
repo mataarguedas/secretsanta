@@ -24,7 +24,6 @@ __pycache__/
 build/
 .venv/
 venv/
-.python-version
 .mypy_cache/
 .ruff_cache/
 .pytest_cache/
