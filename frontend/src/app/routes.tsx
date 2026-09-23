@@ -1,5 +1,6 @@
 import type { RouteObject } from 'react-router';
 
+import { CreateEventPage } from '@/features/events/pages/CreateEventPage';
 import { ProfilePage } from '@/features/profile/pages/ProfilePage';
 
 import { AppLayout } from './layout/AppLayout';
@@ -31,7 +32,7 @@ export const routes: RouteObject[] = [
       {
         element: <ProtectedRoute />,
         children: [
-          { path: 'events/new', element: <PlaceholderPage titleKey="events.create.title" /> },
+          { path: 'events/new', element: <CreateEventPage /> },
           {
             path: 'events/:id/:tab?',
             element: <PlaceholderPage titleKey="events.detail.title" />,

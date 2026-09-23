@@ -3,8 +3,7 @@ import { Navigate, useSearchParams } from 'react-router';
 import { useMe } from '@/features/auth/api';
 import { safeNext } from '@/features/auth/next';
 import { LandingPage } from '@/features/auth/pages/LandingPage';
-
-import { PlaceholderPage } from './PlaceholderPage';
+import { DashboardPage } from '@/features/events/pages/DashboardPage';
 
 /** `/`: the Landing when signed out, the dashboard when signed in. */
 export function HomeRoute() {
@@ -17,6 +16,5 @@ export function HomeRoute() {
   const next = safeNext(params.get('next'));
   if (next !== '/') return <Navigate to={next} replace />;
 
-  // TODO(prompt 10): the dashboard (Hosting / Participating / Past).
-  return <PlaceholderPage titleKey="events.dashboard.title" />;
+  return <DashboardPage />;
 }

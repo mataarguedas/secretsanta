@@ -9,6 +9,7 @@ import { AppProviders } from '@/app/providers';
 import { routes } from '@/app/routes';
 import { ToastProvider } from '@/components/ui';
 import type { Me } from '@/features/auth/api';
+import type { EventSection, EventSummary } from '@/features/events/api';
 import i18n from '@/i18n';
 
 export function createTestQueryClient(): QueryClient {
@@ -79,16 +80,22 @@ export function urlOf(input: string | URL | Request): string {
 
 /**
  * Fake backend for the session endpoints. `me: null` = signed out (`/me` 401, refresh 401).
- * `PATCH /me` merges the body into the stored user.
+ * `PATCH /me` merges the body into the stored user; `GET /events?section=` serves `events`.
  * Returns the fetch spy; `calls()` lists `METHOD path` in order.
  */
 export function mockSession({
   me: initial,
   patchError,
+  events = {},
+  createEvent,
 }: {
   me: Me | null;
   /** Make `PATCH /me` fail with this status (e.g. 500) instead of saving. */
   patchError?: number;
+  /** Dashboard lists (one page each); sections not given are empty. */
+  events?: Partial<Record<EventSection, EventSummary[]>>;
+  /** `POST /events` response for a given body (default: 201 with id `new-event`). */
+  createEvent?: (body: Record<string, unknown>) => Response;
 }) {
   let me = initial;
   const spy = vi.spyOn(globalThis, 'fetch').mockImplementation((input, init) => {
@@ -111,6 +118,18 @@ export function mockSession({
       me = { ...me, ...(JSON.parse(init?.body as string) as Partial<Me>) };
       return Promise.resolve(jsonResponse(200, me));
     }
+    if (url === '/api/v1/events' && method === 'POST') {
+      const body = JSON.parse(init?.body as string) as Record<string, unknown>;
+      return Promise.resolve(
+        createEvent ? createEvent(body) : jsonResponse(201, { ...body, id: 'new-event' }),
+      );
+    }
+    if (url.startsWith('/api/v1/events?') && method === 'GET') {
+      const section = new URL(url, 'http://x').searchParams.get('section') as EventSection;
+      return Promise.resolve(
+        jsonResponse(200, { items: events[section] ?? [], next_cursor: null }),
+      );
+    }
     if (url === '/api/v1/auth/logout') return Promise.resolve(new Response(null, { status: 204 }));
     return Promise.resolve(jsonResponse(404, { error: { code: 'NOT_FOUND', message: '' } }));
   });
@@ -118,4 +137,17 @@ export function mockSession({
     spy.mock.calls.map(([input, init]) => `${init?.method ?? 'GET'} ${urlOf(input)}`);
   const initOf = (path: string) => spy.mock.calls.find(([input]) => urlOf(input) === path)?.[1];
   return { spy, calls, initOf };
+}
+
+export function eventSummary(overrides: Partial<EventSummary> = {}): EventSummary {
+  return {
+    id: '0193d1c2-0000-7000-8000-000000000001',
+    name: 'Oficina 2026',
+    state: 'open',
+    participant_count: 1,
+    exchange_at: '2026-12-20T19:00:00-06:00',
+    budget_crc: 25000,
+    is_host: true,
+    ...overrides,
+  };
 }

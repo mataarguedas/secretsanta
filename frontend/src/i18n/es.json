@@ -161,11 +161,73 @@
     "home": "Secret Santa, inicio"
   },
   "events": {
+    "state": {
+      "open": "Abierto",
+      "drawn": "Sorteado",
+      "archived": "Archivado"
+    },
+    "card": {
+      "participants_one": "{{count}} participante",
+      "participants_many": "{{count}} participantes",
+      "participants_other": "{{count}} participantes",
+      "participantsLabel": "Participantes",
+      "date": "Fecha del intercambio",
+      "budget": "Presupuesto"
+    },
     "dashboard": {
-      "title": "Tus eventos"
+      "title": "Tus eventos",
+      "create": "Crear evento",
+      "loading": "Cargando tus eventos…",
+      "error": "No pudimos cargar esta sección.",
+      "retry": "Reintentar",
+      "loadMore": "Ver más",
+      "hostingEmpty": "Todavía no organizas ningún evento.",
+      "hosting": {
+        "eyebrow": "Organizando",
+        "title": "Eventos que organizas"
+      },
+      "participating": {
+        "title": "Eventos en los que participas"
+      },
+      "past": {
+        "title": "Pasados"
+      },
+      "empty": {
+        "title": "Tu primer intercambio empieza aquí",
+        "body": "Crea un evento e invita a tu gente con un enlace."
+      }
     },
     "create": {
-      "title": "Crear evento"
+      "title": "Crear evento",
+      "submit": "Crear evento"
+    },
+    "form": {
+      "name": "Nombre del evento",
+      "description": "Descripción (opcional)",
+      "descriptionCounter": "{{count}} / {{max}}",
+      "budget": "Presupuesto",
+      "budgetHelp": "Monto entero en colones.",
+      "exchangeAt": "Fecha y hora del intercambio",
+      "joinDeadline": "Fecha límite para unirse (opcional)",
+      "joinDeadlineHelp": "Después de esta fecha nadie más puede unirse.",
+      "location": "Lugar (opcional)",
+      "online": "En línea",
+      "onlineHelp": "El intercambio no tiene un lugar físico.",
+      "groupChat": "Chat grupal",
+      "groupChatHelp": "Todos los participantes pueden escribir.",
+      "errors": {
+        "nameLength": "Debe tener entre 3 y 80 caracteres.",
+        "descriptionLength": "Máximo 1000 caracteres.",
+        "budgetRequired": "Indica un presupuesto.",
+        "budgetInteger": "Usa solo números enteros, sin decimales.",
+        "budgetMax": "El monto es demasiado alto.",
+        "exchangeRequired": "Elige la fecha del intercambio.",
+        "dateInvalid": "Esa fecha no es válida.",
+        "exchangeFuture": "La fecha debe estar en el futuro.",
+        "deadlineBeforeExchange": "Debe ser antes de la fecha del intercambio.",
+        "locationLength": "Máximo 200 caracteres.",
+        "server": "Revisa este campo."
+      }
     },
     "detail": {
       "title": "Evento"

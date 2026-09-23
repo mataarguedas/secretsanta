@@ -1,4 +1,9 @@
 @layer base {
+  :root {
+    /* Mobile BottomTabBar height (without the safe-area inset): sticky form actions sit on it. */
+    --tab-bar-height: 71px;
+  }
+
   html {
     background-color: var(--color-cream-linen);
   }

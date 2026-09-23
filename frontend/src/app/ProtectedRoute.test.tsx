@@ -48,7 +48,9 @@ describe('ProtectedRoute', () => {
   it('signed in with a hostile next: stays on the dashboard', async () => {
     mockSession({ me: TEST_USER });
     const { router } = renderApp('/?next=%2F%2Fevil.example');
-    expect(await screen.findByRole('heading', { level: 1 })).toHaveTextContent('Tus eventos');
+    expect(
+      await screen.findByRole('heading', { level: 1, name: 'Tu primer intercambio empieza aquí' }),
+    ).toBeInTheDocument();
     expect(router.state.location.pathname).toBe('/');
   });
 });

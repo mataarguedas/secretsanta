@@ -77,9 +77,11 @@ describe('AppLayout (signed in)', () => {
     expect(main.className).toContain('pb-[calc(96px+env(safe-area-inset-bottom))]');
   });
 
-  it('shows the dashboard placeholder at /', async () => {
+  it('shows the dashboard at /', async () => {
     await renderSignedIn('/');
-    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Tus eventos');
+    expect(
+      await screen.findByRole('heading', { level: 1, name: 'Tu primer intercambio empieza aquí' }),
+    ).toBeInTheDocument();
     expect(screen.queryByRole('link', { name: 'Continuar con Google' })).not.toBeInTheDocument();
   });
 

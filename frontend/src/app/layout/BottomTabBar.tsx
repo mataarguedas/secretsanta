@@ -21,7 +21,8 @@ export function BottomTabBar({ className }: { className?: string }) {
         className,
       )}
     >
-      <ul className="mx-auto flex max-w-[640px] justify-around px-8 py-8">
+      {/* Fixed height (plus the 1px border = --tab-bar-height) so sticky actions can sit on it. */}
+      <ul className="mx-auto flex h-[70px] max-w-[640px] items-center justify-around px-8">
         {NAV_ITEMS.map(({ key, to, labelKey, Icon, isActive }) => {
           const active = isActive(pathname);
           return (

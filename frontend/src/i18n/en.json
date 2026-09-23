@@ -161,11 +161,73 @@
     "home": "Secret Santa, home"
   },
   "events": {
+    "state": {
+      "open": "Open",
+      "drawn": "Drawn",
+      "archived": "Archived"
+    },
+    "card": {
+      "participants_one": "{{count}} participant",
+      "participants_many": "{{count}} participants",
+      "participants_other": "{{count}} participants",
+      "participantsLabel": "Participants",
+      "date": "Exchange date",
+      "budget": "Budget"
+    },
     "dashboard": {
-      "title": "Your events"
+      "title": "Your events",
+      "create": "Create event",
+      "loading": "Loading your events…",
+      "error": "We couldn't load this section.",
+      "retry": "Try again",
+      "loadMore": "Show more",
+      "hostingEmpty": "You're not hosting any events yet.",
+      "hosting": {
+        "eyebrow": "Hosting",
+        "title": "Events you host"
+      },
+      "participating": {
+        "title": "Events you're in"
+      },
+      "past": {
+        "title": "Past"
+      },
+      "empty": {
+        "title": "Your first exchange starts here",
+        "body": "Create an event and invite your people with a link."
+      }
     },
     "create": {
-      "title": "Create event"
+      "title": "Create event",
+      "submit": "Create event"
+    },
+    "form": {
+      "name": "Event name",
+      "description": "Description (optional)",
+      "descriptionCounter": "{{count}} / {{max}}",
+      "budget": "Budget",
+      "budgetHelp": "Whole amount in colones.",
+      "exchangeAt": "Exchange date and time",
+      "joinDeadline": "Join deadline (optional)",
+      "joinDeadlineHelp": "After this date no one else can join.",
+      "location": "Location (optional)",
+      "online": "Online",
+      "onlineHelp": "The exchange has no physical place.",
+      "groupChat": "Group chat",
+      "groupChatHelp": "Every participant can post.",
+      "errors": {
+        "nameLength": "Must be between 3 and 80 characters.",
+        "descriptionLength": "1000 characters at most.",
+        "budgetRequired": "Enter a budget.",
+        "budgetInteger": "Use whole numbers only, no decimals.",
+        "budgetMax": "That amount is too high.",
+        "exchangeRequired": "Choose the exchange date.",
+        "dateInvalid": "That date isn't valid.",
+        "exchangeFuture": "The date must be in the future.",
+        "deadlineBeforeExchange": "Must be before the exchange date.",
+        "locationLength": "200 characters at most.",
+        "server": "Check this field."
+      }
     },
     "detail": {
       "title": "Event"
