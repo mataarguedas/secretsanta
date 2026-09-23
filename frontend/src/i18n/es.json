@@ -218,6 +218,12 @@
     "UNAUTHENTICATED": "Tu sesión expiró. Inicia sesión de nuevo.",
     "AUTH_REQUIRED": "Inicia sesión para continuar.",
     "AUTH_REFRESH_INVALID": "Tu sesión expiró. Inicia sesión de nuevo.",
-    "AUTH_OAUTH_FAILED": "No pudimos iniciar sesión con Google. Inténtalo de nuevo."
+    "AUTH_OAUTH_FAILED": "No pudimos iniciar sesión con Google. Inténtalo de nuevo.",
+    "EVENT_NOT_FOUND": "No encontramos este evento.",
+    "HOST_ONLY": "Solo quien organiza el evento puede hacer esto.",
+    "EVENT_ALREADY_DRAWN": "El sorteo ya se hizo, así que esto ya no se puede cambiar.",
+    "EVENT_ARCHIVED": "Este evento está archivado y es de solo lectura.",
+    "EVENT_NOT_DRAWN": "El sorteo todavía no se ha hecho.",
+    "EVENT_FIELD_LOCKED": "Después del sorteo solo se pueden cambiar la descripción, el lugar y la fecha."
   }
 }

@@ -28,6 +28,13 @@ ERROR_REGISTRY: Final[dict[str, str]] = {
     "AUTH_REQUIRED": "Sign in to continue.",
     "AUTH_REFRESH_INVALID": "Your session has expired. Sign in again.",
     "AUTH_OAUTH_FAILED": "Google sign-in failed. Please try again.",
+    # Events (Prompt 9)
+    "EVENT_NOT_FOUND": "Event not found.",
+    "HOST_ONLY": "Only the host can do this.",
+    "EVENT_ALREADY_DRAWN": "The draw has already happened.",
+    "EVENT_ARCHIVED": "This event is archived and read-only.",
+    "EVENT_NOT_DRAWN": "The draw hasn't happened yet.",
+    "EVENT_FIELD_LOCKED": "After the draw only the description, location and date can change.",
 }
 
 _STATUS_TO_CODE: Final[dict[int, str]] = {

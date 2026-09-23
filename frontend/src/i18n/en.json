@@ -218,6 +218,12 @@
     "UNAUTHENTICATED": "Your session expired. Please sign in again.",
     "AUTH_REQUIRED": "Sign in to continue.",
     "AUTH_REFRESH_INVALID": "Your session expired. Please sign in again.",
-    "AUTH_OAUTH_FAILED": "Google sign-in failed. Please try again."
+    "AUTH_OAUTH_FAILED": "Google sign-in failed. Please try again.",
+    "EVENT_NOT_FOUND": "We couldn't find this event.",
+    "HOST_ONLY": "Only the host can do this.",
+    "EVENT_ALREADY_DRAWN": "The draw has already happened, so this can't change anymore.",
+    "EVENT_ARCHIVED": "This event is archived and read-only.",
+    "EVENT_NOT_DRAWN": "The draw hasn't happened yet.",
+    "EVENT_FIELD_LOCKED": "After the draw only the description, location and date can change."
   }
 }
