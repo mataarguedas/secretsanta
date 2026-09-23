@@ -8,15 +8,19 @@
       "cta": "Back home"
     }
   },
-  "home": {
-    "eyebrow": "Gift exchange",
-    "title": "Giving is better in secret.",
-    "body": "Organize your exchange, build your wishlist and find out who you're giving to.",
-    "health": {
-      "label": "Server status",
-      "loading": "checking…",
-      "ok": "ok",
-      "error": "unreachable"
+  "auth": {
+    "landing": {
+      "title": "Giving is better in secret.",
+      "body": "Organize your exchange, build your wishlist and find out who you're giving to.",
+      "cta": "Continue with Google"
+    },
+    "session": {
+      "loading": "Loading your session…",
+      "error": {
+        "title": "We couldn't connect",
+        "body": "Check your connection and try again.",
+        "retry": "Try again"
+      }
     }
   },
   "ui": {

@@ -173,5 +173,5 @@ export function createApiClient(config: ApiClientConfig = {}): ApiClient {
   };
 }
 
-/** App-wide client. TODO(prompt 7): wire setOnUnauthenticated to the auth redirect. */
+/** App-wide client. `AppProviders` binds `onUnauthenticated` to the session query. */
 export const apiClient = createApiClient();

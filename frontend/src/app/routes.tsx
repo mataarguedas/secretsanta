@@ -1,7 +1,7 @@
 import type { RouteObject } from 'react-router';
 
 import { AppLayout } from './layout/AppLayout';
-import { HomePage } from './pages/HomePage';
+import { HomeRoute } from './pages/HomeRoute';
 import { NotFoundPage } from './pages/NotFoundPage';
 import { PlaceholderPage } from './pages/PlaceholderPage';
 import { ProtectedRoute } from './ProtectedRoute';
@@ -22,8 +22,8 @@ export const routes: RouteObject[] = [
   {
     element: <AppLayout />,
     children: [
-      // TODO(prompt 7): landing when signed out, dashboard when signed in.
-      { index: true, element: <HomePage /> },
+      // Public: the landing (or dashboard when signed in), legal pages, 404, dev showcase.
+      { index: true, element: <HomeRoute /> },
       { path: 'privacy', element: <PlaceholderPage titleKey="legal.privacy.title" /> },
       { path: 'terms', element: <PlaceholderPage titleKey="legal.terms.title" /> },
       {
@@ -34,6 +34,8 @@ export const routes: RouteObject[] = [
             path: 'events/:id/:tab?',
             element: <PlaceholderPage titleKey="events.detail.title" />,
           },
+          // TODO(prompt 12): the join screen gets its own sign-in step; until then it
+          // redirects to `/?next=` like every other protected route.
           { path: 'join/:token', element: <PlaceholderPage titleKey="invites.join.title" /> },
           { path: 'chats', element: <PlaceholderPage titleKey="chat.list.title" /> },
           {

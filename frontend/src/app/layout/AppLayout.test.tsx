@@ -1,45 +1,25 @@
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { render, screen, waitFor, within } from '@testing-library/react';
+import { screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { I18nextProvider } from 'react-i18next';
-import { createMemoryRouter, RouterProvider } from 'react-router';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { axe } from 'vitest-axe';
 
-import { ToastProvider } from '@/components/ui';
 import i18n from '@/i18n';
-
-import { routes } from '../routes';
-
-function renderAt(path: string) {
-  const router = createMemoryRouter(routes, { initialEntries: [path] });
-  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-  const utils = render(
-    <I18nextProvider i18n={i18n}>
-      <QueryClientProvider client={queryClient}>
-        <ToastProvider>
-          <RouterProvider router={router} />
-        </ToastProvider>
-      </QueryClientProvider>
-    </I18nextProvider>,
-  );
-  return { router, ...utils };
-}
+import { jsonResponse, mockSession, renderApp, TEST_USER } from '@/test/render';
 
 const desktopNav = () => screen.getByRole('navigation', { name: 'Navegación principal' });
 const tabBar = () => screen.getByRole('navigation', { name: 'Navegación' });
 
-describe('AppLayout', () => {
-  beforeEach(() => {
-    vi.spyOn(globalThis, 'fetch').mockResolvedValue(
-      new Response(JSON.stringify({ status: 'ok', db: 'ok', redis: 'ok' }), {
-        headers: { 'Content-Type': 'application/json' },
-      }),
-    );
-  });
+/** Signed-in app at `path`, once the session has resolved. */
+async function renderSignedIn(path: string, me = TEST_USER) {
+  mockSession({ me });
+  const utils = renderApp(path);
+  await screen.findByRole('main');
+  return utils;
+}
 
-  it('desktop header: Events and Chats pills, centered wordmark, profile avatar', () => {
-    renderAt('/');
+describe('AppLayout (signed in)', () => {
+  it('desktop header: Events and Chats pills, centered wordmark, the Google avatar', async () => {
+    await renderSignedIn('/');
     const header = desktopNav().parentElement ?? document.body;
     expect(header).toHaveClass('hidden', 'md:grid', 'max-w-[1200px]');
     const links = within(desktopNav()).getAllByRole('link');
@@ -48,14 +28,24 @@ describe('AppLayout', () => {
     expect(within(header).getByRole('link', { name: 'Secret Santa, inicio' })).toHaveClass(
       'font-serif',
     );
-    expect(within(header).getByRole('link', { name: 'Perfil' })).toHaveAttribute(
-      'href',
-      '/profile',
+    const profile = within(header).getByRole('link', { name: 'Perfil' });
+    expect(profile).toHaveAttribute('href', '/profile');
+    expect(within(profile).getByRole('img', { name: 'Perfil' })).toHaveAttribute(
+      'src',
+      TEST_USER.avatar_url,
     );
   });
 
-  it('marks the active section in both navs (coral pill)', () => {
-    renderAt('/events/123/wishlists');
+  it('falls back to the initials of the name without a Google photo', async () => {
+    await renderSignedIn('/', { ...TEST_USER, avatar_url: null });
+    const profile = within(desktopNav().parentElement ?? document.body).getByRole('link', {
+      name: 'Perfil',
+    });
+    expect(within(profile).getByRole('img', { name: 'Perfil' })).toHaveTextContent('AR');
+  });
+
+  it('marks the active section in both navs (coral pill)', async () => {
+    await renderSignedIn('/events/123/wishlists');
     const events = within(desktopNav()).getByRole('link', { name: 'Eventos' });
     expect(events).toHaveAttribute('aria-current', 'page');
     expect(events).toHaveClass('bg-coral-pop');
@@ -68,8 +58,8 @@ describe('AppLayout', () => {
     expect(tab).toHaveClass('bg-coral-pop', 'rounded-full-2');
   });
 
-  it('bottom tab bar: fixed, mobile only, safe-area padded, three tabs', () => {
-    renderAt('/chats/abc');
+  it('bottom tab bar: fixed, mobile only, safe-area padded, three tabs', async () => {
+    await renderSignedIn('/chats/abc');
     expect(tabBar()).toHaveClass('fixed', 'bottom-0', 'md:hidden');
     expect(tabBar().className).toContain('pb-[env(safe-area-inset-bottom)]');
     const tabs = within(tabBar()).getAllByRole('link');
@@ -80,11 +70,17 @@ describe('AppLayout', () => {
     );
   });
 
-  it('pads the content so nothing hides behind the tab bar', () => {
-    renderAt('/profile');
+  it('pads the content so nothing hides behind the tab bar', async () => {
+    await renderSignedIn('/profile');
     const main = screen.getByRole('main');
     expect(main).toHaveClass('max-w-[1200px]', 'mx-auto', 'gap-32', 'md:gap-[64px]');
     expect(main.className).toContain('pb-[calc(96px+env(safe-area-inset-bottom))]');
+  });
+
+  it('shows the dashboard placeholder at /', async () => {
+    await renderSignedIn('/');
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Tus eventos');
+    expect(screen.queryByRole('link', { name: 'Continuar con Google' })).not.toBeInTheDocument();
   });
 
   it.each([
@@ -97,21 +93,21 @@ describe('AppLayout', () => {
     ['/profile', 'Perfil'],
     ['/privacy', 'Política de privacidad'],
     ['/terms', 'Términos del servicio'],
-  ])('%s shows its placeholder title', (path, title) => {
-    renderAt(path);
+  ])('%s shows its placeholder title', async (path, title) => {
+    await renderSignedIn(path);
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(title);
     expect(document.title).toBe(`${title} · Secret Santa`);
   });
 
-  it('unknown paths show the not-found page', () => {
-    renderAt('/nope');
+  it('unknown paths show the not-found page', async () => {
+    await renderSignedIn('/nope');
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(
       'No encontramos esta página',
     );
   });
 
   it('serves /__ui in development', async () => {
-    renderAt('/__ui');
+    await renderSignedIn('/__ui');
     expect(
       await screen.findByRole('heading', { level: 1, name: 'Componentes de interfaz' }),
     ).toBeInTheDocument();
@@ -119,14 +115,14 @@ describe('AppLayout', () => {
 
   it('navigates with the tab bar', async () => {
     const user = userEvent.setup();
-    const { router } = renderAt('/');
+    const { router } = await renderSignedIn('/');
     await user.click(within(tabBar()).getByRole('link', { name: 'Chats' }));
     expect(router.state.location.pathname).toBe('/chats');
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Chats');
   });
 
-  it('has a skip link to the main content', () => {
-    renderAt('/profile');
+  it('has a skip link to the main content', async () => {
+    await renderSignedIn('/profile');
     expect(screen.getByRole('link', { name: 'Saltar al contenido' })).toHaveAttribute(
       'href',
       '#main',
@@ -134,11 +130,77 @@ describe('AppLayout', () => {
     expect(screen.getByRole('main')).toHaveAttribute('id', 'main');
   });
 
+  it('switches the UI to the saved locale', async () => {
+    await renderSignedIn('/profile', { ...TEST_USER, locale: 'en' });
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Profile');
+    expect(i18n.language).toBe('en');
+    expect(document.documentElement.lang).toBe('en');
+    expect(
+      within(screen.getByRole('navigation', { name: 'Navigation' }))
+        .getAllByRole('link')
+        .map((l) => l.textContent),
+    ).toEqual(['Events', 'Chats', 'Profile']);
+  });
+
   it('has no axe violations', async () => {
-    const { container } = renderAt('/');
-    await waitFor(() => {
-      expect(screen.getByTestId('health')).toHaveTextContent('ok');
-    });
+    const { container } = await renderSignedIn('/');
     expect(await axe(container)).toHaveNoViolations();
+  });
+});
+
+describe('AppLayout (signed out)', () => {
+  it('shows only the centered wordmark bar: no nav pills, no tab bar', async () => {
+    mockSession({ me: null });
+    renderApp('/privacy');
+    const main = await screen.findByRole('main');
+    expect(screen.getByRole('link', { name: 'Secret Santa, inicio' })).toBeInTheDocument();
+    expect(screen.queryByRole('navigation')).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Perfil' })).not.toBeInTheDocument();
+    expect(main.className).not.toContain('96px');
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Política de privacidad');
+  });
+
+  it('keeps the browser language', async () => {
+    mockSession({ me: null });
+    renderApp('/');
+    await screen.findByRole('main');
+    expect(i18n.language).toBe('es');
+  });
+});
+
+describe('AppLayout (resolving the session)', () => {
+  it('shows a full-page loading state, and no layout, while /me is pending', async () => {
+    let resolve: (r: Response) => void = () => undefined;
+    vi.spyOn(globalThis, 'fetch').mockReturnValue(
+      new Promise<Response>((r) => {
+        resolve = r;
+      }),
+    );
+    renderApp('/profile');
+    expect(screen.getByRole('status')).toHaveTextContent('Cargando tu sesión…');
+    expect(screen.queryByRole('main')).not.toBeInTheDocument();
+    expect(screen.queryByRole('navigation')).not.toBeInTheDocument();
+    expect(screen.queryByRole('banner')).not.toBeInTheDocument();
+
+    resolve(jsonResponse(200, TEST_USER));
+    expect(await screen.findByRole('heading', { level: 1 })).toHaveTextContent('Perfil');
+    expect(screen.queryByRole('status')).not.toBeInTheDocument();
+  });
+
+  it('offers a retry when the session check fails (not a sign-out)', async () => {
+    const user = userEvent.setup();
+    const fetchSpy = vi
+      .spyOn(globalThis, 'fetch')
+      .mockRejectedValueOnce(new TypeError('Failed to fetch'))
+      .mockResolvedValue(jsonResponse(200, TEST_USER));
+    const { router } = renderApp('/profile');
+
+    expect(
+      await screen.findByRole('heading', { level: 1, name: 'No pudimos conectarnos' }),
+    ).toBeInTheDocument();
+    expect(router.state.location.pathname).toBe('/profile'); // not redirected to the landing
+    await user.click(screen.getByRole('button', { name: 'Reintentar' }));
+    expect(await screen.findByRole('heading', { level: 1, name: 'Perfil' })).toBeInTheDocument();
+    expect(fetchSpy).toHaveBeenCalledTimes(2);
   });
 });

@@ -8,15 +8,19 @@
       "cta": "Volver al inicio"
     }
   },
-  "home": {
-    "eyebrow": "Intercambio de regalos",
-    "title": "Regalar es mejor en secreto.",
-    "body": "Organiza tu intercambio, arma tu lista de deseos y descubre a quién le regalas.",
-    "health": {
-      "label": "Estado del servidor",
-      "loading": "comprobando…",
-      "ok": "ok",
-      "error": "sin conexión"
+  "auth": {
+    "landing": {
+      "title": "Regalar es mejor en secreto.",
+      "body": "Organiza tu intercambio, arma tu lista de deseos y descubre a quién le regalas.",
+      "cta": "Continuar con Google"
+    },
+    "session": {
+      "loading": "Cargando tu sesión…",
+      "error": {
+        "title": "No pudimos conectarnos",
+        "body": "Revisa tu conexión e inténtalo de nuevo.",
+        "retry": "Reintentar"
+      }
     }
   },
   "ui": {
