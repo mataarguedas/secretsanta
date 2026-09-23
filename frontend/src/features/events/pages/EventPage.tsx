@@ -11,6 +11,7 @@ import { EventHeader } from '../components/EventHeader';
 import { EventNotFound } from '../components/EventNotFound';
 import { EventOverview } from '../components/EventOverview';
 import { ManageTab } from '../components/ManageTab';
+import { ParticipantsTab } from '../components/ParticipantsTab';
 import { EVENT_TABS, eventTabPath, isEventTab, type EventTab } from '../tabs';
 
 /**
@@ -79,9 +80,8 @@ function EventView({ event, tab }: { event: EventDetail; tab: EventTab }) {
         <TabPanel value="overview">
           <EventOverview event={event} />
         </TabPanel>
-        {/* TODO(prompt 13): participants list, leave and remove. */}
         <TabPanel value="participants">
-          <ComingSoon />
+          <ParticipantsTab event={event} />
         </TabPanel>
         {/* TODO(prompt 19): wishlists. */}
         <TabPanel value="wishlists">

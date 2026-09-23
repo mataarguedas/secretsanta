@@ -9,7 +9,7 @@ import { AppProviders } from '@/app/providers';
 import { routes } from '@/app/routes';
 import { ToastProvider } from '@/components/ui';
 import type { Me } from '@/features/auth/api';
-import type { EventDetail, EventSection, EventSummary } from '@/features/events/api';
+import type { EventDetail, EventSection, EventSummary, Participant } from '@/features/events/api';
 import type { InvitePreview } from '@/features/invites/api';
 import i18n from '@/i18n';
 
@@ -92,6 +92,7 @@ export function mockSession({
   eventDetails = {},
   invites = {},
   joinResponse,
+  participants = {},
 }: {
   me: Me | null;
   /** Make `PATCH /me` fail with this status (e.g. 500) instead of saving. */
@@ -106,7 +107,10 @@ export function mockSession({
   invites?: Record<string, InvitePreview>;
   /** `POST /invites/{token}/join` (default: 200 with event id `joined-event`). */
   joinResponse?: (token: string) => Response;
+  /** Rosters by event id (`GET /events/{id}/participants`, remove and leave). */
+  participants?: Record<string, Participant[]>;
 }) {
+  const rosters = new Map(Object.entries(participants));
   let regenerated = 0;
   const details = new Map(Object.entries(eventDetails));
   let me = initial;
@@ -133,7 +137,9 @@ export function mockSession({
     if (url === '/api/v1/events' && method === 'POST') {
       const body = JSON.parse(init?.body as string) as Record<string, unknown>;
       return Promise.resolve(
-        createEvent ? createEvent(body) : jsonResponse(201, { ...body, id: 'new-event' }),
+        createEvent
+          ? createEvent(body)
+          : jsonResponse(201, eventDetail({ ...(body as Partial<EventDetail>), id: 'new-event' })),
       );
     }
     if (url.startsWith('/api/v1/events?') && method === 'GET') {
@@ -141,6 +147,31 @@ export function mockSession({
       return Promise.resolve(
         jsonResponse(200, { items: events[section] ?? [], next_cursor: null }),
       );
+    }
+    const rosterMatch = /^\/api\/v1\/events\/([^/?]+)\/(participants(?:\/([^/?]+))?|leave)$/.exec(
+      url,
+    );
+    if (rosterMatch?.[1]) {
+      const id = rosterMatch[1];
+      const event = details.get(id);
+      if (!event) return Promise.resolve(jsonResponse(404, { error: { code: 'EVENT_NOT_FOUND' } }));
+      const list = rosters.get(id) ?? [];
+      const drop = (userId: string | undefined) => {
+        rosters.set(
+          id,
+          list.filter((p) => p.user_id !== userId),
+        );
+        details.set(id, { ...event, participant_count: event.participant_count - 1 });
+      };
+      if (rosterMatch[2] === 'leave') {
+        details.delete(id);
+        return Promise.resolve(new Response(null, { status: 204 }));
+      }
+      if (method === 'DELETE') {
+        drop(rosterMatch[3]);
+        return Promise.resolve(new Response(null, { status: 204 }));
+      }
+      return Promise.resolve(jsonResponse(200, list));
     }
     const inviteMatch = /^\/api\/v1\/events\/([^/?]+)\/invite(\/regenerate)?$/.exec(url);
     if (inviteMatch?.[1]) {
@@ -245,6 +276,18 @@ export function invitePreview(overrides: Partial<InvitePreview> = {}): InvitePre
     event_id: null,
     joinable: true,
     reason: null,
+    ...overrides,
+  };
+}
+
+export function participant(overrides: Partial<Participant> = {}): Participant {
+  return {
+    user_id: 'u-beto',
+    name: 'Beto Solís',
+    avatar_url: null,
+    is_host: false,
+    is_self: false,
+    joined_at: '2026-09-23T12:00:00Z',
     ...overrides,
   };
 }

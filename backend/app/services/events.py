@@ -21,6 +21,7 @@ from app.schemas.events import (
     EventSummary,
     EventUpdate,
     HostEventDetail,
+    ParticipantPublic,
     Section,
     UserPublic,
 )
@@ -107,6 +108,35 @@ async def build_event_detail(session: AsyncSession, event: Event, viewer: User) 
     if is_host:
         return HostEventDetail(**fields, invite_token=event.invite_token)
     return EventDetail(**fields)
+
+
+async def list_participants(
+    session: AsyncSession, event: Event, viewer_id: uuid.UUID
+) -> list[ParticipantPublic]:
+    """The roster: host first, then in joining order. Never emails."""
+    rows = (
+        await session.execute(
+            select(User.id, User.name, User.avatar_url, EventParticipant.joined_at)
+            .join(EventParticipant, EventParticipant.user_id == User.id)
+            .where(EventParticipant.event_id == event.id)
+            .order_by(
+                (User.id != event.host_id).asc(),
+                EventParticipant.joined_at.asc(),
+                EventParticipant.id.asc(),
+            )
+        )
+    ).all()
+    return [
+        ParticipantPublic(
+            user_id=user_id,
+            name=name,
+            avatar_url=avatar_url,
+            is_host=user_id == event.host_id,
+            is_self=user_id == viewer_id,
+            joined_at=joined_at,
+        )
+        for user_id, name, avatar_url, joined_at in rows
+    ]
 
 
 # ── Dashboard (cursor pagination) ────────────────────────────────────────────
@@ -229,4 +259,25 @@ async def delete_event(session: AsyncSession, event: Event) -> None:
     """OPEN only (checked by the route). Participants cascade in the database."""
     # TODO(prompt 18): enqueue deletion of the cover photo's R2 objects after commit.
     await session.execute(delete(Event).where(Event.id == event.id))
+    await session.commit()
+
+
+async def remove_participant(session: AsyncSession, event: Event, user_id: uuid.UUID) -> None:
+    """Take ``user_id`` off an OPEN event's roster (host remove or self leave).
+
+    The caller holds the event row lock and has checked the state; this is the one place
+    that knows everything a participant owns inside an event.
+    """
+    if user_id == event.host_id:
+        raise AppError("HOST_CANNOT_LEAVE", 409)
+    result = await session.execute(
+        delete(EventParticipant).where(
+            EventParticipant.event_id == event.id, EventParticipant.user_id == user_id
+        )
+    )
+    if getattr(result, "rowcount", 0) == 0:
+        raise AppError("PARTICIPANT_NOT_FOUND", 404)
+    # TODO(prompt 15): delete the user's exclusions in this event (FR-EXC-3).
+    # TODO(prompt 19): delete their wishlist items and enqueue R2 cleanup of the photos.
+    # TODO(prompt 21): remove them from the event's group chat membership.
     await session.commit()

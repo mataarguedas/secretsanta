@@ -1,5 +1,6 @@
 """Events: create, dashboard lists, detail, edit, delete (PRD §4.2, §8)."""
 
+import uuid
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, Query, Response
@@ -21,6 +22,7 @@ from app.schemas.events import (
     EventPage,
     EventUpdate,
     HostEventDetail,
+    ParticipantPublic,
     Section,
 )
 from app.services import events as service
@@ -102,3 +104,34 @@ async def disable_invite(
     """FR-INV-2: turn the link off (token NULL). Archived events are read-only."""
     event = await invite_service.disable_invite(session, access.event)
     return await service.build_event_detail(session, event, access.user)
+
+
+@router.get("/{event_id}/participants", response_model=list[ParticipantPublic])
+async def list_participants(
+    access: EventAccess = Depends(require_participant),
+    session: AsyncSession = Depends(get_db),
+) -> list[ParticipantPublic]:
+    return await service.list_participants(session, access.event, access.user.id)
+
+
+@router.delete("/{event_id}/participants/{user_id}", status_code=204)
+async def remove_participant(
+    user_id: uuid.UUID,
+    access: EventAccess = Depends(require_host),
+    _state: EventAccess = Depends(require_event_state(EventState.OPEN, roster=True)),
+    session: AsyncSession = Depends(get_db),
+) -> Response:
+    """Host, OPEN only (frozen roster after the draw, CLAUDE.md §2.3)."""
+    await service.remove_participant(session, access.event, user_id)
+    return Response(status_code=204)
+
+
+@router.post("/{event_id}/leave", status_code=204)
+async def leave_event(
+    access: EventAccess = Depends(require_participant),
+    _state: EventAccess = Depends(require_event_state(EventState.OPEN, roster=True)),
+    session: AsyncSession = Depends(get_db),
+) -> Response:
+    """Participant, OPEN only. The host can't leave (HOST_CANNOT_LEAVE)."""
+    await service.remove_participant(session, access.event, access.user.id)
+    return Response(status_code=204)

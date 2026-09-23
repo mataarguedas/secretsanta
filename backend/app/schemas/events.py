@@ -131,3 +131,14 @@ class HostEventDetail(EventDetail):
     """The host's view adds the invite token (NULL when the link is disabled)."""
 
     invite_token: str | None
+
+
+class ParticipantPublic(BaseModel):
+    """A roster row. Any participant may see it, so never the email."""
+
+    user_id: uuid.UUID
+    name: str
+    avatar_url: str | None
+    is_host: bool
+    is_self: bool
+    joined_at: datetime

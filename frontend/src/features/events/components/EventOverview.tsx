@@ -6,6 +6,7 @@ import { InviteBanner } from '@/features/invites/components/InviteBanner';
 import { formatCRC, formatDateTime } from '@/lib/format';
 
 import type { EventDetail } from '../api';
+import { LeaveEventButton } from './LeaveEventButton';
 
 /**
  * Overview tab: the invite nudge (host alone in an OPEN event), the description (line
@@ -59,6 +60,7 @@ export function EventOverview({ event }: { event: EventDetail }) {
             ))}
           </dl>
         </Card>
+        <LeaveEventButton event={event} />
       </div>
 
       <Card as="section" aria-labelledby="event-host" className="flex flex-col gap-12 self-start">

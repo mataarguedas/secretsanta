@@ -78,7 +78,7 @@ describe('EventPage tabs ↔ URL', () => {
       'aria-selected',
       'true',
     );
-    expect(screen.getByRole('tabpanel')).toHaveTextContent('Esta sección llega pronto.');
+    expect(screen.getByRole('tabpanel')).toHaveAttribute('aria-labelledby');
 
     await user.click(screen.getByRole('tab', { name: 'Chat' }));
     expect(location(router)).toBe('/events/e1/chat');

@@ -50,6 +50,16 @@ export interface EventDetail {
   invite_token?: string | null;
 }
 
+/** A roster row (`GET /events/{id}/participants`). Never an email. */
+export interface Participant {
+  user_id: string;
+  name: string;
+  avatar_url: string | null;
+  is_host: boolean;
+  is_self: boolean;
+  joined_at: string;
+}
+
 /** `POST /events` body. */
 export interface EventCreatePayload {
   name: string;
@@ -69,6 +79,7 @@ export const eventKeys = {
   all: ['events'] as const,
   section: (section: EventSection) => ['events', { section }] as const,
   detail: (id: string) => ['events', id] as const,
+  participants: (id: string) => ['events', id, 'participants'] as const,
 };
 
 export function useEvents(section: EventSection) {
@@ -130,6 +141,40 @@ export function useDeleteEvent(id: string) {
     onSuccess: async () => {
       await navigate('/', { replace: true });
       queryClient.removeQueries({ queryKey: eventKeys.detail(id), exact: true });
+      await queryClient.invalidateQueries({ queryKey: eventKeys.all });
+    },
+  });
+}
+
+export function useParticipants(eventId: string) {
+  return useQuery({
+    queryKey: eventKeys.participants(eventId),
+    queryFn: ({ signal }) =>
+      apiClient.get<Participant[]>(`/events/${eventId}/participants`, { signal }),
+  });
+}
+
+/** Host removes someone (OPEN only). Refreshes the roster, the header count and the cards. */
+export function useRemoveParticipant(eventId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (userId: string) =>
+      apiClient.delete<undefined>(`/events/${eventId}/participants/${userId}`),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: eventKeys.all });
+    },
+  });
+}
+
+/** Leave (OPEN, not the host), then go to the dashboard before dropping the event's cache. */
+export function useLeaveEvent(eventId: string) {
+  const queryClient = useQueryClient();
+  const navigate = useNavigate();
+  return useMutation({
+    mutationFn: () => apiClient.post<undefined>(`/events/${eventId}/leave`),
+    onSuccess: async () => {
+      await navigate('/', { replace: true });
+      queryClient.removeQueries({ queryKey: eventKeys.detail(eventId) });
       await queryClient.invalidateQueries({ queryKey: eventKeys.all });
     },
   });

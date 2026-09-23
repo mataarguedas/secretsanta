@@ -272,6 +272,25 @@
       "title": "No encontramos este evento",
       "body": "Puede que el enlace esté mal, que lo hayan eliminado o que no participes en él.",
       "cta": "Volver a tus eventos"
+    },
+    "participants": {
+      "loading": "Cargando participantes…",
+      "list": "Participantes",
+      "host": "Organiza",
+      "you": "(tú)",
+      "remove": "Quitar",
+      "removeLabel": "Quitar a {{name}}",
+      "removeTitle": "¿Quitar a {{name}}?",
+      "removeBody": "Perderá acceso al evento. Puede volver a unirse con el enlace mientras el evento esté abierto.",
+      "removeConfirm": "Sí, quitar",
+      "removed": "{{name}} ya no participa."
+    },
+    "leave": {
+      "open": "Salir del evento",
+      "title": "¿Salir de «{{name}}»?",
+      "body": "Dejarás de ver el evento y tu lista de deseos. Puedes volver con el enlace mientras esté abierto.",
+      "confirm": "Sí, salir",
+      "done": "Saliste de «{{name}}»."
     }
   },
   "invites": {
@@ -370,6 +389,8 @@
     "EVENT_FIELD_LOCKED": "Después del sorteo solo se pueden cambiar la descripción, el lugar y la fecha.",
     "INVITE_INVALID": "Este enlace de invitación no es válido.",
     "JOIN_DEADLINE_PASSED": "Ya pasó la fecha límite para unirse a este evento.",
-    "ALREADY_PARTICIPANT": "Ya participas en este evento."
+    "ALREADY_PARTICIPANT": "Ya participas en este evento.",
+    "HOST_CANNOT_LEAVE": "Quien organiza no puede salir ni ser quitado de su propio evento.",
+    "PARTICIPANT_NOT_FOUND": "Esa persona no participa en este evento."
   }
 }

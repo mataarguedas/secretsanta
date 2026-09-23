@@ -272,6 +272,25 @@
       "title": "We couldn't find this event",
       "body": "The link may be wrong, the event may have been deleted, or you're not in it.",
       "cta": "Back to your events"
+    },
+    "participants": {
+      "loading": "Loading participants…",
+      "list": "Participants",
+      "host": "Host",
+      "you": "(you)",
+      "remove": "Remove",
+      "removeLabel": "Remove {{name}}",
+      "removeTitle": "Remove {{name}}?",
+      "removeBody": "They'll lose access to the event. They can rejoin with the link while it's open.",
+      "removeConfirm": "Yes, remove",
+      "removed": "{{name}} is no longer in the event."
+    },
+    "leave": {
+      "open": "Leave event",
+      "title": "Leave “{{name}}”?",
+      "body": "You'll stop seeing the event and your wishlist. You can come back with the link while it's open.",
+      "confirm": "Yes, leave",
+      "done": "You left “{{name}}”."
     }
   },
   "invites": {
@@ -370,6 +389,8 @@
     "EVENT_FIELD_LOCKED": "After the draw only the description, location and date can change.",
     "INVITE_INVALID": "This invite link is not valid.",
     "JOIN_DEADLINE_PASSED": "The deadline to join this event has passed.",
-    "ALREADY_PARTICIPANT": "You're already in this event."
+    "ALREADY_PARTICIPANT": "You're already in this event.",
+    "HOST_CANNOT_LEAVE": "The host can't leave or be removed from their own event.",
+    "PARTICIPANT_NOT_FOUND": "That person isn't in this event."
   }
 }

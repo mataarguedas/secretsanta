@@ -43,3 +43,12 @@ def test_host_flag() -> None:
     assert given.is_host
     other = EventAccess(event=given.event, user=User(id=uuid.uuid4()))
     assert not other.is_host
+
+
+@pytest.mark.parametrize("actual", [EventState.DRAWN, EventState.ARCHIVED])
+async def test_roster_mode_reports_every_frozen_state_as_already_drawn(
+    actual: EventState,
+) -> None:
+    with pytest.raises(AppError) as exc_info:
+        await require_event_state(EventState.OPEN, roster=True)(access(actual))
+    assert exc_info.value.code == "EVENT_ALREADY_DRAWN"

@@ -39,6 +39,9 @@ ERROR_REGISTRY: Final[dict[str, str]] = {
     "INVITE_INVALID": "This invite link is not valid.",
     "JOIN_DEADLINE_PASSED": "The deadline to join this event has passed.",
     "ALREADY_PARTICIPANT": "You're already a participant in this event.",
+    # Roster (Prompt 13)
+    "HOST_CANNOT_LEAVE": "The host can't leave or be removed from their own event.",
+    "PARTICIPANT_NOT_FOUND": "That person isn't a participant in this event.",
 }
 
 _STATUS_TO_CODE: Final[dict[int, str]] = {

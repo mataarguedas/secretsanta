@@ -110,14 +110,21 @@ _STATE_ERRORS: dict[str, str] = {
 
 
 def require_event_state(
-    *states: EventState,
+    *states: EventState, roster: bool = False
 ) -> Callable[..., Awaitable[EventAccess]]:
-    """409 with the code for the event's actual state when it isn't one of ``states``."""
+    """409 with the code for the event's actual state when it isn't one of ``states``.
+
+    ``roster=True`` is for join/leave/remove/exclusion edits: once the event is drawn *or*
+    archived the roster is frozen, and every such refusal is ``EVENT_ALREADY_DRAWN``
+    (CLAUDE.md §2.3).
+    """
     allowed = frozenset(states)
 
     async def dependency(access: EventAccess = Depends(require_participant)) -> EventAccess:
-        if access.event.state not in allowed:
-            raise AppError(_STATE_ERRORS[access.event.state], 409)
+        state = access.event.state
+        if state not in allowed:
+            frozen = roster and state != EventState.OPEN
+            raise AppError("EVENT_ALREADY_DRAWN" if frozen else _STATE_ERRORS[state], 409)
         return access
 
     return dependency
