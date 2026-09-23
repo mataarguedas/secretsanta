@@ -10,6 +10,7 @@ import { routes } from '@/app/routes';
 import { ToastProvider } from '@/components/ui';
 import type { Me } from '@/features/auth/api';
 import type { EventDetail, EventSection, EventSummary } from '@/features/events/api';
+import type { InvitePreview } from '@/features/invites/api';
 import i18n from '@/i18n';
 
 export function createTestQueryClient(): QueryClient {
@@ -89,6 +90,8 @@ export function mockSession({
   events = {},
   createEvent,
   eventDetails = {},
+  invites = {},
+  joinResponse,
 }: {
   me: Me | null;
   /** Make `PATCH /me` fail with this status (e.g. 500) instead of saving. */
@@ -99,7 +102,12 @@ export function mockSession({
   createEvent?: (body: Record<string, unknown>) => Response;
   /** Events the user can open (`GET/PATCH/DELETE /events/{id}`); others are 404. */
   eventDetails?: Record<string, EventDetail>;
+  /** `GET /invites/{token}` previews; unknown tokens are 404 INVITE_INVALID. */
+  invites?: Record<string, InvitePreview>;
+  /** `POST /invites/{token}/join` (default: 200 with event id `joined-event`). */
+  joinResponse?: (token: string) => Response;
 }) {
+  let regenerated = 0;
   const details = new Map(Object.entries(eventDetails));
   let me = initial;
   const spy = vi.spyOn(globalThis, 'fetch').mockImplementation((input, init) => {
@@ -133,6 +141,33 @@ export function mockSession({
       return Promise.resolve(
         jsonResponse(200, { items: events[section] ?? [], next_cursor: null }),
       );
+    }
+    const inviteMatch = /^\/api\/v1\/events\/([^/?]+)\/invite(\/regenerate)?$/.exec(url);
+    if (inviteMatch?.[1]) {
+      const id = inviteMatch[1];
+      const event = details.get(id);
+      if (!event) return Promise.resolve(jsonResponse(404, { error: { code: 'EVENT_NOT_FOUND' } }));
+      regenerated += 1;
+      const token = inviteMatch[2] ? `regenerated-token-${String(regenerated)}` : null;
+      const updated = { ...event, invite_token: token };
+      details.set(id, updated);
+      return Promise.resolve(jsonResponse(200, updated));
+    }
+    const tokenMatch = /^\/api\/v1\/invites\/([^/?]+)(\/join)?$/.exec(url);
+    if (tokenMatch?.[1]) {
+      const token = decodeURIComponent(tokenMatch[1]);
+      const preview = invites[token];
+      if (!preview) {
+        return Promise.resolve(
+          jsonResponse(404, { error: { code: 'INVITE_INVALID', message: 'Invalid invite.' } }),
+        );
+      }
+      if (tokenMatch[2]) {
+        return Promise.resolve(
+          joinResponse ? joinResponse(token) : jsonResponse(200, { event_id: 'joined-event' }),
+        );
+      }
+      return Promise.resolve(jsonResponse(200, preview));
     }
     const detailMatch = /^\/api\/v1\/events\/([^/?]+)$/.exec(url);
     if (detailMatch?.[1]) {
@@ -195,6 +230,21 @@ export function eventDetail(overrides: Partial<EventDetail> = {}): EventDetail {
     my_role: 'host',
     my_assignment: null,
     invite_token: 'invite-token',
+    ...overrides,
+  };
+}
+
+export function invitePreview(overrides: Partial<InvitePreview> = {}): InvitePreview {
+  return {
+    event_name: 'Familia',
+    host: { id: 'host-id', name: 'Beto Solís', avatar_url: null },
+    budget_crc: 15000,
+    exchange_at: '2026-12-20T19:00:00-06:00',
+    participant_count: 1,
+    already_participant: false,
+    event_id: null,
+    joinable: true,
+    reason: null,
     ...overrides,
   };
 }

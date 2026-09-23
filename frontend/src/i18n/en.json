@@ -275,8 +275,48 @@
     }
   },
   "invites": {
+    "link": {
+      "title": "Invite link",
+      "help": "Anyone with this link can join while the event is open.",
+      "copy": "Copy",
+      "copied": "Link copied.",
+      "copyFailed": "We couldn't copy the link.",
+      "share": "Share",
+      "shareText": "Join “{{name}}” on Secret Santa",
+      "regenerate": "Make a new one",
+      "regenerateTitle": "Make a new invite link?",
+      "regenerateBody": "The old link will stop working.",
+      "regenerateConfirm": "Make new link",
+      "regenerated": "Done: there's a new link.",
+      "cancel": "Cancel",
+      "disable": "Disable",
+      "disabledToast": "Link disabled.",
+      "disabled": "The link is disabled: no one can join with it.",
+      "enable": "Enable link",
+      "enabled": "Link enabled.",
+      "closed": "Joining is closed: the draw has happened."
+    },
+    "banner": {
+      "text": "Invite your friends",
+      "copy": "Copy link"
+    },
     "join": {
-      "title": "Join the event"
+      "title": "Join the event",
+      "loading": "Loading the invite…",
+      "invitedTo": "You're invited to",
+      "hostedBy": "Hosted by {{name}}",
+      "join": "Join",
+      "joined": "You're in “{{name}}”.",
+      "invalidTitle": "This invite link is not valid",
+      "invalidBody": "Ask the host for a new link.",
+      "closedTitle": "You can't join this event anymore",
+      "errorTitle": "We couldn't open the invite",
+      "backToDashboard": "Go to your events",
+      "reasons": {
+        "EVENT_ALREADY_DRAWN": "The draw has happened and the group is closed.",
+        "JOIN_DEADLINE_PASSED": "The deadline to join has passed.",
+        "ALREADY_PARTICIPANT": "You're already in this event."
+      }
     }
   },
   "chat": {
@@ -327,6 +367,9 @@
     "EVENT_ALREADY_DRAWN": "The draw has already happened, so this can't change anymore.",
     "EVENT_ARCHIVED": "This event is archived and read-only.",
     "EVENT_NOT_DRAWN": "The draw hasn't happened yet.",
-    "EVENT_FIELD_LOCKED": "After the draw only the description, location and date can change."
+    "EVENT_FIELD_LOCKED": "After the draw only the description, location and date can change.",
+    "INVITE_INVALID": "This invite link is not valid.",
+    "JOIN_DEADLINE_PASSED": "The deadline to join this event has passed.",
+    "ALREADY_PARTICIPANT": "You're already in this event."
   }
 }

@@ -24,6 +24,7 @@ from app.schemas.events import (
     Section,
 )
 from app.services import events as service
+from app.services import invites as invite_service
 
 router = APIRouter(prefix="/events", tags=["events"])
 
@@ -79,3 +80,25 @@ async def delete_event(
 ) -> Response:
     await service.delete_event(session, access.event)
     return Response(status_code=204)
+
+
+@router.post("/{event_id}/invite/regenerate", response_model=HostEventDetail)
+async def regenerate_invite(
+    access: EventAccess = Depends(require_host),
+    _state: EventAccess = Depends(require_event_state(EventState.OPEN)),
+    session: AsyncSession = Depends(get_db),
+) -> EventDetail:
+    """FR-INV-2: a new link; the old one stops working. Also re-enables a disabled link."""
+    event = await invite_service.regenerate_invite(session, access.event)
+    return await service.build_event_detail(session, event, access.user)
+
+
+@router.delete("/{event_id}/invite", response_model=HostEventDetail)
+async def disable_invite(
+    access: EventAccess = Depends(require_host),
+    _state: EventAccess = Depends(require_event_state(EventState.OPEN, EventState.DRAWN)),
+    session: AsyncSession = Depends(get_db),
+) -> EventDetail:
+    """FR-INV-2: turn the link off (token NULL). Archived events are read-only."""
+    event = await invite_service.disable_invite(session, access.event)
+    return await service.build_event_detail(session, event, access.user)

@@ -35,6 +35,10 @@ ERROR_REGISTRY: Final[dict[str, str]] = {
     "EVENT_ARCHIVED": "This event is archived and read-only.",
     "EVENT_NOT_DRAWN": "The draw hasn't happened yet.",
     "EVENT_FIELD_LOCKED": "After the draw only the description, location and date can change.",
+    # Invites (Prompt 12)
+    "INVITE_INVALID": "This invite link is not valid.",
+    "JOIN_DEADLINE_PASSED": "The deadline to join this event has passed.",
+    "ALREADY_PARTICIPANT": "You're already a participant in this event.",
 }
 
 _STATUS_TO_CODE: Final[dict[int, str]] = {

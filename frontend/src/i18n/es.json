@@ -275,8 +275,48 @@
     }
   },
   "invites": {
+    "link": {
+      "title": "Enlace de invitación",
+      "help": "Cualquiera con este enlace puede unirse mientras el evento esté abierto.",
+      "copy": "Copiar",
+      "copied": "Enlace copiado.",
+      "copyFailed": "No pudimos copiar el enlace.",
+      "share": "Compartir",
+      "shareText": "Únete a «{{name}}» en Secret Santa",
+      "regenerate": "Generar uno nuevo",
+      "regenerateTitle": "¿Generar un enlace nuevo?",
+      "regenerateBody": "El enlace anterior dejará de funcionar.",
+      "regenerateConfirm": "Generar enlace",
+      "regenerated": "Listo: hay un enlace nuevo.",
+      "cancel": "Cancelar",
+      "disable": "Desactivar",
+      "disabledToast": "Enlace desactivado.",
+      "disabled": "El enlace está desactivado: nadie puede unirse con él.",
+      "enable": "Activar enlace",
+      "enabled": "Enlace activado.",
+      "closed": "Ya no se aceptan participantes: el sorteo se hizo."
+    },
+    "banner": {
+      "text": "Invita a tus amigos",
+      "copy": "Copiar enlace"
+    },
     "join": {
-      "title": "Unirte al evento"
+      "title": "Unirte al evento",
+      "loading": "Cargando la invitación…",
+      "invitedTo": "Te invitaron a",
+      "hostedBy": "Organiza {{name}}",
+      "join": "Unirme",
+      "joined": "Ya estás en «{{name}}».",
+      "invalidTitle": "Este enlace de invitación no es válido",
+      "invalidBody": "Pídele a quien organiza un enlace nuevo.",
+      "closedTitle": "Ya no te puedes unir a este evento",
+      "errorTitle": "No pudimos abrir la invitación",
+      "backToDashboard": "Ir a tus eventos",
+      "reasons": {
+        "EVENT_ALREADY_DRAWN": "El sorteo ya se hizo y el grupo está cerrado.",
+        "JOIN_DEADLINE_PASSED": "Ya pasó la fecha límite para unirse.",
+        "ALREADY_PARTICIPANT": "Ya participas en este evento."
+      }
     }
   },
   "chat": {
@@ -327,6 +367,9 @@
     "EVENT_ALREADY_DRAWN": "El sorteo ya se hizo, así que esto ya no se puede cambiar.",
     "EVENT_ARCHIVED": "Este evento está archivado y es de solo lectura.",
     "EVENT_NOT_DRAWN": "El sorteo todavía no se ha hecho.",
-    "EVENT_FIELD_LOCKED": "Después del sorteo solo se pueden cambiar la descripción, el lugar y la fecha."
+    "EVENT_FIELD_LOCKED": "Después del sorteo solo se pueden cambiar la descripción, el lugar y la fecha.",
+    "INVITE_INVALID": "Este enlace de invitación no es válido.",
+    "JOIN_DEADLINE_PASSED": "Ya pasó la fecha límite para unirse a este evento.",
+    "ALREADY_PARTICIPANT": "Ya participas en este evento."
   }
 }

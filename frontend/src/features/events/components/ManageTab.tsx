@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { Button, Card, Modal, useToast } from '@/components/ui';
+import { InviteLinkCard } from '@/features/invites/components/InviteLinkCard';
 import { errorMessage } from '@/lib/errors';
 
 import { useDeleteEvent, useUpdateEvent, type EventDetail } from '../api';
@@ -9,8 +10,8 @@ import { eventToFormValues, lockedFields, toUpdatePayload } from '../schemas';
 import { EventForm } from './EventForm';
 
 /**
- * Host-only Manage tab, first part: edit (fields locked by state) and delete (OPEN only).
- * Invite link, exclusions and the reveal join it in Prompts 12, 15 and 16.
+ * Host-only Manage tab: the invite link, edit (fields locked by state) and delete (OPEN
+ * only). Exclusions and the reveal join it in Prompts 15 and 16.
  */
 export function ManageTab({ event }: { event: EventDetail }) {
   const { t } = useTranslation();
@@ -22,6 +23,7 @@ export function ManageTab({ event }: { event: EventDetail }) {
 
   return (
     <div className="flex flex-col gap-32 md:gap-[64px]">
+      <InviteLinkCard event={event} />
       <EditEventSection event={event} />
       {event.state === 'open' && <DeleteEventSection event={event} />}
     </div>
