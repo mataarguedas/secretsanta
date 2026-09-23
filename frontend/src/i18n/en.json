@@ -1,0 +1,16 @@
+{
+  "app": {
+    "name": "Secret Santa"
+  },
+  "home": {
+    "eyebrow": "Gift exchange",
+    "title": "Giving is better in secret.",
+    "body": "Organize your exchange, build your wishlist and find out who you're giving to.",
+    "health": {
+      "label": "Server status",
+      "loading": "checking…",
+      "ok": "ok",
+      "error": "unreachable"
+    }
+  }
+}

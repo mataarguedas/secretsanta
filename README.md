@@ -26,7 +26,7 @@ See CLAUDE.md §4 for the full tree.
 
 - [Docker Desktop](https://www.docker.com/products/docker-desktop/) (Compose v2)
 - Python 3.12 and [`uv`](https://docs.astral.sh/uv/)
-- Node 20+ and `pnpm` (`npm i -g pnpm`)
+- Node 22.12+ (24 LTS recommended) and `pnpm` 12 (`npm i -g pnpm`, or `corepack enable`)
 - Git
 - Optional: [`exiftool`](https://exiftool.org/), to check that photo metadata is stripped
 

@@ -1,0 +1,5 @@
+/* Scan only app sources (not eslint-rules fixtures, which contain banned classes on purpose). */
+@import 'tailwindcss' source('.');
+@import './styles/tokens.css';
+@import './styles/fonts.css';
+@import './styles/base.css';
