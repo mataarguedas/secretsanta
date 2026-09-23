@@ -12,5 +12,77 @@
       "ok": "ok",
       "error": "unreachable"
     }
+  },
+  "ui": {
+    "button": {
+      "loading": "Loading…"
+    },
+    "showcase": {
+      "title": "UI components",
+      "intro": "Development-only showcase of every primitive and variant.",
+      "sections": {
+        "buttons": "Buttons",
+        "pills": "Pills",
+        "cards": "Cards",
+        "avatars": "Avatars",
+        "forms": "Forms",
+        "eyebrow": "Eyebrow",
+        "banner": "Banner"
+      },
+      "buttons": {
+        "primary": "Create event",
+        "secondary": "View wishlist",
+        "nav": "Events",
+        "ghost": "Cancel",
+        "loading": "Saving",
+        "disabled": "Unavailable",
+        "close": "Close",
+        "save": "Save"
+      },
+      "pills": {
+        "high": "High priority",
+        "medium": "Medium priority",
+        "low": "Low priority",
+        "count": "12 participants",
+        "named": "Named",
+        "anonymous": "Anonymous"
+      },
+      "cards": {
+        "contentTitle": "Content card",
+        "contentBody": "White surface, square corners and a grey border.",
+        "interactiveTitle": "Interactive card",
+        "interactiveBody": "The whole card is a link with a black border."
+      },
+      "avatars": {
+        "image": "Ana Rojas",
+        "initials": "Carlos Méndez",
+        "broken": "Broken image for Lucía Vargas",
+        "anonymous": "Secret Elf #3"
+      },
+      "forms": {
+        "name": "Event name",
+        "nameError": "Must be between 3 and 80 characters.",
+        "budget": "Budget",
+        "budgetHelp": "Whole amount in colones.",
+        "budgetPlaceholder": "25000",
+        "description": "Description",
+        "descriptionHelp": "Optional, up to 1000 characters.",
+        "priority": "Priority",
+        "disabled": "Disabled field",
+        "groupChat": "Group chat",
+        "groupChatHelp": "Every participant can post.",
+        "reminders": "Reminders"
+      },
+      "eyebrow": {
+        "open": "Open",
+        "drawn": "Drawn",
+        "hosting": "Hosting",
+        "elf": "Secret Elf #3"
+      },
+      "banner": {
+        "text": "Invite your friends",
+        "action": "Copy link"
+      }
+    }
   }
 }

@@ -12,5 +12,77 @@
       "ok": "ok",
       "error": "sin conexión"
     }
+  },
+  "ui": {
+    "button": {
+      "loading": "Cargando…"
+    },
+    "showcase": {
+      "title": "Componentes de interfaz",
+      "intro": "Vitrina solo para desarrollo con cada primitivo y variante.",
+      "sections": {
+        "buttons": "Botones",
+        "pills": "Pastillas",
+        "cards": "Tarjetas",
+        "avatars": "Avatares",
+        "forms": "Formularios",
+        "eyebrow": "Etiqueta superior",
+        "banner": "Franja"
+      },
+      "buttons": {
+        "primary": "Crear evento",
+        "secondary": "Ver lista de deseos",
+        "nav": "Eventos",
+        "ghost": "Cancelar",
+        "loading": "Guardando",
+        "disabled": "No disponible",
+        "close": "Cerrar",
+        "save": "Guardar"
+      },
+      "pills": {
+        "high": "Prioridad alta",
+        "medium": "Prioridad media",
+        "low": "Prioridad baja",
+        "count": "12 participantes",
+        "named": "Con nombre",
+        "anonymous": "Anónimo"
+      },
+      "cards": {
+        "contentTitle": "Tarjeta de contenido",
+        "contentBody": "Superficie blanca, esquinas rectas y borde gris.",
+        "interactiveTitle": "Tarjeta interactiva",
+        "interactiveBody": "Toda la tarjeta es un enlace con borde negro."
+      },
+      "avatars": {
+        "image": "Ana Rojas",
+        "initials": "Carlos Méndez",
+        "broken": "Imagen rota de Lucía Vargas",
+        "anonymous": "Elfo secreto #3"
+      },
+      "forms": {
+        "name": "Nombre del evento",
+        "nameError": "Debe tener entre 3 y 80 caracteres.",
+        "budget": "Presupuesto",
+        "budgetHelp": "Monto entero en colones.",
+        "budgetPlaceholder": "25000",
+        "description": "Descripción",
+        "descriptionHelp": "Opcional, hasta 1000 caracteres.",
+        "priority": "Prioridad",
+        "disabled": "Campo deshabilitado",
+        "groupChat": "Chat grupal",
+        "groupChatHelp": "Todos los participantes pueden escribir.",
+        "reminders": "Recordatorios"
+      },
+      "eyebrow": {
+        "open": "Abierto",
+        "drawn": "Sorteado",
+        "hosting": "Organizando",
+        "elf": "Secret Elf #3"
+      },
+      "banner": {
+        "text": "Invita a tus amigos",
+        "action": "Copiar enlace"
+      }
+    }
   }
 }
