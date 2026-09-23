@@ -1,5 +1,7 @@
 import type { RouteObject } from 'react-router';
 
+import { ProfilePage } from '@/features/profile/pages/ProfilePage';
+
 import { AppLayout } from './layout/AppLayout';
 import { HomeRoute } from './pages/HomeRoute';
 import { NotFoundPage } from './pages/NotFoundPage';
@@ -42,7 +44,7 @@ export const routes: RouteObject[] = [
             path: 'chats/:conversationId',
             element: <PlaceholderPage titleKey="chat.thread.title" />,
           },
-          { path: 'profile', element: <PlaceholderPage titleKey="profile.title" /> },
+          { path: 'profile', element: <ProfilePage /> },
         ],
       },
       ...devRoutes,

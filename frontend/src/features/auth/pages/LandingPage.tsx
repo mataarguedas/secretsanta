@@ -1,8 +1,8 @@
-import { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useSearchParams } from 'react-router';
 
 import { Button } from '@/components/ui';
+import { useDocumentTitle } from '@/lib/useDocumentTitle';
 
 import { googleLoginUrl } from '../next';
 
@@ -18,9 +18,7 @@ export function LandingPage() {
   const [params] = useSearchParams();
   const authError = params.get('auth_error');
 
-  useEffect(() => {
-    document.title = t('app.name');
-  }, [t]);
+  useDocumentTitle();
 
   return (
     <section className="flex flex-1 flex-col items-center justify-center gap-20 py-32 text-center">

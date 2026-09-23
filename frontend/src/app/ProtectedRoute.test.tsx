@@ -33,18 +33,16 @@ describe('ProtectedRoute', () => {
 
   it('signed in: renders the protected page', async () => {
     mockSession({ me: TEST_USER });
-    const { router } = renderApp('/profile?tab=x');
-    expect(await screen.findByRole('heading', { level: 1 })).toHaveTextContent('Perfil');
+    const { router } = renderApp('/chats?tab=x');
+    expect(await screen.findByRole('heading', { level: 1 })).toHaveTextContent('Chats');
     expect(router.state.location.search).toBe('?tab=x');
   });
 
   it('signed in with a pending next: goes there', async () => {
     mockSession({ me: TEST_USER });
-    const { router } = renderApp('/?next=%2Fprofile%3Ftab%3Dx');
-    expect(await screen.findByRole('heading', { level: 1 })).toHaveTextContent('Perfil');
-    expect(`${router.state.location.pathname}${router.state.location.search}`).toBe(
-      '/profile?tab=x',
-    );
+    const { router } = renderApp('/?next=%2Fchats%3Ftab%3Dx');
+    expect(await screen.findByRole('heading', { level: 1 })).toHaveTextContent('Chats');
+    expect(`${router.state.location.pathname}${router.state.location.search}`).toBe('/chats?tab=x');
   });
 
   it('signed in with a hostile next: stays on the dashboard', async () => {

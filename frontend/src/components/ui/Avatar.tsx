@@ -3,12 +3,13 @@ import { useState } from 'react';
 import { cn } from '@/lib/cn';
 import { initials } from '@/lib/initials';
 
-export type AvatarSize = 'sm' | 'md' | 'lg';
+export type AvatarSize = 'sm' | 'md' | 'lg' | 'xl';
 
 const SIZE_CLASSES: Record<AvatarSize, string> = {
   sm: 'size-[32px] text-caption',
   md: 'size-[44px] text-sm',
   lg: 'size-[64px] text-subheading',
+  xl: 'size-[96px] text-heading',
 };
 
 interface BaseProps {

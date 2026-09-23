@@ -2,10 +2,12 @@ import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router';
 
 import { Button } from '@/components/ui';
+import { useDocumentTitle } from '@/lib/useDocumentTitle';
 
 /** Typographic empty state: serif headline, one line, one CTA. */
 export function NotFoundPage() {
   const { t } = useTranslation();
+  useDocumentTitle(t('app.notFound.title'));
   return (
     <section className="flex flex-col items-start gap-15">
       <h1 className="font-serif text-heading font-medium md:text-heading-lg">

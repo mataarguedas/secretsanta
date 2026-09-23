@@ -90,13 +90,12 @@ describe('AppLayout (signed in)', () => {
     ['/join/tok_abc', 'Unirte al evento'],
     ['/chats', 'Chats'],
     ['/chats/123', 'Conversación'],
-    ['/profile', 'Perfil'],
     ['/privacy', 'Política de privacidad'],
     ['/terms', 'Términos del servicio'],
   ])('%s shows its placeholder title', async (path, title) => {
     await renderSignedIn(path);
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(title);
-    expect(document.title).toBe(`${title} · Secret Santa`);
+    expect(document.title).toBe(`Secret Santa · ${title}`);
   });
 
   it('unknown paths show the not-found page', async () => {
@@ -131,8 +130,8 @@ describe('AppLayout (signed in)', () => {
   });
 
   it('switches the UI to the saved locale', async () => {
-    await renderSignedIn('/profile', { ...TEST_USER, locale: 'en' });
-    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Profile');
+    await renderSignedIn('/events/new', { ...TEST_USER, locale: 'en' });
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Create event');
     expect(i18n.language).toBe('en');
     expect(document.documentElement.lang).toBe('en');
     expect(
@@ -176,14 +175,14 @@ describe('AppLayout (resolving the session)', () => {
         resolve = r;
       }),
     );
-    renderApp('/profile');
+    renderApp('/events/new');
     expect(screen.getByRole('status')).toHaveTextContent('Cargando tu sesión…');
     expect(screen.queryByRole('main')).not.toBeInTheDocument();
     expect(screen.queryByRole('navigation')).not.toBeInTheDocument();
     expect(screen.queryByRole('banner')).not.toBeInTheDocument();
 
     resolve(jsonResponse(200, TEST_USER));
-    expect(await screen.findByRole('heading', { level: 1 })).toHaveTextContent('Perfil');
+    expect(await screen.findByRole('heading', { level: 1 })).toHaveTextContent('Crear evento');
     expect(screen.queryByRole('status')).not.toBeInTheDocument();
   });
 
@@ -193,14 +192,16 @@ describe('AppLayout (resolving the session)', () => {
       .spyOn(globalThis, 'fetch')
       .mockRejectedValueOnce(new TypeError('Failed to fetch'))
       .mockResolvedValue(jsonResponse(200, TEST_USER));
-    const { router } = renderApp('/profile');
+    const { router } = renderApp('/events/new');
 
     expect(
       await screen.findByRole('heading', { level: 1, name: 'No pudimos conectarnos' }),
     ).toBeInTheDocument();
-    expect(router.state.location.pathname).toBe('/profile'); // not redirected to the landing
+    expect(router.state.location.pathname).toBe('/events/new'); // not redirected to the landing
     await user.click(screen.getByRole('button', { name: 'Reintentar' }));
-    expect(await screen.findByRole('heading', { level: 1, name: 'Perfil' })).toBeInTheDocument();
+    expect(
+      await screen.findByRole('heading', { level: 1, name: 'Crear evento' }),
+    ).toBeInTheDocument();
     expect(fetchSpy).toHaveBeenCalledTimes(2);
   });
 });

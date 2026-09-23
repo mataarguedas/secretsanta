@@ -46,6 +46,7 @@ describe('Avatar', () => {
     ['sm', 'size-[32px]'],
     ['md', 'size-[44px]'],
     ['lg', 'size-[64px]'],
+    ['xl', 'size-[96px]'],
   ] as const)('size %s', (size, cls) => {
     render(<Avatar size={size} alt="A" />);
     expect(screen.getByRole('img')).toHaveClass(cls);

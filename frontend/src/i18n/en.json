@@ -185,7 +185,17 @@
     }
   },
   "profile": {
-    "title": "Profile"
+    "title": "Profile",
+    "identityNote": "Your name, photo and email come from your Google account.",
+    "language": {
+      "title": "Language",
+      "options": {
+        "es": "Español",
+        "en": "English"
+      },
+      "saved": "Language updated."
+    },
+    "signOut": "Sign out"
   },
   "legal": {
     "privacy": {

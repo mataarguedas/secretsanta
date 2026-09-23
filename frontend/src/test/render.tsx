@@ -79,9 +79,18 @@ export function urlOf(input: string | URL | Request): string {
 
 /**
  * Fake backend for the session endpoints. `me: null` = signed out (`/me` 401, refresh 401).
+ * `PATCH /me` merges the body into the stored user.
  * Returns the fetch spy; `calls()` lists `METHOD path` in order.
  */
-export function mockSession({ me }: { me: Me | null }) {
+export function mockSession({
+  me: initial,
+  patchError,
+}: {
+  me: Me | null;
+  /** Make `PATCH /me` fail with this status (e.g. 500) instead of saving. */
+  patchError?: number;
+}) {
+  let me = initial;
   const spy = vi.spyOn(globalThis, 'fetch').mockImplementation((input, init) => {
     const url = urlOf(input);
     const method = init?.method ?? 'GET';
@@ -92,6 +101,15 @@ export function mockSession({ me }: { me: Me | null }) {
       return Promise.resolve(
         me ? jsonResponse(200, { status: 'ok' }) : jsonResponse(401, REFRESH_INVALID),
       );
+    }
+    if (url === '/api/v1/me' && method === 'PATCH' && me) {
+      if (patchError) {
+        return Promise.resolve(
+          jsonResponse(patchError, { error: { code: 'INTERNAL_ERROR', message: '' } }),
+        );
+      }
+      me = { ...me, ...(JSON.parse(init?.body as string) as Partial<Me>) };
+      return Promise.resolve(jsonResponse(200, me));
     }
     if (url === '/api/v1/auth/logout') return Promise.resolve(new Response(null, { status: 204 }));
     return Promise.resolve(jsonResponse(404, { error: { code: 'NOT_FOUND', message: '' } }));
