@@ -1,0 +1,50 @@
+/*
+ * Motion tokens for overlays. Kept short and subtle; the base.css reduced-motion reset
+ * and `motion-reduce:animate-none` switch them off (PRD §9.4).
+ */
+@theme {
+  --animate-dialog-in: dialog-in 160ms ease-out;
+  --animate-sheet-in: sheet-in 220ms ease-out;
+  --animate-fade-in: fade-in 160ms ease-out;
+  --animate-toast-in: toast-in 200ms ease-out;
+
+  @keyframes dialog-in {
+    from {
+      opacity: 0;
+      transform: translateY(8px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+
+  @keyframes sheet-in {
+    from {
+      transform: translateY(100%);
+    }
+    to {
+      transform: none;
+    }
+  }
+
+  @keyframes fade-in {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+
+  @keyframes toast-in {
+    from {
+      opacity: 0;
+      transform: translateY(8px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+}

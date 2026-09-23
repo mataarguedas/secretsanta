@@ -1,5 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 
+import { apiClient } from './apiClient';
+
 export type ComponentStatus = 'ok' | 'error';
 
 export interface HealthResponse {
@@ -8,18 +10,12 @@ export interface HealthResponse {
   redis: ComponentStatus;
 }
 
-// TODO(prompt 5): switch to lib/apiClient once it exists.
-export async function fetchHealth(signal?: AbortSignal): Promise<HealthResponse> {
-  const res = await fetch('/api/v1/health', {
-    credentials: 'include',
-    headers: { Accept: 'application/json', 'X-Requested-With': 'fetch' },
-    signal: signal ?? null,
-  });
+export function fetchHealth(signal?: AbortSignal): Promise<HealthResponse> {
   // 503 still carries a HealthResponse body naming the failing component.
-  if (res.status !== 200 && res.status !== 503) {
-    throw new Error(`health: HTTP ${String(res.status)}`);
-  }
-  return (await res.json()) as HealthResponse;
+  return apiClient.get<HealthResponse>('/health', {
+    allowStatus: [503],
+    ...(signal ? { signal } : {}),
+  });
 }
 
 export function useHealth() {

@@ -1,6 +1,12 @@
 {
   "app": {
-    "name": "Secret Santa"
+    "name": "Secret Santa",
+    "placeholder": "Esta pantalla llega pronto.",
+    "notFound": {
+      "title": "No encontramos esta página",
+      "body": "El enlace puede estar roto o la página ya no existe.",
+      "cta": "Volver al inicio"
+    }
   },
   "home": {
     "eyebrow": "Intercambio de regalos",
@@ -27,7 +33,12 @@
         "avatars": "Avatares",
         "forms": "Formularios",
         "eyebrow": "Etiqueta superior",
-        "banner": "Franja"
+        "banner": "Franja",
+        "dialogs": "Diálogos",
+        "toasts": "Avisos",
+        "tabs": "Pestañas",
+        "carousel": "Carrusel",
+        "format": "Formatos"
       },
       "buttons": {
         "primary": "Crear evento",
@@ -82,7 +93,114 @@
       "banner": {
         "text": "Invita a tus amigos",
         "action": "Copiar enlace"
+      },
+      "dialogs": {
+        "openModal": "Abrir modal",
+        "modalTitle": "¿Todos adentro?",
+        "modalBody": "Después del sorteo nadie podrá unirse ni salir.",
+        "confirm": "Revelar",
+        "cancel": "Cancelar",
+        "openSheet": "Abrir hoja",
+        "sheetTitle": "Nueva conversación",
+        "sheetBody": "En pantallas pequeñas aparece desde abajo."
+      },
+      "toasts": {
+        "success": "Cambios guardados.",
+        "error": "No se pudo guardar.",
+        "info": "Enlace copiado.",
+        "showSuccess": "Aviso de éxito",
+        "showError": "Aviso de error",
+        "showInfo": "Aviso informativo"
+      },
+      "tabs": {
+        "label": "Secciones del evento",
+        "overview": "Resumen",
+        "participants": "Participantes",
+        "wishlists": "Listas de deseos",
+        "chat": "Chat",
+        "manage": "Administrar",
+        "panel": "Contenido de la pestaña «{{tab}}». El valor vive en la URL (?tab=)."
+      },
+      "carousel": {
+        "label": "Fotos de ejemplo",
+        "slide": "Foto de ejemplo {{n}}"
+      },
+      "format": {
+        "money": "Moneda",
+        "date": "Fecha",
+        "dateTime": "Fecha y hora"
       }
+    },
+    "dialog": {
+      "close": "Cerrar"
+    },
+    "toast": {
+      "dismiss": "Descartar notificación",
+      "region": "Notificaciones"
+    },
+    "carousel": {
+      "roledescription": "carrusel",
+      "slide": "diapositiva",
+      "slideLabel": "{{n}} de {{total}}",
+      "indicator": "{{n}} / {{total}}",
+      "previous": "Foto anterior",
+      "next": "Foto siguiente"
     }
+  },
+  "nav": {
+    "events": "Eventos",
+    "chats": "Chats",
+    "profile": "Perfil",
+    "primary": "Navegación principal",
+    "tabs": "Navegación",
+    "skipToContent": "Saltar al contenido",
+    "home": "Secret Santa, inicio"
+  },
+  "events": {
+    "dashboard": {
+      "title": "Tus eventos"
+    },
+    "create": {
+      "title": "Crear evento"
+    },
+    "detail": {
+      "title": "Evento"
+    }
+  },
+  "invites": {
+    "join": {
+      "title": "Unirte al evento"
+    }
+  },
+  "chat": {
+    "list": {
+      "title": "Chats"
+    },
+    "thread": {
+      "title": "Conversación"
+    }
+  },
+  "profile": {
+    "title": "Perfil"
+  },
+  "legal": {
+    "privacy": {
+      "title": "Política de privacidad"
+    },
+    "terms": {
+      "title": "Términos del servicio"
+    }
+  },
+  "errors": {
+    "VALIDATION_ERROR": "Revisa los datos e inténtalo de nuevo.",
+    "NOT_FOUND": "No encontramos lo que buscabas.",
+    "METHOD_NOT_ALLOWED": "Esta acción no está permitida.",
+    "RATE_LIMITED": "Demasiados intentos. Espera un momento e inténtalo de nuevo.",
+    "INTERNAL_ERROR": "Algo salió mal. Inténtalo de nuevo.",
+    "HTTP_ERROR": "No pudimos procesar la solicitud.",
+    "CSRF_HEADER_MISSING": "La solicitud fue rechazada por seguridad. Recarga la página.",
+    "NETWORK_ERROR": "Sin conexión. Revisa tu internet e inténtalo de nuevo.",
+    "UNKNOWN_ERROR": "Ocurrió un error inesperado.",
+    "UNAUTHENTICATED": "Tu sesión expiró. Inicia sesión de nuevo."
   }
 }

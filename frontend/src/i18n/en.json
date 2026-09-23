@@ -1,6 +1,12 @@
 {
   "app": {
-    "name": "Secret Santa"
+    "name": "Secret Santa",
+    "placeholder": "This screen is coming soon.",
+    "notFound": {
+      "title": "We couldn't find this page",
+      "body": "The link may be broken or the page no longer exists.",
+      "cta": "Back home"
+    }
   },
   "home": {
     "eyebrow": "Gift exchange",
@@ -27,7 +33,12 @@
         "avatars": "Avatars",
         "forms": "Forms",
         "eyebrow": "Eyebrow",
-        "banner": "Banner"
+        "banner": "Banner",
+        "dialogs": "Dialogs",
+        "toasts": "Toasts",
+        "tabs": "Tabs",
+        "carousel": "Carousel",
+        "format": "Formatters"
       },
       "buttons": {
         "primary": "Create event",
@@ -82,7 +93,114 @@
       "banner": {
         "text": "Invite your friends",
         "action": "Copy link"
+      },
+      "dialogs": {
+        "openModal": "Open modal",
+        "modalTitle": "Everyone in?",
+        "modalBody": "After the draw no one can join or leave.",
+        "confirm": "Reveal",
+        "cancel": "Cancel",
+        "openSheet": "Open sheet",
+        "sheetTitle": "New conversation",
+        "sheetBody": "On small screens it slides up from the bottom."
+      },
+      "toasts": {
+        "success": "Changes saved.",
+        "error": "Couldn't save.",
+        "info": "Link copied.",
+        "showSuccess": "Success toast",
+        "showError": "Error toast",
+        "showInfo": "Info toast"
+      },
+      "tabs": {
+        "label": "Event sections",
+        "overview": "Overview",
+        "participants": "Participants",
+        "wishlists": "Wishlists",
+        "chat": "Chat",
+        "manage": "Manage",
+        "panel": "Content of the “{{tab}}” tab. The value lives in the URL (?tab=)."
+      },
+      "carousel": {
+        "label": "Sample photos",
+        "slide": "Sample photo {{n}}"
+      },
+      "format": {
+        "money": "Currency",
+        "date": "Date",
+        "dateTime": "Date and time"
       }
+    },
+    "dialog": {
+      "close": "Close"
+    },
+    "toast": {
+      "dismiss": "Dismiss notification",
+      "region": "Notifications"
+    },
+    "carousel": {
+      "roledescription": "carousel",
+      "slide": "slide",
+      "slideLabel": "{{n}} of {{total}}",
+      "indicator": "{{n}} / {{total}}",
+      "previous": "Previous photo",
+      "next": "Next photo"
     }
+  },
+  "nav": {
+    "events": "Events",
+    "chats": "Chats",
+    "profile": "Profile",
+    "primary": "Main navigation",
+    "tabs": "Navigation",
+    "skipToContent": "Skip to content",
+    "home": "Secret Santa, home"
+  },
+  "events": {
+    "dashboard": {
+      "title": "Your events"
+    },
+    "create": {
+      "title": "Create event"
+    },
+    "detail": {
+      "title": "Event"
+    }
+  },
+  "invites": {
+    "join": {
+      "title": "Join the event"
+    }
+  },
+  "chat": {
+    "list": {
+      "title": "Chats"
+    },
+    "thread": {
+      "title": "Conversation"
+    }
+  },
+  "profile": {
+    "title": "Profile"
+  },
+  "legal": {
+    "privacy": {
+      "title": "Privacy Policy"
+    },
+    "terms": {
+      "title": "Terms of Service"
+    }
+  },
+  "errors": {
+    "VALIDATION_ERROR": "Check the details and try again.",
+    "NOT_FOUND": "We couldn't find what you were looking for.",
+    "METHOD_NOT_ALLOWED": "This action isn't allowed.",
+    "RATE_LIMITED": "Too many attempts. Wait a moment and try again.",
+    "INTERNAL_ERROR": "Something went wrong. Please try again.",
+    "HTTP_ERROR": "We couldn't process the request.",
+    "CSRF_HEADER_MISSING": "The request was blocked for security. Reload the page.",
+    "NETWORK_ERROR": "You're offline. Check your connection and try again.",
+    "UNKNOWN_ERROR": "An unexpected error occurred.",
+    "UNAUTHENTICATED": "Your session expired. Please sign in again."
   }
 }

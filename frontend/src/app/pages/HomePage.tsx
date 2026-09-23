@@ -7,22 +7,14 @@ export function HomePage() {
   const { t } = useTranslation();
 
   return (
-    <div className="mx-auto flex min-h-dvh max-w-[1200px] flex-col px-20">
-      <header className="flex justify-center py-20">
-        <p className="font-serif text-heading-sm font-medium">{t('app.name')}</p>
-      </header>
-
-      <main className="flex flex-1 flex-col items-center justify-center gap-15 py-32 text-center md:py-[64px]">
-        <p className="font-mono text-sm tracking-[0.056em] text-coral-pop uppercase">
-          {t('home.eyebrow')}
-        </p>
-        <h1 className="font-serif text-heading font-medium md:text-heading-lg">
-          {t('home.title')}
-        </h1>
-        <p className="max-w-[36rem] text-body text-charcoal">{t('home.body')}</p>
-        <HealthLine />
-      </main>
-    </div>
+    <section className="flex flex-1 flex-col items-center justify-center gap-15 py-32 text-center">
+      <p className="font-mono text-sm tracking-[0.056em] text-coral-pop uppercase">
+        {t('home.eyebrow')}
+      </p>
+      <h1 className="font-serif text-heading font-medium md:text-heading-lg">{t('home.title')}</h1>
+      <p className="max-w-[36rem] text-body text-charcoal">{t('home.body')}</p>
+      <HealthLine />
+    </section>
   );
 }
 

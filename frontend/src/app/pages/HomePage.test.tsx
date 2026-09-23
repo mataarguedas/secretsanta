@@ -23,11 +23,10 @@ describe('HomePage', () => {
     await i18n.changeLanguage('es');
   });
 
-  it('renders the wordmark, eyebrow, heading and body in Spanish by default', () => {
+  it('renders the eyebrow, heading and body in Spanish by default', () => {
     mockHealth(200, HEALTHY);
     renderWithProviders(<HomePage />);
 
-    expect(screen.getByText('Secret Santa')).toHaveClass('font-serif');
     expect(screen.getByText('Intercambio de regalos')).toHaveClass('font-mono', 'uppercase');
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(
       'Regalar es mejor en secreto.',

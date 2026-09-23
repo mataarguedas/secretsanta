@@ -2,4 +2,5 @@
 @import 'tailwindcss' source('.');
 @import './styles/tokens.css';
 @import './styles/fonts.css';
+@import './styles/motion.css';
 @import './styles/base.css';

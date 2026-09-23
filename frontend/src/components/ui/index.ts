@@ -9,3 +9,9 @@ export { Pill, PillToggle, type PillProps, type PillToggleProps, type PillTone }
 export { Select, type SelectProps } from './Select';
 export { Switch, type SwitchProps } from './Switch';
 export { Textarea, type TextareaProps } from './Textarea';
+export { Carousel, type CarouselProps } from './Carousel';
+export { Modal, type ModalProps } from './Modal';
+export { Sheet, type SheetProps } from './Sheet';
+export { Tab, TabList, TabPanel, Tabs, type TabsProps } from './Tabs';
+export { ToastProvider } from './toast/ToastProvider';
+export { useToast, type ToastApi, type ToastKind } from './toast/toastContext';

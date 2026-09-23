@@ -1,0 +1,46 @@
+import { useTranslation } from 'react-i18next';
+import { Link, useLocation } from 'react-router';
+
+import { cn } from '@/lib/cn';
+
+import { NAV_ITEMS } from './navItems';
+
+/**
+ * < 768px fixed tab bar: Events · Chats · Profile. The active tab is a coral pill;
+ * `env(safe-area-inset-bottom)` keeps it above the iOS home indicator (PRD §9.4).
+ */
+export function BottomTabBar({ className }: { className?: string }) {
+  const { t } = useTranslation();
+  const { pathname } = useLocation();
+
+  return (
+    <nav
+      aria-label={t('nav.tabs')}
+      className={cn(
+        'fixed inset-x-0 bottom-0 z-40 border-t border-ink-black bg-cream-linen pb-[env(safe-area-inset-bottom)]',
+        className,
+      )}
+    >
+      <ul className="mx-auto flex max-w-[640px] justify-around px-8 py-8">
+        {NAV_ITEMS.map(({ key, to, labelKey, Icon, isActive }) => {
+          const active = isActive(pathname);
+          return (
+            <li key={key} className="flex flex-1 justify-center">
+              <Link
+                to={to}
+                aria-current={active ? 'page' : undefined}
+                className={cn(
+                  'inline-flex min-h-11 min-w-[72px] flex-col items-center justify-center gap-[2px] rounded-full-2 px-15 py-6 text-sm transition-colors',
+                  active ? 'bg-coral-pop text-ink-black' : 'text-ink-black hover:bg-pure-white',
+                )}
+              >
+                <Icon />
+                <span>{t(labelKey)}</span>
+              </Link>
+            </li>
+          );
+        })}
+      </ul>
+    </nav>
+  );
+}
