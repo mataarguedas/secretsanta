@@ -31,6 +31,7 @@ from app.services.covers import cover_urls, event_prefix
 from app.services.draw import MIN_PARTICIPANTS
 from app.services.exclusions import check_feasible, delete_user_exclusions
 from app.services.reveal import my_assignment
+from app.services.wishlists import delete_user_items
 from app.worker.queue import enqueue_after_commit
 
 PAGE_SIZE: Final = 20
@@ -312,6 +313,6 @@ async def remove_participant(session: AsyncSession, event: Event, user_id: uuid.
     if getattr(result, "rowcount", 0) == 0:
         raise AppError("PARTICIPANT_NOT_FOUND", 404)
     await delete_user_exclusions(session, event.id, user_id)  # FR-EXC-3, same transaction
-    # TODO(prompt 19): delete their wishlist items and enqueue R2 cleanup of the photos.
+    await delete_user_items(session, event.id, user_id)  # photos: R2 cleanup after commit
     # TODO(prompt 21): remove them from the event's group chat membership.
     await session.commit()

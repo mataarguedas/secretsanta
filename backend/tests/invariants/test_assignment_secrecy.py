@@ -38,6 +38,9 @@ GET_ROUTES: dict[str, RouteCalls] = {
     f"{API}/events/{{event_id}}/participants": lambda d: [f"{API}/events/{d.id}/participants"],
     f"{API}/events/{{event_id}}/exclusions": lambda d: [f"{API}/events/{d.id}/exclusions"],
     f"{API}/invites/{{token}}": lambda d: [f"{API}/invites/{d.invite_token}"],
+    f"{API}/events/{{event_id}}/wishlists/{{user_id}}": lambda d: [
+        f"{API}/events/{d.id}/wishlists/{uid}" for uid in d.receiver_of
+    ],
 }
 
 # Keys that carry draw data. Only `my_assignment` (top level) → `receiver` is allowed.

@@ -11,6 +11,7 @@ from dataclasses import dataclass
 
 from fastapi import Depends, Request
 from redis.asyncio import Redis
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker
 
 from app.api.cookies import ACCESS_COOKIE
@@ -19,6 +20,7 @@ from app.core.errors import AppError
 from app.core.security import decode_access_token
 from app.models.event import Event, EventState
 from app.models.user import User
+from app.models.wishlist import WishlistItem
 from app.services.events import get_event_for_participant
 from app.services.google_oauth import GoogleOAuthClient
 from app.worker.queue import flush_committed_jobs
@@ -105,6 +107,34 @@ async def require_host(access: EventAccess = Depends(require_participant)) -> Ev
     if not access.is_host:
         raise AppError("HOST_ONLY", 403)
     return access
+
+
+@dataclass(frozen=True, slots=True)
+class WishlistItemAccess:
+    """One of the current user's own items in an event they still participate in."""
+
+    event: Event
+    user: User
+    item: WishlistItem
+
+
+async def require_wishlist_owner(
+    item_id: uuid.UUID,
+    access: EventAccess = Depends(require_participant),
+    session: AsyncSession = Depends(get_db),
+) -> WishlistItemAccess:
+    """The item, if it is the caller's own in this event. Anyone else's item, or one in
+    another event, is 404 ``WISHLIST_ITEM_NOT_FOUND`` (no probing whose items exist)."""
+    item = await session.scalar(
+        select(WishlistItem).where(
+            WishlistItem.id == item_id,
+            WishlistItem.event_id == access.event.id,
+            WishlistItem.user_id == access.user.id,
+        )
+    )
+    if item is None:
+        raise AppError("WISHLIST_ITEM_NOT_FOUND", 404)
+    return WishlistItemAccess(event=access.event, user=access.user, item=item)
 
 
 _STATE_ERRORS: dict[str, str] = {

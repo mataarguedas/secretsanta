@@ -11,6 +11,7 @@ import { ToastProvider } from '@/components/ui';
 import type { Me } from '@/features/auth/api';
 import type { EventDetail, EventSection, EventSummary, Participant } from '@/features/events/api';
 import type { Exclusion, ExclusionList } from '@/features/exclusions/api';
+import type { ItemPayload, Wishlist, WishlistItem } from '@/features/wishlist/api';
 import type { InvitePreview } from '@/features/invites/api';
 import i18n from '@/i18n';
 
@@ -98,6 +99,8 @@ export function mockSession({
   exclusionsFeasible = () => true,
   onDraw,
   coverUpload,
+  wishlists = {},
+  reorderFails = false,
 }: {
   me: Me | null;
   /** Make `PATCH /me` fail with this status (e.g. 500) instead of saving. */
@@ -131,7 +134,13 @@ export function mockSession({
    * to return instead of the default success (which sets `cover_url`/`cover_thumb_url`).
    */
   coverUpload?: (eventId: string, file: File) => Response | undefined;
+  /** Wishlists by owner user id (any event). Mutations act on the signed-in user's list. */
+  wishlists?: Record<string, Wishlist>;
+  /** Make `PUT …/wishlist/order` fail with a 500 (to test the optimistic rollback). */
+  reorderFails?: boolean;
 }) {
+  const lists = new Map(Object.entries(wishlists));
+  let itemSeq = 0;
   vi.stubGlobal('XMLHttpRequest', FakeXhr);
   let covers = 0;
   const exclusionLists = new Map(Object.entries(exclusions));
@@ -197,6 +206,69 @@ export function mockSession({
         return Promise.resolve(new Response(null, { status: 204 }));
       }
       return Promise.resolve(jsonResponse(200, list));
+    }
+    const listMatch = /^\/api\/v1\/events\/[^/?]+\/wishlists\/([^/?]+)$/.exec(url);
+    if (listMatch?.[1]) {
+      const list = lists.get(listMatch[1]);
+      return Promise.resolve(
+        list
+          ? jsonResponse(200, list)
+          : jsonResponse(404, { error: { code: 'PARTICIPANT_NOT_FOUND', message: '' } }),
+      );
+    }
+    const itemMatch = /^\/api\/v1\/events\/[^/?]+\/wishlist\/(items(?:\/([^/?]+))?|order)$/.exec(
+      url,
+    );
+    if (itemMatch?.[1] && me) {
+      const self = me;
+      const mine = lists.get(self.id) ?? {
+        owner: { id: self.id, name: self.name, avatar_url: self.avatar_url },
+        is_self: true,
+        items: [],
+      };
+      const save = (items: WishlistItem[]) => {
+        lists.set(self.id, {
+          ...mine,
+          items: items.map((item, position) => ({ ...item, position })),
+        });
+      };
+      const body = init?.body ? (JSON.parse(init.body as string) as unknown) : undefined;
+      if (itemMatch[1] === 'order') {
+        if (reorderFails) {
+          return Promise.resolve(
+            jsonResponse(500, { error: { code: 'INTERNAL_ERROR', message: '' } }),
+          );
+        }
+        const { item_ids: ids } = body as { item_ids: string[] };
+        const byId = new Map(mine.items.map((item) => [item.id, item]));
+        save(ids.map((id) => byId.get(id)).filter((i): i is WishlistItem => i !== undefined));
+        return Promise.resolve(jsonResponse(200, lists.get(self.id)?.items));
+      }
+      const itemId = itemMatch[2];
+      if (method === 'POST') {
+        itemSeq += 1;
+        const item: WishlistItem = {
+          id: `item-${String(itemSeq)}`,
+          position: mine.items.length,
+          photos: [],
+          ...(body as ItemPayload),
+        };
+        save([...mine.items, item]);
+        return Promise.resolve(jsonResponse(201, item));
+      }
+      const found = mine.items.find((item) => item.id === itemId);
+      if (!found) {
+        return Promise.resolve(
+          jsonResponse(404, { error: { code: 'WISHLIST_ITEM_NOT_FOUND', message: '' } }),
+        );
+      }
+      if (method === 'PATCH') {
+        const updated = { ...found, ...(body as Partial<ItemPayload>) };
+        save(mine.items.map((item) => (item.id === found.id ? updated : item)));
+        return Promise.resolve(jsonResponse(200, updated));
+      }
+      save(mine.items.filter((item) => item.id !== found.id));
+      return Promise.resolve(new Response(null, { status: 204 }));
     }
     const coverMatch = /^\/api\/v1\/events\/([^/?]+)\/cover$/.exec(url);
     if (coverMatch?.[1]) {

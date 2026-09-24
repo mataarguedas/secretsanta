@@ -52,6 +52,9 @@ ERROR_REGISTRY: Final[dict[str, str]] = {
     "FILE_TOO_LARGE": "The file is larger than 10 MB.",
     "IMAGE_TOO_LARGE": "The image has too many pixels.",
     "UNSUPPORTED_IMAGE": "Only JPEG, PNG, WebP and HEIC images are accepted.",
+    # Wishlists (Prompt 19)
+    "WISHLIST_ITEM_NOT_FOUND": "That wishlist item doesn't exist.",
+    "WISHLIST_ORDER_MISMATCH": "The new order must list exactly your items.",
 }
 
 _STATUS_TO_CODE: Final[dict[int, str]] = {

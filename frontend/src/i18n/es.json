@@ -406,6 +406,73 @@
       "wishlist": "Ver su lista de deseos"
     }
   },
+  "wishlist": {
+    "loading": "Cargando la lista de deseos…",
+    "picker": {
+      "label": "Lista de quién",
+      "mine": "Mi lista"
+    },
+    "mine": "Mi lista de deseos",
+    "ofPerson": "Lista de deseos de {{name}}",
+    "add": "Agregar artículo",
+    "readOnly": "Este evento está archivado: las listas son de solo lectura.",
+    "priority": {
+      "label": "Prioridad",
+      "high": "Alta",
+      "medium": "Media",
+      "low": "Baja"
+    },
+    "item": {
+      "price": "Precio aproximado",
+      "link": "Ver en la tienda",
+      "linkLabel": "Ver {{title}} en la tienda (se abre en otra pestaña)",
+      "edit": "Editar",
+      "editLabel": "Editar {{title}}",
+      "delete": "Eliminar",
+      "deleteLabel": "Eliminar {{title}}",
+      "moveUp": "Subir {{title}}",
+      "moveDown": "Bajar {{title}}"
+    },
+    "empty": {
+      "ownTitle": "Tu lista está vacía",
+      "ownBody": "Agrega algunas ideas para que quien te regale sepa qué te gustaría.",
+      "otherTitle": "{{name}} todavía no ha agregado nada",
+      "otherBody": "Vuelve más tarde o pregúntale por el chat."
+    },
+    "form": {
+      "addTitle": "Agregar artículo",
+      "editTitle": "Editar artículo",
+      "title": "¿Qué es?",
+      "price": "Precio aproximado (opcional)",
+      "url": "Enlace de la tienda (opcional)",
+      "urlHelp": "Un enlace que empiece con http:// o https://.",
+      "note": "Nota (opcional)",
+      "noteCounter": "{{count}} / {{max}}",
+      "cancel": "Cancelar",
+      "submitAdd": "Agregar",
+      "submitEdit": "Guardar",
+      "errors": {
+        "titleRequired": "Escribe qué te gustaría.",
+        "titleLength": "Máximo 120 caracteres.",
+        "noteLength": "Máximo 1000 caracteres.",
+        "urlInvalid": "Usa un enlace que empiece con http:// o https://.",
+        "priceInteger": "Usa colones enteros, sin decimales ni símbolos.",
+        "priceMax": "Ese precio es demasiado alto.",
+        "server": "Revisa este campo."
+      }
+    },
+    "delete": {
+      "title": "¿Eliminar «{{title}}»?",
+      "body": "Desaparecerá de tu lista. No se puede deshacer.",
+      "confirm": "Sí, eliminar"
+    },
+    "toast": {
+      "added": "Artículo agregado.",
+      "saved": "Cambios guardados.",
+      "deleted": "Artículo eliminado.",
+      "reorderFailed": "No se pudo guardar el nuevo orden. Inténtalo de nuevo."
+    }
+  },
   "chat": {
     "list": {
       "title": "Chats"
@@ -466,6 +533,8 @@
     "DRAW_INFEASIBLE": "No hay un sorteo válido con estas reglas de exclusión.",
     "FILE_TOO_LARGE": "El archivo pesa más de 10 MB.",
     "IMAGE_TOO_LARGE": "La imagen es demasiado grande (demasiados píxeles).",
-    "UNSUPPORTED_IMAGE": "Ese archivo no es una imagen compatible. Usa JPEG, PNG, WebP o HEIC."
+    "UNSUPPORTED_IMAGE": "Ese archivo no es una imagen compatible. Usa JPEG, PNG, WebP o HEIC.",
+    "WISHLIST_ITEM_NOT_FOUND": "Ese artículo ya no existe.",
+    "WISHLIST_ORDER_MISMATCH": "La lista cambió mientras tanto. Recarga e inténtalo de nuevo."
   }
 }

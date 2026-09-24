@@ -78,3 +78,21 @@ export function CloseIcon(props: IconProps) {
     </Icon>
   );
 }
+
+/** Arrow up: move earlier in a list. */
+export function ArrowUpIcon(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <path d="M10 16V4M5 9l5-5 5 5" />
+    </Icon>
+  );
+}
+
+/** Arrow down: move later in a list. */
+export function ArrowDownIcon(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <path d="M10 4v12M5 11l5 5 5-5" />
+    </Icon>
+  );
+}

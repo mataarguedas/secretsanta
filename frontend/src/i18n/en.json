@@ -406,6 +406,73 @@
       "wishlist": "See their wishlist"
     }
   },
+  "wishlist": {
+    "loading": "Loading the wishlist…",
+    "picker": {
+      "label": "Whose wishlist",
+      "mine": "My wishlist"
+    },
+    "mine": "My wishlist",
+    "ofPerson": "{{name}}'s wishlist",
+    "add": "Add item",
+    "readOnly": "This event is archived: wishlists are read-only.",
+    "priority": {
+      "label": "Priority",
+      "high": "High",
+      "medium": "Medium",
+      "low": "Low"
+    },
+    "item": {
+      "price": "Approximate price",
+      "link": "See in store",
+      "linkLabel": "See {{title}} in the store (opens in a new tab)",
+      "edit": "Edit",
+      "editLabel": "Edit {{title}}",
+      "delete": "Delete",
+      "deleteLabel": "Delete {{title}}",
+      "moveUp": "Move {{title}} up",
+      "moveDown": "Move {{title}} down"
+    },
+    "empty": {
+      "ownTitle": "Your wishlist is empty",
+      "ownBody": "Add a few ideas so whoever gives to you knows what you'd like.",
+      "otherTitle": "{{name}} hasn't added anything yet",
+      "otherBody": "Check back later, or ask them in the chat."
+    },
+    "form": {
+      "addTitle": "Add item",
+      "editTitle": "Edit item",
+      "title": "What is it?",
+      "price": "Approximate price (optional)",
+      "url": "Store link (optional)",
+      "urlHelp": "A link that starts with http:// or https://.",
+      "note": "Note (optional)",
+      "noteCounter": "{{count}} / {{max}}",
+      "cancel": "Cancel",
+      "submitAdd": "Add",
+      "submitEdit": "Save",
+      "errors": {
+        "titleRequired": "Write what you'd like.",
+        "titleLength": "Up to 120 characters.",
+        "noteLength": "Up to 1000 characters.",
+        "urlInvalid": "Use a link that starts with http:// or https://.",
+        "priceInteger": "Use whole colones, without decimals or symbols.",
+        "priceMax": "That price is too high.",
+        "server": "Check this field."
+      }
+    },
+    "delete": {
+      "title": "Delete «{{title}}»?",
+      "body": "It will disappear from your wishlist. This can't be undone.",
+      "confirm": "Yes, delete"
+    },
+    "toast": {
+      "added": "Item added.",
+      "saved": "Changes saved.",
+      "deleted": "Item deleted.",
+      "reorderFailed": "The new order couldn't be saved. Try again."
+    }
+  },
   "chat": {
     "list": {
       "title": "Chats"
@@ -466,6 +533,8 @@
     "DRAW_INFEASIBLE": "No valid draw exists with these exclusion rules.",
     "FILE_TOO_LARGE": "The file is larger than 10 MB.",
     "IMAGE_TOO_LARGE": "The image is too large (too many pixels).",
-    "UNSUPPORTED_IMAGE": "That file isn't a supported image. Use JPEG, PNG, WebP or HEIC."
+    "UNSUPPORTED_IMAGE": "That file isn't a supported image. Use JPEG, PNG, WebP or HEIC.",
+    "WISHLIST_ITEM_NOT_FOUND": "That item no longer exists.",
+    "WISHLIST_ORDER_MISMATCH": "The list changed meanwhile. Reload and try again."
   }
 }

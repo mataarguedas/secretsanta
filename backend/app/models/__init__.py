@@ -10,6 +10,7 @@ from app.models.event import Event, EventParticipant, EventState
 from app.models.exclusion import Exclusion
 from app.models.refresh_token import RefreshToken
 from app.models.user import User
+from app.models.wishlist import WishlistItem, WishlistPhoto
 
 __all__ = [
     "Assignment",
@@ -20,4 +21,6 @@ __all__ = [
     "Exclusion",
     "RefreshToken",
     "User",
+    "WishlistItem",
+    "WishlistPhoto",
 ]

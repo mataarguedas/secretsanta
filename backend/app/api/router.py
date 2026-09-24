@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 
-from app.api import auth, events, exclusions, health, invites, me
+from app.api import auth, events, exclusions, health, invites, me, wishlists
 from app.api.paths import API_PREFIX
 
 __all__ = ["API_PREFIX", "api_router"]
@@ -12,3 +12,4 @@ api_router.include_router(me.router)
 api_router.include_router(events.router)
 api_router.include_router(exclusions.router)
 api_router.include_router(invites.router)
+api_router.include_router(wishlists.router)
