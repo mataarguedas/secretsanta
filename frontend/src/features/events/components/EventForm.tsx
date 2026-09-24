@@ -1,6 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import type { ParseKeys } from 'i18next';
-import { useMemo } from 'react';
+import { useMemo, type ReactNode } from 'react';
 import { Controller, useForm, useWatch } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
 
@@ -29,6 +29,8 @@ export interface EventFormProps {
   schemaOptions?: EventSchemaOptions;
   /** Resolve on success; throw (e.g. an `ApiError`) to show errors. */
   onSubmit: (values: EventFormOutput) => Promise<unknown>;
+  /** Extra fields rendered after the form's own, before the submit (e.g. the cover). */
+  children?: ReactNode;
 }
 
 /**
@@ -42,6 +44,7 @@ export function EventForm({
   disabledFields = NONE,
   schemaOptions,
   onSubmit,
+  children,
 }: EventFormProps) {
   const { t } = useTranslation();
   const toast = useToast();
@@ -180,6 +183,8 @@ export function EventForm({
           />
         )}
       />
+
+      {children}
 
       {/* Mobile: sticky full-width pill just above the fixed tab bar. Desktop: inline. */}
       <div className="sticky bottom-[calc(var(--tab-bar-height)+env(safe-area-inset-bottom))] -mx-16 border-t border-mist bg-cream-linen px-16 py-12 md:static md:mx-0 md:border-0 md:bg-transparent md:p-0">

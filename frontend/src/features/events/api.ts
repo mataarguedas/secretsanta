@@ -16,6 +16,9 @@ export interface EventSummary {
   exchange_at: string;
   budget_crc: number;
   is_host: boolean;
+  /** Presigned (1 h) URLs, or null without a cover. Cards use the thumbnail. */
+  cover_url: string | null;
+  cover_thumb_url: string | null;
 }
 
 export interface EventPage {
@@ -44,6 +47,9 @@ export interface EventDetail {
   archived_at: string | null;
   host: UserPublic;
   participant_count: number;
+  /** Presigned (1 h) URLs, or null without a cover. */
+  cover_url: string | null;
+  cover_thumb_url: string | null;
   my_role: 'host' | 'participant';
   /** The caller's own receiver once drawn; never anyone else's (CLAUDE.md §2.1). */
   my_assignment: MyAssignment | null;
@@ -193,5 +199,56 @@ export function useLeaveEvent(eventId: string) {
       queryClient.removeQueries({ queryKey: eventKeys.detail(eventId) });
       await queryClient.invalidateQueries({ queryKey: eventKeys.all });
     },
+  });
+}
+
+/** Accepted by `POST /events/{id}/cover`; the server sniffs the real format anyway. */
+export const COVER_ACCEPT = 'image/jpeg,image/png,image/webp,image/heic,image/heif';
+/** Mirrors the backend limit (CLAUDE.md §7 Uploads). */
+export const MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
+
+export interface CoverUpload {
+  eventId: string;
+  file: File;
+  onProgress?: (fraction: number) => void;
+}
+
+/**
+ * Host, OPEN only: set or replace the cover. The old photo is deleted by the worker. The
+ * event id travels with each call, so the create page can upload to an event it has only
+ * just created.
+ */
+export function useUploadCover() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ eventId, file, onProgress }: CoverUpload) => {
+      const form = new FormData();
+      form.append('file', file);
+      return apiClient.upload<EventDetail>(`/events/${eventId}/cover`, form, {
+        ...(onProgress ? { onProgress } : {}),
+      });
+    },
+    onSuccess: (event, { eventId }) => refreshCover(queryClient, eventId, event),
+  });
+}
+
+export function useRemoveCover(eventId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: () => apiClient.delete<EventDetail>(`/events/${eventId}/cover`),
+    onSuccess: (event) => refreshCover(queryClient, eventId, event),
+  });
+}
+
+async function refreshCover(
+  queryClient: ReturnType<typeof useQueryClient>,
+  eventId: string,
+  event: EventDetail,
+) {
+  queryClient.setQueryData(eventKeys.detail(eventId), event);
+  // Dashboard cards show the thumbnail.
+  await queryClient.invalidateQueries({
+    queryKey: eventKeys.all,
+    predicate: (query) => query.queryKey[1] !== eventId,
   });
 }

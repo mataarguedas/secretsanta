@@ -17,6 +17,15 @@ export function EventCard({ event }: { event: EventSummary }) {
   return (
     <Card asChild>
       <Link to={`/events/${event.id}`} className="flex h-full flex-col gap-12">
+        {event.cover_thumb_url && (
+          <img
+            src={event.cover_thumb_url}
+            alt={t('events.cover.alt', { name: event.name })}
+            loading="lazy"
+            decoding="async"
+            className="-mx-20 -mt-20 aspect-[2/1] w-[calc(100%+40px)] max-w-none rounded-none border-b border-mist object-cover"
+          />
+        )}
         <Eyebrow as="span">{t(`events.state.${event.state}`)}</Eyebrow>
         <h3 className="font-serif text-heading-sm font-medium break-words">{event.name}</h3>
         {/* Each dt/dd pair is wrapped in one div, the only nesting a <dl> allows. */}

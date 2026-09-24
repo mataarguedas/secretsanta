@@ -21,6 +21,7 @@ from app.models.event import Event, EventState
 from app.models.user import User
 from app.services.events import get_event_for_participant
 from app.services.google_oauth import GoogleOAuthClient
+from app.worker.queue import flush_committed_jobs
 
 
 def get_engine(request: Request) -> AsyncEngine:
@@ -31,7 +32,11 @@ def get_engine(request: Request) -> AsyncEngine:
 async def get_db(request: Request) -> AsyncIterator[AsyncSession]:
     sessionmaker: async_sessionmaker[AsyncSession] = request.app.state.sessionmaker
     async with sessionmaker() as session:
-        yield session
+        try:
+            yield session
+        finally:
+            # Jobs parked with enqueue_after_commit, only if their transaction committed.
+            await flush_committed_jobs(session, getattr(request.app.state, "arq", None))
 
 
 def get_redis(request: Request) -> "Redis":

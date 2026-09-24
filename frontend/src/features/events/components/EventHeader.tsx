@@ -11,6 +11,13 @@ export function EventHeader({ event }: { event: EventDetail }) {
 
   return (
     <header className="flex flex-col gap-12">
+      {event.cover_url && (
+        <img
+          src={event.cover_url}
+          alt={t('events.cover.alt', { name: event.name })}
+          className="aspect-[3/2] w-full rounded-none border border-mist object-cover md:aspect-[3/1]"
+        />
+      )}
       <div className="flex flex-wrap gap-x-15 gap-y-6">
         <Eyebrow as="span">{t(`events.state.${event.state}`)}</Eyebrow>
         {event.my_role === 'host' && (

@@ -9,7 +9,8 @@ Override with ``TEST_DATABASE_URL`` / ``TEST_REDIS_URL`` if needed.
 
 import asyncio
 import os
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Iterator
+from typing import TYPE_CHECKING
 
 import pytest
 from fastapi import FastAPI
@@ -25,6 +26,11 @@ from sqlalchemy.ext.asyncio import (
 
 from app.core.config import get_settings
 
+if TYPE_CHECKING:
+    from arq.connections import ArqRedis
+
+    from app.storage.r2 import ObjectStorage
+
 # ── Point the app at the test database / Redis DB *before* importing it ──────
 _base = get_settings()
 _db_url = make_url(os.environ.get("TEST_DATABASE_URL") or _base.database_url)
@@ -32,6 +38,8 @@ if not os.environ.get("TEST_DATABASE_URL"):
     _db_url = _db_url.set(database="santa_test")
 TEST_DATABASE_URL = _db_url.render_as_string(hide_password=False)
 TEST_REDIS_URL = os.environ.get("TEST_REDIS_URL") or (_base.redis_url.rsplit("/", 1)[0] + "/15")
+
+S3_TEST_ENDPOINT = "http://s3.test:9000"
 
 os.environ.update(
     ENV="test",
@@ -42,6 +50,16 @@ os.environ.update(
     JWT_SECRET="test-jwt-secret-" + "x" * 48,
     GOOGLE_CLIENT_ID="test-client-id.apps.googleusercontent.com",
     GOOGLE_CLIENT_SECRET="test-client-secret",
+    # Object storage is moto's in-process S3 mock (the `s3` fixture), so tests need no
+    # MinIO/R2 and run the same locally and in CI. moto intercepts this custom endpoint;
+    # presigned URLs use the public one, like the browser would in dev.
+    R2_ACCOUNT_ID="",
+    R2_ACCESS_KEY_ID="test-access-key",
+    R2_SECRET_ACCESS_KEY="test-secret-key",
+    R2_BUCKET="secret-santa-test",
+    S3_ENDPOINT_URL=S3_TEST_ENDPOINT,
+    S3_PUBLIC_ENDPOINT_URL="http://localhost:9000",
+    MOTO_S3_CUSTOM_ENDPOINTS=S3_TEST_ENDPOINT,
 )
 get_settings.cache_clear()
 
@@ -140,3 +158,29 @@ async def client(
         transport = ASGITransport(app=app)
         async with AsyncClient(transport=transport, base_url="http://testserver") as ac:
             yield ac
+
+
+@pytest.fixture
+def s3() -> Iterator["ObjectStorage"]:
+    """An empty, private bucket in moto's S3 mock; ``get_storage()`` returns a client on it."""
+    from moto import mock_aws
+
+    from app.storage.r2 import get_storage
+
+    with mock_aws():
+        get_storage.cache_clear()
+        storage = get_storage()
+        storage._client.create_bucket(Bucket=storage.bucket)
+        yield storage
+    get_storage.cache_clear()
+
+
+@pytest.fixture
+async def arq_pool() -> AsyncIterator["ArqRedis"]:
+    """arq's pool on the test Redis DB, to inspect enqueued jobs."""
+    from arq import create_pool
+    from arq.connections import RedisSettings
+
+    pool = await create_pool(RedisSettings.from_dsn(TEST_REDIS_URL))
+    yield pool
+    await pool.aclose()

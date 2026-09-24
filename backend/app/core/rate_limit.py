@@ -1,4 +1,5 @@
-"""slowapi rate limiting with Redis storage (CLAUDE.md §7: auth 10/min/IP).
+"""slowapi rate limiting with Redis storage (CLAUDE.md §7: auth 10/min/IP, uploads
+20/min/user).
 
 The limiter is module-level because slowapi's decorators bind to an instance at import
 time. Storage is Redis so limits hold across API workers. If Redis is unreachable the
@@ -14,10 +15,13 @@ from slowapi import Limiter
 from slowapi.errors import RateLimitExceeded
 from slowapi.util import get_remote_address
 
+from app.api.cookies import ACCESS_COOKIE
 from app.core.config import get_settings
 from app.core.errors import error_response
+from app.core.security import decode_access_token
 
 AUTH_LIMIT: Final = "10/minute"
+UPLOAD_LIMIT: Final = "20/minute"
 
 limiter = Limiter(
     key_func=get_remote_address,
@@ -30,6 +34,19 @@ limiter = Limiter(
 def auth_rate_limit[F: Callable[..., Any]](func: F) -> F:
     """10 requests per minute per client IP. The endpoint must take ``request: Request``."""
     return cast(F, limiter.limit(AUTH_LIMIT)(func))
+
+
+def user_key(request: Request) -> str:
+    """The signed-in user's id from the access cookie, else the client IP. An expired or
+    forged cookie falls back to the IP; the route's own auth check rejects it anyway."""
+    token = request.cookies.get(ACCESS_COOKIE)
+    user_id = decode_access_token(token, get_settings()) if token else None
+    return f"user:{user_id}" if user_id else f"ip:{get_remote_address(request)}"
+
+
+def upload_rate_limit[F: Callable[..., Any]](func: F) -> F:
+    """20 uploads per minute per user. The endpoint must take ``request: Request``."""
+    return cast(F, limiter.limit(UPLOAD_LIMIT, key_func=user_key)(func))
 
 
 async def _rate_limited_handler(_request: Request, _exc: Exception) -> JSONResponse:

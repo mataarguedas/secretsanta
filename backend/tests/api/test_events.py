@@ -173,7 +173,10 @@ async def test_sections_filter_by_role_and_state(
         "exchange_at",
         "budget_crc",
         "is_host",
+        "cover_url",
+        "cover_thumb_url",
     }
+    assert hosting[0]["cover_url"] is None
 
     participating = await section("participating")
     assert [e["id"] for e in participating] == [beto_event["id"]]

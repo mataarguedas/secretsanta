@@ -8,7 +8,7 @@ from arq.connections import RedisSettings
 from app.core.config import get_settings
 from app.core.logging import configure_logging, get_logger
 from app.core.sentry import init_sentry
-from app.worker.tasks import ping
+from app.worker.tasks import delete_objects, delete_prefix, ping
 
 _settings = get_settings()
 configure_logging(_settings.log_level)
@@ -29,7 +29,7 @@ async def shutdown(_ctx: dict[str, Any]) -> None:
 
 
 class WorkerSettings:
-    functions: ClassVar[list[Any]] = [ping]
+    functions: ClassVar[list[Any]] = [ping, delete_objects, delete_prefix]
     redis_settings = RedisSettings.from_dsn(_settings.redis_url)
     on_startup = startup
     on_shutdown = shutdown

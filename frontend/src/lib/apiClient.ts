@@ -7,6 +7,8 @@
  *   `{ "error": { "code", "message" } }`; the UI translates `errors.<code>`.
  * - On 401: `POST /auth/refresh` once and retry the request once. Concurrent 401s share a
  *   single refresh. If the refresh fails, `onUnauthenticated` runs.
+ * - `upload()` sends multipart through XMLHttpRequest, the only browser API that reports
+ *   upload progress; everything else (headers, refresh, errors) is the same path.
  */
 
 export const API_BASE = '/api/v1';
@@ -43,6 +45,13 @@ export interface RequestOptions {
   headers?: Record<string, string>;
   /** Statuses (besides 2xx) whose body is returned instead of thrown, e.g. 503 from /health. */
   allowStatus?: readonly number[];
+  /** Upload progress, 0…1 (sends through XMLHttpRequest). */
+  onProgress?: (fraction: number) => void;
+}
+
+export interface UploadOptions {
+  signal?: AbortSignal;
+  onProgress?: (fraction: number) => void;
 }
 
 export interface ApiClientConfig {
@@ -59,11 +68,54 @@ export interface ApiClient {
   put: <T>(path: string, body?: unknown, options?: RequestOptions) => Promise<T>;
   patch: <T>(path: string, body?: unknown, options?: RequestOptions) => Promise<T>;
   delete: <T>(path: string, options?: RequestOptions) => Promise<T>;
+  /** `POST` a FormData body, reporting progress. */
+  upload: <T>(path: string, form: FormData, options?: UploadOptions) => Promise<T>;
   setOnUnauthenticated: (handler: (() => void) | undefined) => void;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null;
+}
+
+/** XMLHttpRequest as a `fetch`-shaped call, so uploads share the response handling. */
+function xhrFetch(
+  url: string,
+  init: { method: string; headers: Record<string, string>; body: BodyInit | null },
+  signal: AbortSignal | undefined,
+  onProgress: (fraction: number) => void,
+): Promise<Response> {
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open(init.method, url);
+    xhr.withCredentials = true;
+    for (const [name, value] of Object.entries(init.headers)) xhr.setRequestHeader(name, value);
+    xhr.upload.onprogress = (event) => {
+      if (event.lengthComputable && event.total > 0) onProgress(event.loaded / event.total);
+    };
+    xhr.onload = () => {
+      const empty = xhr.status === 204 || xhr.status === 205;
+      resolve(
+        new Response(empty ? null : xhr.responseText, {
+          status: xhr.status,
+          headers: { 'Content-Type': xhr.getResponseHeader('Content-Type') ?? '' },
+        }),
+      );
+    };
+    xhr.onerror = () => {
+      reject(new TypeError('Network error'));
+    };
+    xhr.onabort = () => {
+      reject(new DOMException('Aborted', 'AbortError'));
+    };
+    if (signal?.aborted) {
+      xhr.abort();
+      return;
+    }
+    signal?.addEventListener('abort', () => {
+      xhr.abort();
+    });
+    xhr.send(init.body as XMLHttpRequestBodyInit | null);
+  });
 }
 
 async function parseBody(response: Response): Promise<unknown> {
@@ -111,6 +163,14 @@ export function createApiClient(config: ApiClientConfig = {}): ApiClient {
     } else if (options.body !== undefined) {
       body = JSON.stringify(options.body);
       headers['Content-Type'] = 'application/json';
+    }
+    if (options.onProgress && typeof XMLHttpRequest !== 'undefined') {
+      return xhrFetch(
+        `${baseUrl}${path}`,
+        { method, headers, body: body ?? null },
+        options.signal,
+        options.onProgress,
+      );
     }
     return doFetch(`${baseUrl}${path}`, {
       method,
@@ -167,6 +227,12 @@ export function createApiClient(config: ApiClientConfig = {}): ApiClient {
     put: (path, body, options) => request('PUT', path, { ...options, body }),
     patch: (path, body, options) => request('PATCH', path, { ...options, body }),
     delete: (path, options) => request('DELETE', path, options),
+    upload: (path, form, options = {}) =>
+      request('POST', path, {
+        body: form,
+        ...(options.signal ? { signal: options.signal } : {}),
+        onProgress: options.onProgress ?? (() => undefined),
+      }),
     setOnUnauthenticated: (handler) => {
       onUnauthenticated = handler;
     },

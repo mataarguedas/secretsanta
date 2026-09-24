@@ -97,6 +97,7 @@ export function mockSession({
   exclusions = {},
   exclusionsFeasible = () => true,
   onDraw,
+  coverUpload,
 }: {
   me: Me | null;
   /** Make `PATCH /me` fail with this status (e.g. 500) instead of saving. */
@@ -125,7 +126,14 @@ export function mockSession({
    * event with `state: 'drawn'`), or a Response to return instead (e.g. a 409).
    */
   onDraw?: (event: EventDetail) => EventDetail | Response;
+  /**
+   * `POST /events/{id}/cover` (multipart, sent through the fake XMLHttpRequest): a Response
+   * to return instead of the default success (which sets `cover_url`/`cover_thumb_url`).
+   */
+  coverUpload?: (eventId: string, file: File) => Response | undefined;
 }) {
+  vi.stubGlobal('XMLHttpRequest', FakeXhr);
+  let covers = 0;
   const exclusionLists = new Map(Object.entries(exclusions));
   const rosters = new Map(Object.entries(participants));
   let regenerated = 0;
@@ -189,6 +197,27 @@ export function mockSession({
         return Promise.resolve(new Response(null, { status: 204 }));
       }
       return Promise.resolve(jsonResponse(200, list));
+    }
+    const coverMatch = /^\/api\/v1\/events\/([^/?]+)\/cover$/.exec(url);
+    if (coverMatch?.[1]) {
+      const event = details.get(coverMatch[1]);
+      if (!event) return Promise.resolve(jsonResponse(404, { error: { code: 'EVENT_NOT_FOUND' } }));
+      if (method === 'POST') {
+        const file = (init?.body as FormData).get('file') as File;
+        const custom = coverUpload?.(event.id, file);
+        if (custom) return Promise.resolve(custom);
+        covers += 1;
+        const updated = {
+          ...event,
+          cover_url: `https://storage.test/cover-${String(covers)}.webp`,
+          cover_thumb_url: `https://storage.test/cover-${String(covers)}_thumb.webp`,
+        };
+        details.set(event.id, updated);
+        return Promise.resolve(jsonResponse(200, updated));
+      }
+      const cleared = { ...event, cover_url: null, cover_thumb_url: null };
+      details.set(event.id, cleared);
+      return Promise.resolve(jsonResponse(200, cleared));
     }
     const drawMatch = /^\/api\/v1\/events\/([^/?]+)\/draw$/.exec(url);
     if (drawMatch?.[1] && method === 'POST') {
@@ -295,6 +324,65 @@ export function mockSession({
   return { spy, calls, initOf };
 }
 
+/**
+ * XMLHttpRequest stand-in (uploads use XHR for progress): replays the request through
+ * `globalThis.fetch`, so the same `mockSession` spy answers it, and reports 50% then 100%.
+ */
+export class FakeXhr {
+  upload: { onprogress: ((event: ProgressEvent) => void) | null } = { onprogress: null };
+  onload: (() => void) | null = null;
+  onerror: (() => void) | null = null;
+  onabort: (() => void) | null = null;
+  withCredentials = false;
+  status = 0;
+  responseText = '';
+  private method = 'GET';
+  private url = '';
+  private headers: Record<string, string> = {};
+  private responseHeaders: Headers | null = null;
+
+  open(method: string, url: string) {
+    this.method = method;
+    this.url = url;
+  }
+
+  setRequestHeader(name: string, value: string) {
+    this.headers[name] = value;
+  }
+
+  getResponseHeader(name: string): string | null {
+    return this.responseHeaders?.get(name) ?? null;
+  }
+
+  abort() {
+    this.onabort?.();
+  }
+
+  send(body: XMLHttpRequestBodyInit | null) {
+    const progress = (loaded: number) => {
+      this.upload.onprogress?.({ lengthComputable: true, loaded, total: 100 } as ProgressEvent);
+    };
+    progress(50);
+    globalThis
+      .fetch(this.url, {
+        method: this.method,
+        headers: this.headers,
+        body,
+        credentials: this.withCredentials ? 'include' : 'same-origin',
+      })
+      .then(async (response) => {
+        this.status = response.status;
+        this.responseText = await response.text();
+        this.responseHeaders = response.headers;
+        progress(100);
+        this.onload?.();
+      })
+      .catch(() => {
+        this.onerror?.();
+      });
+  }
+}
+
 export function eventSummary(overrides: Partial<EventSummary> = {}): EventSummary {
   return {
     id: '0193d1c2-0000-7000-8000-000000000001',
@@ -304,6 +392,8 @@ export function eventSummary(overrides: Partial<EventSummary> = {}): EventSummar
     exchange_at: '2026-12-20T19:00:00-06:00',
     budget_crc: 25000,
     is_host: true,
+    cover_url: null,
+    cover_thumb_url: null,
     ...overrides,
   };
 }
@@ -324,6 +414,8 @@ export function eventDetail(overrides: Partial<EventDetail> = {}): EventDetail {
     archived_at: null,
     host: { id: TEST_USER.id, name: TEST_USER.name, avatar_url: TEST_USER.avatar_url },
     participant_count: 3,
+    cover_url: null,
+    cover_thumb_url: null,
     my_role: 'host',
     my_assignment: null,
     invite_token: 'invite-token',

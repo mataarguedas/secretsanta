@@ -50,6 +50,9 @@ class Settings(BaseSettings):
     r2_secret_access_key: str = ""
     r2_bucket: str = "secret-santa"
     s3_endpoint_url: str = ""
+    # Optional: the storage address the *browser* uses, for presigned URLs only (dev:
+    # http://localhost:9000). Empty = presign with the same endpoint the API uses.
+    s3_public_endpoint_url: str = ""
 
     sentry_dsn: str = ""
     default_timezone: str = "America/Costa_Rica"

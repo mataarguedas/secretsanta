@@ -291,6 +291,21 @@
       "body": "You'll stop seeing the event and your wishlist. You can come back with the link while it's open.",
       "confirm": "Yes, leave",
       "done": "You left “{{name}}”."
+    },
+    "cover": {
+      "title": "Cover photo",
+      "help": "Optional. JPEG, PNG, WebP or HEIC, up to 10 MB. Location and camera details are removed.",
+      "choose": "Choose photo",
+      "replace": "Replace photo",
+      "remove": "Remove photo",
+      "noPreview": "Photo chosen (this browser can't preview it).",
+      "progressLabel": "Upload progress",
+      "uploading": "Uploading… {{percent}}%",
+      "uploaded": "Cover photo saved.",
+      "removed": "Cover photo removed.",
+      "alt": "Cover photo of {{name}}",
+      "previewAlt": "Preview of the chosen cover photo",
+      "createFailed": "The event was created, but the photo couldn't be uploaded; you can add it from Manage."
     }
   },
   "invites": {
@@ -448,6 +463,9 @@
     "EXCLUSION_INVALID_PARTICIPANT": "Exclusions can only include people in this event.",
     "EXCLUSION_NOT_FOUND": "That exclusion no longer exists.",
     "NOT_ENOUGH_PARTICIPANTS": "The draw needs at least 3 participants.",
-    "DRAW_INFEASIBLE": "No valid draw exists with these exclusion rules."
+    "DRAW_INFEASIBLE": "No valid draw exists with these exclusion rules.",
+    "FILE_TOO_LARGE": "The file is larger than 10 MB.",
+    "IMAGE_TOO_LARGE": "The image is too large (too many pixels).",
+    "UNSUPPORTED_IMAGE": "That file isn't a supported image. Use JPEG, PNG, WebP or HEIC."
   }
 }

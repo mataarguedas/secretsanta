@@ -9,11 +9,12 @@ import { errorMessage } from '@/lib/errors';
 
 import { useDeleteEvent, useUpdateEvent, type EventDetail } from '../api';
 import { eventToFormValues, lockedFields, toUpdatePayload } from '../schemas';
+import { CoverSection } from './CoverSection';
 import { EventForm } from './EventForm';
 
 /**
  * Host-only Manage tab: the invite link, exclusions, the reveal ("the draw is done" once
- * drawn), edit (fields locked by state) and delete (OPEN only). Reveal sits above the edit form so its coral
+ * drawn), the cover photo (OPEN only), edit (fields locked by state) and delete (OPEN only). Reveal sits above the edit form so its coral
  * button and the form's coral submit never share a viewport.
  */
 export function ManageTab({ event }: { event: EventDetail }) {
@@ -29,6 +30,7 @@ export function ManageTab({ event }: { event: EventDetail }) {
       <InviteLinkCard event={event} />
       <ExclusionsCard event={event} />
       <RevealSection event={event} />
+      {event.state === 'open' && <CoverSection event={event} />}
       <EditEventSection event={event} />
       {event.state === 'open' && <DeleteEventSection event={event} />}
     </div>

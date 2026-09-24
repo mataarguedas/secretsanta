@@ -3,7 +3,7 @@
 import uuid
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Query, Response
+from fastapi import APIRouter, Depends, File, Query, Request, Response, UploadFile
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import (
@@ -14,6 +14,8 @@ from app.api.deps import (
     require_host,
     require_participant,
 )
+from app.api.uploads import process_upload
+from app.core.rate_limit import upload_rate_limit
 from app.models.event import EventState
 from app.models.user import User
 from app.schemas.events import (
@@ -26,6 +28,7 @@ from app.schemas.events import (
     ParticipantPublic,
     Section,
 )
+from app.services import covers as cover_service
 from app.services import events as service
 from app.services import invites as invite_service
 from app.services import reveal as reveal_service
@@ -148,3 +151,29 @@ async def draw_event(
     feasibility itself, all in one transaction. The response never carries a pair."""
     await reveal_service.run_draw(session, access.event.id)
     return DrawResult(state="drawn")
+
+
+@router.post("/{event_id}/cover", response_model=HostEventDetail)
+@upload_rate_limit
+async def upload_cover(
+    request: Request,
+    file: UploadFile = File(...),
+    access: EventAccess = Depends(require_host),
+    _state: EventAccess = Depends(require_event_state(EventState.OPEN)),
+    session: AsyncSession = Depends(get_db),
+) -> EventDetail:
+    """Host, OPEN only. Replaces any existing cover; the old objects are deleted after
+    the commit. Format is sniffed from the bytes, never from the name or content type."""
+    image = await process_upload(file)
+    event = await cover_service.set_cover(session, access.event, image)
+    return await service.build_event_detail(session, event, access.user)
+
+
+@router.delete("/{event_id}/cover", response_model=HostEventDetail)
+async def remove_cover(
+    access: EventAccess = Depends(require_host),
+    _state: EventAccess = Depends(require_event_state(EventState.OPEN)),
+    session: AsyncSession = Depends(get_db),
+) -> EventDetail:
+    event = await cover_service.remove_cover(session, access.event)
+    return await service.build_event_detail(session, event, access.user)

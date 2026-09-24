@@ -48,6 +48,10 @@ ERROR_REGISTRY: Final[dict[str, str]] = {
     # Draw (Prompt 16)
     "NOT_ENOUGH_PARTICIPANTS": "The draw needs at least 3 participants.",
     "DRAW_INFEASIBLE": "No valid draw exists with the current exclusion rules.",
+    # Uploads (Prompt 18)
+    "FILE_TOO_LARGE": "The file is larger than 10 MB.",
+    "IMAGE_TOO_LARGE": "The image has too many pixels.",
+    "UNSUPPORTED_IMAGE": "Only JPEG, PNG, WebP and HEIC images are accepted.",
 }
 
 _STATUS_TO_CODE: Final[dict[int, str]] = {

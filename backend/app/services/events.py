@@ -6,7 +6,7 @@ import json
 import secrets
 import uuid
 from datetime import UTC, datetime
-from typing import Any, Final
+from typing import Any, Final, cast
 
 from sqlalchemy import DateTime, Select, Uuid, and_, delete, func, literal, select, tuple_
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -19,6 +19,7 @@ from app.schemas.events import (
     EventCreate,
     EventDetail,
     EventPage,
+    EventStateName,
     EventSummary,
     EventUpdate,
     HostEventDetail,
@@ -26,9 +27,11 @@ from app.schemas.events import (
     Section,
     UserPublic,
 )
+from app.services.covers import cover_urls, event_prefix
 from app.services.draw import MIN_PARTICIPANTS
 from app.services.exclusions import check_feasible, delete_user_exclusions
 from app.services.reveal import my_assignment
+from app.worker.queue import enqueue_after_commit
 
 PAGE_SIZE: Final = 20
 # PRD §3: after the draw only these may change.
@@ -92,6 +95,7 @@ async def build_event_detail(session: AsyncSession, event: Event, viewer: User) 
     if host is None:  # pragma: no cover - host_id is a NOT NULL FK
         raise AppError("EVENT_NOT_FOUND", 404)
     is_host = viewer.id == event.host_id
+    cover_url, cover_thumb_url = cover_urls(event)
     fields: dict[str, Any] = {
         "id": event.id,
         "name": event.name,
@@ -107,6 +111,8 @@ async def build_event_detail(session: AsyncSession, event: Event, viewer: User) 
         "archived_at": event.archived_at,
         "host": UserPublic(id=host.id, name=host.name, avatar_url=host.avatar_url),
         "participant_count": await count_participants(session, event.id),
+        "cover_url": cover_url,
+        "cover_thumb_url": cover_thumb_url,
         "my_role": "host" if is_host else "participant",
         "my_assignment": await my_assignment(session, event, viewer.id),
     }
@@ -198,6 +204,21 @@ def _section_query(user_id: uuid.UUID, section: Section) -> Select[Any]:
     return stmt.where(is_member, Event.state == EventState.ARCHIVED)
 
 
+def _summary(event: Event, participant_count: int, user_id: uuid.UUID) -> EventSummary:
+    cover_url, cover_thumb_url = cover_urls(event)
+    return EventSummary(
+        id=event.id,
+        name=event.name,
+        state=cast(EventStateName, event.state),  # the column's CHECK guarantees it
+        participant_count=participant_count,
+        exchange_at=event.exchange_at,
+        budget_crc=event.budget_crc,
+        is_host=event.host_id == user_id,
+        cover_url=cover_url,
+        cover_thumb_url=cover_thumb_url,
+    )
+
+
 async def list_events(
     session: AsyncSession, user_id: uuid.UUID, section: Section, cursor: str | None
 ) -> EventPage:
@@ -215,18 +236,7 @@ async def list_events(
         order = (Event.exchange_at.asc(), Event.id.asc())
     rows = (await session.execute(stmt.order_by(*order).limit(PAGE_SIZE + 1))).all()
 
-    items = [
-        EventSummary(
-            id=event.id,
-            name=event.name,
-            state=event.state,
-            participant_count=count,
-            exchange_at=event.exchange_at,
-            budget_crc=event.budget_crc,
-            is_host=event.host_id == user_id,
-        )
-        for event, count in rows[:PAGE_SIZE]
-    ]
+    items = [_summary(event, count, user_id) for event, count in rows[:PAGE_SIZE]]
     next_cursor = _encode_cursor(rows[PAGE_SIZE - 1][0]) if len(rows) > PAGE_SIZE else None
     return EventPage(items=items, next_cursor=next_cursor)
 
@@ -279,8 +289,9 @@ async def update_event(session: AsyncSession, event: Event, changes: EventUpdate
 
 
 async def delete_event(session: AsyncSession, event: Event) -> None:
-    """OPEN only (checked by the route). Participants cascade in the database."""
-    # TODO(prompt 18): enqueue deletion of the cover photo's R2 objects after commit.
+    """OPEN only (checked by the route). Rows cascade in the database; storage objects
+    (cover, wishlist photos) are removed by the worker once the delete has committed."""
+    enqueue_after_commit(session, "delete_prefix", event_prefix(event.id))
     await session.execute(delete(Event).where(Event.id == event.id))
     await session.commit()
 

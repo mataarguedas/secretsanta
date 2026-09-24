@@ -291,6 +291,21 @@
       "body": "Dejarás de ver el evento y tu lista de deseos. Puedes volver con el enlace mientras esté abierto.",
       "confirm": "Sí, salir",
       "done": "Saliste de «{{name}}»."
+    },
+    "cover": {
+      "title": "Foto de portada",
+      "help": "Opcional. JPEG, PNG, WebP o HEIC, hasta 10 MB. Se eliminan la ubicación y los datos de la cámara.",
+      "choose": "Elegir foto",
+      "replace": "Cambiar foto",
+      "remove": "Quitar foto",
+      "noPreview": "Foto elegida (este navegador no puede mostrar la vista previa).",
+      "progressLabel": "Progreso de la subida",
+      "uploading": "Subiendo… {{percent}} %",
+      "uploaded": "Foto de portada guardada.",
+      "removed": "Foto de portada quitada.",
+      "alt": "Foto de portada de {{name}}",
+      "previewAlt": "Vista previa de la foto de portada elegida",
+      "createFailed": "El evento se creó, pero la foto no se pudo subir; puedes agregarla desde Administrar."
     }
   },
   "invites": {
@@ -448,6 +463,9 @@
     "EXCLUSION_INVALID_PARTICIPANT": "Las exclusiones solo pueden incluir a personas de este evento.",
     "EXCLUSION_NOT_FOUND": "Esa exclusión ya no existe.",
     "NOT_ENOUGH_PARTICIPANTS": "El sorteo necesita al menos 3 participantes.",
-    "DRAW_INFEASIBLE": "No hay un sorteo válido con estas reglas de exclusión."
+    "DRAW_INFEASIBLE": "No hay un sorteo válido con estas reglas de exclusión.",
+    "FILE_TOO_LARGE": "El archivo pesa más de 10 MB.",
+    "IMAGE_TOO_LARGE": "La imagen es demasiado grande (demasiados píxeles).",
+    "UNSUPPORTED_IMAGE": "Ese archivo no es una imagen compatible. Usa JPEG, PNG, WebP o HEIC."
   }
 }

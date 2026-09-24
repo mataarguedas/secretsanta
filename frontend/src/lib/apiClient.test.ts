@@ -207,3 +207,75 @@ describe('apiClient', () => {
     expect(onUnauthenticated).not.toHaveBeenCalled();
   });
 });
+
+describe('apiClient.upload', () => {
+  /** Uploads go through XMLHttpRequest; the fake replays them through global fetch. */
+  async function uploadSetup(handler: Handler) {
+    const { FakeXhr } = await import('@/test/render');
+    const ctx = setup(handler);
+    vi.stubGlobal('XMLHttpRequest', FakeXhr);
+    vi.stubGlobal('fetch', ctx.fetchMock);
+    return ctx;
+  }
+
+  const form = () => {
+    const data = new FormData();
+    data.append('file', new File(['x'], 'a.jpg', { type: 'image/jpeg' }));
+    return data;
+  };
+
+  it('posts the FormData with the CSRF header and reports progress', async () => {
+    const { client, fetchMock } = await uploadSetup(() => json(200, { id: 'e1' }));
+    const progress: number[] = [];
+    const body = form();
+
+    await expect(
+      client.upload('/events/e1/cover', body, { onProgress: (f) => progress.push(f) }),
+    ).resolves.toEqual({ id: 'e1' });
+
+    const [url, init] = fetchMock.mock.calls[0] ?? [];
+    expect(url).toBe('/api/v1/events/e1/cover');
+    expect(init?.method).toBe('POST');
+    expect(init?.body).toBe(body);
+    expect(init?.credentials).toBe('include');
+    expect(headersOf(init)['X-Requested-With']).toBe('fetch');
+    expect(headersOf(init)['Content-Type']).toBeUndefined(); // the browser sets the boundary
+    expect(progress).toEqual([0.5, 1]);
+  });
+
+  it('throws the translated error code (e.g. an unsupported image)', async () => {
+    const { client } = await uploadSetup(() =>
+      json(415, { error: { code: 'UNSUPPORTED_IMAGE', message: 'no' } }),
+    );
+    await expect(client.upload('/events/e1/cover', form())).rejects.toMatchObject({
+      code: 'UNSUPPORTED_IMAGE',
+      status: 415,
+    });
+  });
+
+  it('refreshes the session on 401 and uploads again once', async () => {
+    let attempts = 0;
+    const { client, calls } = await uploadSetup((url) => {
+      if (url.endsWith('/auth/refresh')) return new Response(null, { status: 204 });
+      attempts += 1;
+      return attempts === 1
+        ? json(401, { error: { code: 'AUTH_REQUIRED', message: '' } })
+        : json(200, { ok: true });
+    });
+    await expect(client.upload('/events/e1/cover', form())).resolves.toEqual({ ok: true });
+    expect(calls()).toEqual([
+      'POST /api/v1/events/e1/cover',
+      'POST /api/v1/auth/refresh',
+      'POST /api/v1/events/e1/cover',
+    ]);
+  });
+
+  it('a network failure is NETWORK_ERROR', async () => {
+    const { client } = await uploadSetup(() => {
+      throw new TypeError('offline');
+    });
+    await expect(client.upload('/events/e1/cover', form())).rejects.toMatchObject({
+      code: 'NETWORK_ERROR',
+    });
+  });
+});

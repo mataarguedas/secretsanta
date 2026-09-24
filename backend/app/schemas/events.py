@@ -100,6 +100,9 @@ class EventSummary(BaseModel):
     exchange_at: datetime
     budget_crc: int
     is_host: bool
+    # Presigned (1 h) or null; cards show the thumbnail.
+    cover_url: str | None = None
+    cover_thumb_url: str | None = None
 
 
 class EventPage(BaseModel):
@@ -134,6 +137,9 @@ class EventDetail(BaseModel):
     archived_at: datetime | None
     host: UserPublic
     participant_count: int
+    # Presigned (1 h) GET URLs, or null without a cover (PRD §8 Photo URLs).
+    cover_url: str | None = None
+    cover_thumb_url: str | None = None
     my_role: Literal["host", "participant"]
     # The caller's own receiver once drawn; never anyone else's (CLAUDE.md §2.1).
     my_assignment: MyAssignment | None = None

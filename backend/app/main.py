@@ -3,6 +3,8 @@
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
+from arq import create_pool
+from arq.connections import RedisSettings
 from fastapi import FastAPI
 
 from app.api import testing
@@ -32,10 +34,13 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         app.state.engine = engine
         app.state.sessionmaker = create_sessionmaker(engine)
         app.state.redis = redis
+        # arq's pool: jobs for the worker (enqueued only after a commit, worker/queue.py).
+        app.state.arq = await create_pool(RedisSettings.from_dsn(settings.redis_url))
         log.info("startup", env=settings.env)
         try:
             yield
         finally:
+            await app.state.arq.aclose()
             await redis.aclose()
             await engine.dispose()
             log.info("shutdown")
