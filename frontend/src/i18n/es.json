@@ -368,6 +368,27 @@
       "added": "Grupo creado."
     }
   },
+  "draw": {
+    "reveal": {
+      "title": "El sorteo",
+      "body": "Cuando estén todos, haz el sorteo. Cada persona, incluyéndote a ti, solo verá a quién le regala.",
+      "button": "Revelar",
+      "needPeople": "Se necesitan al menos 3 participantes para revelar.",
+      "impossible": "Las reglas de exclusión hacen imposible el sorteo."
+    },
+    "confirm": {
+      "title": "¿Todo listo para el sorteo?",
+      "participants": "Participantes",
+      "reminder": "Después del sorteo nadie más puede unirse ni salir. No se puede deshacer.",
+      "cancel": "Cancelar",
+      "submit": "Todos están — revelar"
+    },
+    "done": "¡Sorteo hecho! Cada quien ya puede ver a quién le regala.",
+    "givingTo": {
+      "title": "Le regalas a…",
+      "wishlist": "Ver su lista de deseos"
+    }
+  },
   "chat": {
     "list": {
       "title": "Chats"
@@ -423,6 +444,8 @@
     "HOST_CANNOT_LEAVE": "Quien organiza no puede salir ni ser quitado de su propio evento.",
     "PARTICIPANT_NOT_FOUND": "Esa persona no participa en este evento.",
     "EXCLUSION_INVALID_PARTICIPANT": "Las exclusiones solo pueden incluir a personas de este evento.",
-    "EXCLUSION_NOT_FOUND": "Esa exclusión ya no existe."
+    "EXCLUSION_NOT_FOUND": "Esa exclusión ya no existe.",
+    "NOT_ENOUGH_PARTICIPANTS": "El sorteo necesita al menos 3 participantes.",
+    "DRAW_INFEASIBLE": "No hay un sorteo válido con estas reglas de exclusión."
   }
 }

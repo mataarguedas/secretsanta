@@ -45,6 +45,9 @@ ERROR_REGISTRY: Final[dict[str, str]] = {
     # Exclusions (Prompt 15)
     "EXCLUSION_INVALID_PARTICIPANT": "Exclusions can only name current participants.",
     "EXCLUSION_NOT_FOUND": "That exclusion doesn't exist.",
+    # Draw (Prompt 16)
+    "NOT_ENOUGH_PARTICIPANTS": "The draw needs at least 3 participants.",
+    "DRAW_INFEASIBLE": "No valid draw exists with the current exclusion rules.",
 }
 
 _STATUS_TO_CODE: Final[dict[int, str]] = {

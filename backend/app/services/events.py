@@ -28,6 +28,7 @@ from app.schemas.events import (
 )
 from app.services.draw import MIN_PARTICIPANTS
 from app.services.exclusions import check_feasible, delete_user_exclusions
+from app.services.reveal import my_assignment
 
 PAGE_SIZE: Final = 20
 # PRD §3: after the draw only these may change.
@@ -107,6 +108,7 @@ async def build_event_detail(session: AsyncSession, event: Event, viewer: User) 
         "host": UserPublic(id=host.id, name=host.name, avatar_url=host.avatar_url),
         "participant_count": await count_participants(session, event.id),
         "my_role": "host" if is_host else "participant",
+        "my_assignment": await my_assignment(session, event, viewer.id),
     }
     if is_host:
         return HostEventDetail(

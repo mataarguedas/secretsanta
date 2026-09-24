@@ -96,6 +96,7 @@ export function mockSession({
   participants = {},
   exclusions = {},
   exclusionsFeasible = () => true,
+  onDraw,
 }: {
   me: Me | null;
   /** Make `PATCH /me` fail with this status (e.g. 500) instead of saving. */
@@ -119,6 +120,11 @@ export function mockSession({
   exclusions?: Record<string, ExclusionList>;
   /** `feasible` after a POST/DELETE (default: always true). */
   exclusionsFeasible?: (items: Exclusion[]) => boolean;
+  /**
+   * `POST /events/{id}/draw`: the event as the server has it afterwards (default: the same
+   * event with `state: 'drawn'`), or a Response to return instead (e.g. a 409).
+   */
+  onDraw?: (event: EventDetail) => EventDetail | Response;
 }) {
   const exclusionLists = new Map(Object.entries(exclusions));
   const rosters = new Map(Object.entries(participants));
@@ -183,6 +189,15 @@ export function mockSession({
         return Promise.resolve(new Response(null, { status: 204 }));
       }
       return Promise.resolve(jsonResponse(200, list));
+    }
+    const drawMatch = /^\/api\/v1\/events\/([^/?]+)\/draw$/.exec(url);
+    if (drawMatch?.[1] && method === 'POST') {
+      const event = details.get(drawMatch[1]);
+      if (!event) return Promise.resolve(jsonResponse(404, { error: { code: 'EVENT_NOT_FOUND' } }));
+      const after = onDraw ? onDraw(event) : { ...event, state: 'drawn' as const };
+      if (after instanceof Response) return Promise.resolve(after);
+      details.set(event.id, after);
+      return Promise.resolve(jsonResponse(200, { state: 'drawn' }));
     }
     const exclusionMatch = /^\/api\/v1\/events\/([^/?]+)\/exclusions(?:\/([^/?]+))?$/.exec(url);
     if (exclusionMatch?.[1]) {

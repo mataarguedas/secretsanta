@@ -368,6 +368,27 @@
       "added": "Group created."
     }
   },
+  "draw": {
+    "reveal": {
+      "title": "The reveal",
+      "body": "When everyone is in, run the draw. Each person, you included, sees only who they're giving to.",
+      "button": "Reveal",
+      "needPeople": "You need at least 3 participants to reveal.",
+      "impossible": "The exclusion rules make a draw impossible."
+    },
+    "confirm": {
+      "title": "Ready for the reveal?",
+      "participants": "Participants",
+      "reminder": "Joining closes and nobody can leave after the reveal. It can't be undone.",
+      "cancel": "Cancel",
+      "submit": "Everyone is in — reveal"
+    },
+    "done": "The draw is done! Everyone can now see who they're giving to.",
+    "givingTo": {
+      "title": "You're giving to…",
+      "wishlist": "See their wishlist"
+    }
+  },
   "chat": {
     "list": {
       "title": "Chats"
@@ -423,6 +444,8 @@
     "HOST_CANNOT_LEAVE": "The host can't leave or be removed from their own event.",
     "PARTICIPANT_NOT_FOUND": "That person isn't in this event.",
     "EXCLUSION_INVALID_PARTICIPANT": "Exclusions can only include people in this event.",
-    "EXCLUSION_NOT_FOUND": "That exclusion no longer exists."
+    "EXCLUSION_NOT_FOUND": "That exclusion no longer exists.",
+    "NOT_ENOUGH_PARTICIPANTS": "The draw needs at least 3 participants.",
+    "DRAW_INFEASIBLE": "No valid draw exists with these exclusion rules."
   }
 }

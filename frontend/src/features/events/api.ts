@@ -45,11 +45,17 @@ export interface EventDetail {
   host: UserPublic;
   participant_count: number;
   my_role: 'host' | 'participant';
-  my_assignment: null; // TODO(prompt 16): the caller's own receiver after the draw.
+  /** The caller's own receiver once drawn; never anyone else's (CLAUDE.md §2.1). */
+  my_assignment: MyAssignment | null;
   /** Present only in the host's view; null when the link is disabled. */
   invite_token?: string | null;
   /** Present only in the host's view. */
   draw_readiness?: DrawReadiness;
+}
+
+/** FR-DRW-4: who the signed-in giver gives to. */
+export interface MyAssignment {
+  receiver: { user_id: string; name: string; avatar_url: string | null };
 }
 
 /** Host only: whether the reveal can run (≥ 3 people, OPEN, a valid draw exists). */

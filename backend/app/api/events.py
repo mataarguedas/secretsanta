@@ -17,6 +17,7 @@ from app.api.deps import (
 from app.models.event import EventState
 from app.models.user import User
 from app.schemas.events import (
+    DrawResult,
     EventCreate,
     EventDetail,
     EventPage,
@@ -27,6 +28,7 @@ from app.schemas.events import (
 )
 from app.services import events as service
 from app.services import invites as invite_service
+from app.services import reveal as reveal_service
 
 router = APIRouter(prefix="/events", tags=["events"])
 
@@ -135,3 +137,14 @@ async def leave_event(
     """Participant, OPEN only. The host can't leave (HOST_CANNOT_LEAVE)."""
     await service.remove_participant(session, access.event, access.user.id)
     return Response(status_code=204)
+
+
+@router.post("/{event_id}/draw", response_model=DrawResult)
+async def draw_event(
+    access: EventAccess = Depends(require_host),
+    session: AsyncSession = Depends(get_db),
+) -> DrawResult:
+    """FR-DRW: the reveal. The service locks the event and checks state, count and
+    feasibility itself, all in one transaction. The response never carries a pair."""
+    await reveal_service.run_draw(session, access.event.id)
+    return DrawResult(state="drawn")

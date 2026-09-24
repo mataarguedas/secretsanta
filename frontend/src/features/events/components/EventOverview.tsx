@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { Avatar, Card } from '@/components/ui';
+import { GivingToCard } from '@/features/draw/components/GivingToCard';
 import { InviteBanner } from '@/features/invites/components/InviteBanner';
 import { formatCRC, formatDateTime } from '@/lib/format';
 
@@ -9,8 +10,9 @@ import type { EventDetail } from '../api';
 import { LeaveEventButton } from './LeaveEventButton';
 
 /**
- * Overview tab: the invite nudge (host alone in an OPEN event), the description (line
- * breaks kept), the details list and the host.
+ * Overview tab: "You're giving to…" once drawn, or the invite nudge (host alone in an OPEN
+ * event); then the description (line breaks kept), the details list and the host. Either
+ * way there is at most one coral Banner on the screen.
  */
 export function EventOverview({ event }: { event: EventDetail }) {
   const { t, i18n } = useTranslation();
@@ -41,7 +43,11 @@ export function EventOverview({ event }: { event: EventDetail }) {
   return (
     <div className="grid gap-20 lg:grid-cols-[2fr_1fr]">
       <div className="empty:hidden lg:col-span-2">
-        <InviteBanner event={event} />
+        {event.my_assignment ? (
+          <GivingToCard event={event} assignment={event.my_assignment} />
+        ) : (
+          event.state === 'open' && <InviteBanner event={event} />
+        )}
       </div>
       <div className="flex flex-col gap-20">
         {event.description && (

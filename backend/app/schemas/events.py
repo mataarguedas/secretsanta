@@ -107,6 +107,18 @@ class EventPage(BaseModel):
     next_cursor: str | None
 
 
+class AssignmentReceiver(BaseModel):
+    user_id: uuid.UUID
+    name: str
+    avatar_url: str | None
+
+
+class MyAssignment(BaseModel):
+    """FR-DRW-4: who the *requesting* giver gives to. There is no other view of a draw."""
+
+    receiver: AssignmentReceiver
+
+
 class EventDetail(BaseModel):
     id: uuid.UUID
     name: str
@@ -123,8 +135,14 @@ class EventDetail(BaseModel):
     host: UserPublic
     participant_count: int
     my_role: Literal["host", "participant"]
-    # TODO(prompt 16): the caller's own receiver once drawn; never anyone else's.
-    my_assignment: None = None
+    # The caller's own receiver once drawn; never anyone else's (CLAUDE.md §2.1).
+    my_assignment: MyAssignment | None = None
+
+
+class DrawResult(BaseModel):
+    """``POST /events/{id}/draw``: the new state and nothing else (never a pair)."""
+
+    state: Literal["drawn"]
 
 
 class DrawReadiness(BaseModel):
