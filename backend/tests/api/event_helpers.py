@@ -9,6 +9,7 @@ from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from app.models import Event, EventParticipant, User
+from app.services.chat import add_group_member
 from tests.api.auth_helpers import CSRF
 
 EVENTS = "/api/v1/events"
@@ -41,9 +42,11 @@ async def user_id(db: async_sessionmaker[AsyncSession], email: str) -> uuid.UUID
 
 
 async def add_participant(db: async_sessionmaker[AsyncSession], event_id: str, email: str) -> None:
+    """What a join does, without the invite link: the roster and the group chat."""
     uid = await user_id(db, email)
     async with db() as session:
         session.add(EventParticipant(event_id=uuid.UUID(event_id), user_id=uid))
+        await add_group_member(session, uuid.UUID(event_id), uid)
         await session.commit()
 
 

@@ -1,5 +1,5 @@
 """slowapi rate limiting with Redis storage (CLAUDE.md §7: auth 10/min/IP, uploads
-20/min/user).
+20/min/user, messages 30/min/user).
 
 The limiter is module-level because slowapi's decorators bind to an instance at import
 time. Storage is Redis so limits hold across API workers. If Redis is unreachable the
@@ -22,6 +22,7 @@ from app.core.security import decode_access_token
 
 AUTH_LIMIT: Final = "10/minute"
 UPLOAD_LIMIT: Final = "20/minute"
+MESSAGE_LIMIT: Final = "30/minute"
 
 limiter = Limiter(
     key_func=get_remote_address,
@@ -47,6 +48,12 @@ def user_key(request: Request) -> str:
 def upload_rate_limit[F: Callable[..., Any]](func: F) -> F:
     """20 uploads per minute per user. The endpoint must take ``request: Request``."""
     return cast(F, limiter.limit(UPLOAD_LIMIT, key_func=user_key)(func))
+
+
+def message_rate_limit[F: Callable[..., Any]](func: F) -> F:
+    """30 messages per minute per user (PRD FR-CHT-8). The endpoint must take
+    ``request: Request``."""
+    return cast(F, limiter.limit(MESSAGE_LIMIT, key_func=user_key)(func))
 
 
 async def _rate_limited_handler(_request: Request, _exc: Exception) -> JSONResponse:

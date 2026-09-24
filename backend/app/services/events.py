@@ -27,6 +27,7 @@ from app.schemas.events import (
     Section,
     UserPublic,
 )
+from app.services import chat as chat_service
 from app.services.covers import cover_urls, event_prefix
 from app.services.draw import MIN_PARTICIPANTS
 from app.services.exclusions import check_feasible, delete_user_exclusions
@@ -256,6 +257,9 @@ async def create_event(session: AsyncSession, host: User, data: EventCreate) -> 
     session.add(event)
     await session.flush()
     session.add(EventParticipant(event_id=event.id, user_id=host.id))
+    if event.group_chat_enabled:
+        await session.flush()
+        await chat_service.create_group(session, event)  # FR-CHT-1
     await session.commit()
     return event
 
@@ -285,6 +289,8 @@ async def update_event(session: AsyncSession, event: Event, changes: EventUpdate
 
     for field, value in changed.items():
         setattr(event, field, value)
+    if "group_chat_enabled" in changed:  # only reachable while OPEN (field lock above)
+        await chat_service.sync_group_flag(session, event)
     await session.commit()
     return event
 
@@ -314,5 +320,5 @@ async def remove_participant(session: AsyncSession, event: Event, user_id: uuid.
         raise AppError("PARTICIPANT_NOT_FOUND", 404)
     await delete_user_exclusions(session, event.id, user_id)  # FR-EXC-3, same transaction
     await delete_user_items(session, event.id, user_id)  # photos: R2 cleanup after commit
-    # TODO(prompt 21): remove them from the event's group chat membership.
+    await chat_service.detach_group_member(session, event.id, user_id)  # messages stay
     await session.commit()

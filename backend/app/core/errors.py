@@ -59,6 +59,11 @@ ERROR_REGISTRY: Final[dict[str, str]] = {
     "PHOTO_LIMIT_REACHED": "An item can have at most 3 photos.",
     "PHOTO_NOT_FOUND": "That photo doesn't exist.",
     "WISHLIST_COPY_SAME_EVENT": "Pick a different event to copy from.",
+    # Chat (Prompt 21)
+    "CONVERSATION_NOT_FOUND": "Conversation not found.",
+    "CONVERSATION_READ_ONLY": "This event is archived; its chats are read-only.",
+    "CONVERSATION_WITH_SELF": "You can't start a conversation with yourself.",
+    "MESSAGE_NOT_FOUND": "Message not found.",
 }
 
 _STATUS_TO_CODE: Final[dict[int, str]] = {

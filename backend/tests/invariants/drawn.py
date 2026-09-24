@@ -8,7 +8,7 @@ import httpx
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
-from app.models import Assignment
+from app.models import Assignment, Conversation, ConversationKind
 from tests.api.auth_helpers import CSRF, login_as
 from tests.api.event_helpers import EVENTS, add_participant, create, user_id
 
@@ -30,6 +30,7 @@ class DrawnEvent:
     ids: dict[str, uuid.UUID]  # email → user id
     exclusion_id: str  # created before the draw
     receiver_of: dict[uuid.UUID, uuid.UUID]  # read straight from the DB, test-only
+    group_conversation_id: uuid.UUID
 
     @property
     def id(self) -> str:
@@ -68,10 +69,18 @@ async def drawn_event(
             select(Assignment).where(Assignment.event_id == uuid.UUID(event["id"]))
         )
         receiver_of = {row.giver_id: row.receiver_id for row in rows.all()}
+        group = await session.scalar(
+            select(Conversation.id).where(
+                Conversation.event_id == uuid.UUID(event["id"]),
+                Conversation.kind == ConversationKind.GROUP,
+            )
+        )
+    assert group is not None
     return DrawnEvent(
         event=event,
         invite_token=event["invite_token"],
         ids=ids,
         exclusion_id=exclusions.json()["items"][0]["id"],
         receiver_of=receiver_of,
+        group_conversation_id=group,
     )

@@ -16,6 +16,7 @@ from app.models.event import Event, EventParticipant, EventState
 from app.models.user import User
 from app.schemas.events import UserPublic
 from app.schemas.invites import InvitePreview, JoinBlockReason, JoinResult
+from app.services.chat import add_group_member
 from app.services.events import count_participants, new_invite_token
 
 # Tokens are 43 URL-safe characters; anything far longer is not worth a query.
@@ -99,6 +100,7 @@ async def join_event(session: AsyncSession, token: str, user: User) -> JoinResul
 
     event_id = event.id
     session.add(EventParticipant(event_id=event_id, user_id=user.id))
+    await add_group_member(session, event_id, user.id)
     try:
         await session.commit()
     except IntegrityError as exc:

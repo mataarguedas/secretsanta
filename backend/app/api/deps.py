@@ -18,6 +18,7 @@ from app.api.cookies import ACCESS_COOKIE
 from app.core.config import Settings
 from app.core.errors import AppError
 from app.core.security import decode_access_token
+from app.models.chat import Conversation, ConversationMember, Message
 from app.models.event import Event, EventParticipant, EventState
 from app.models.user import User
 from app.models.wishlist import WishlistItem
@@ -214,3 +215,86 @@ def require_event_state(
         return access
 
     return dependency
+
+
+# ── Chat ─────────────────────────────────────────────────────────────────────
+
+
+@dataclass(frozen=True, slots=True)
+class MemberAccess:
+    """The current user's own member row in a conversation of an event they still
+    participate in. ``member`` may be an anonymous row: never serialize it directly."""
+
+    conversation: Conversation
+    member: ConversationMember
+    event: Event
+    user: User
+
+
+async def require_member(
+    conversation_id: uuid.UUID,
+    user: User = Depends(current_user),
+    session: AsyncSession = Depends(get_db),
+) -> MemberAccess:
+    """404 ``CONVERSATION_NOT_FOUND`` unless the user is a member AND still a participant
+    of the event (someone who left can't keep reading their threads)."""
+    row = (
+        await session.execute(
+            select(Conversation, ConversationMember, Event)
+            .join(ConversationMember, ConversationMember.conversation_id == Conversation.id)
+            .join(Event, Event.id == Conversation.event_id)
+            .join(
+                EventParticipant,
+                and_(EventParticipant.event_id == Event.id, EventParticipant.user_id == user.id),
+            )
+            .where(Conversation.id == conversation_id, ConversationMember.user_id == user.id)
+        )
+    ).one_or_none()
+    if row is None:
+        raise AppError("CONVERSATION_NOT_FOUND", 404)
+    conversation, member, event = row
+    return MemberAccess(conversation=conversation, member=member, event=event, user=user)
+
+
+async def require_writable_member(
+    access: MemberAccess = Depends(require_member),
+) -> MemberAccess:
+    """Archived events are read-only: history can be read, nothing else (CLAUDE.md §2.6)."""
+    if access.event.state == EventState.ARCHIVED:
+        raise AppError("CONVERSATION_READ_ONLY", 409)
+    return access
+
+
+@dataclass(frozen=True, slots=True)
+class OwnMessage:
+    message: Message
+    access: MemberAccess
+
+
+async def require_message_sender(
+    message_id: uuid.UUID,
+    user: User = Depends(current_user),
+    session: AsyncSession = Depends(get_db),
+) -> OwnMessage:
+    """A message the current user sent, in a conversation they may still use. Anyone
+    else's message is 404 ``MESSAGE_NOT_FOUND``, the same as a missing one."""
+    row = (
+        await session.execute(
+            select(Message, Conversation, ConversationMember, Event)
+            .join(ConversationMember, ConversationMember.id == Message.sender_member_id)
+            .join(Conversation, Conversation.id == Message.conversation_id)
+            .join(Event, Event.id == Conversation.event_id)
+            .join(
+                EventParticipant,
+                and_(EventParticipant.event_id == Event.id, EventParticipant.user_id == user.id),
+            )
+            .where(Message.id == message_id, ConversationMember.user_id == user.id)
+        )
+    ).one_or_none()
+    if row is None:
+        raise AppError("MESSAGE_NOT_FOUND", 404)
+    message, conversation, member, event = row
+    if event.state == EventState.ARCHIVED:
+        raise AppError("CONVERSATION_READ_ONLY", 409)
+    access = MemberAccess(conversation=conversation, member=member, event=event, user=user)
+    return OwnMessage(message=message, access=access)
