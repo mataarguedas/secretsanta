@@ -64,6 +64,8 @@ ERROR_REGISTRY: Final[dict[str, str]] = {
     "CONVERSATION_READ_ONLY": "This event is archived; its chats are read-only.",
     "CONVERSATION_WITH_SELF": "You can't start a conversation with yourself.",
     "MESSAGE_NOT_FOUND": "Message not found.",
+    # Realtime (Prompt 22)
+    "INVALID_FRAME": "That WebSocket frame isn't valid.",
 }
 
 _STATUS_TO_CODE: Final[dict[int, str]] = {

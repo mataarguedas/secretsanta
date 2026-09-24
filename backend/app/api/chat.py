@@ -8,7 +8,8 @@ Archived events: history stays readable; sending, deleting and marking read are 
 
 import uuid
 
-from fastapi import APIRouter, Depends, Query, Request, Response
+from fastapi import APIRouter, Depends, Query, Response
+from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import (
@@ -17,13 +18,13 @@ from app.api.deps import (
     OwnMessage,
     current_user,
     get_db,
+    get_redis,
     require_event_state,
     require_member,
     require_message_sender,
     require_participant,
     require_writable_member,
 )
-from app.core.rate_limit import message_rate_limit
 from app.models.event import EventState
 from app.models.user import User
 from app.schemas.chat import (
@@ -57,10 +58,11 @@ async def start_conversation(
     access: EventAccess = Depends(require_participant),
     _state: EventAccess = Depends(require_event_state(EventState.OPEN, EventState.DRAWN)),
     session: AsyncSession = Depends(get_db),
+    redis: "Redis" = Depends(get_redis),
 ) -> ConversationDetail:
     """Direct or anonymous; idempotent (200 with the existing one, 201 when new)."""
     detail, created = await service.start_conversation(
-        session, access.event, access.user, data.recipient_id, data.kind
+        session, redis, access.event, access.user, data.recipient_id, data.kind
     )
     response.status_code = 201 if created else 200
     return detail
@@ -86,22 +88,23 @@ async def list_messages(
 @router.post(
     "/conversations/{conversation_id}/messages", status_code=201, response_model=MessagePublic
 )
-@message_rate_limit
 async def send_message(
-    request: Request,
     data: MessageCreate,
     access: MemberAccess = Depends(require_writable_member),
     session: AsyncSession = Depends(get_db),
+    redis: "Redis" = Depends(get_redis),
 ) -> MessagePublic:
-    return await service.send_message(session, access.member, data)
+    """30 per rolling minute per user, counted together with WebSocket sends."""
+    return await service.send_message(session, redis, access.member, data)
 
 
 @router.delete("/messages/{message_id}", status_code=204)
 async def delete_message(
     own: OwnMessage = Depends(require_message_sender),
     session: AsyncSession = Depends(get_db),
+    redis: "Redis" = Depends(get_redis),
 ) -> Response:
-    await service.delete_message(session, own.message)
+    await service.delete_message(session, redis, own.message)
     return Response(status_code=204)
 
 

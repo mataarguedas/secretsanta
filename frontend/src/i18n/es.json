@@ -572,6 +572,7 @@
     "CONVERSATION_NOT_FOUND": "No encontramos esta conversación.",
     "CONVERSATION_READ_ONLY": "Este evento está archivado: sus chats son de solo lectura.",
     "CONVERSATION_WITH_SELF": "No puedes iniciar una conversación contigo.",
-    "MESSAGE_NOT_FOUND": "No encontramos este mensaje."
+    "MESSAGE_NOT_FOUND": "No encontramos este mensaje.",
+    "INVALID_FRAME": "Ese mensaje del WebSocket no es válido."
   }
 }

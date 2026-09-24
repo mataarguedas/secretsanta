@@ -19,6 +19,7 @@ from collections.abc import Sequence
 from datetime import datetime
 from typing import Final, cast
 
+from redis.asyncio import Redis
 from sqlalchemy import (
     DateTime,
     Uuid,
@@ -36,11 +37,18 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.core.errors import AppError
+from app.core.rate_limit import hit_message_limit
 from app.db.mixins import utcnow
 from app.models.chat import ANON_NUMBER_MAX, Conversation, ConversationKind, ConversationMember
 from app.models.chat import Message as MessageRow
 from app.models.event import Event, EventParticipant
 from app.models.user import User
+from app.realtime.channels import publish_to_conversation, publish_to_users
+from app.realtime.frames import (
+    conversation_created_frame,
+    message_deleted_frame,
+    message_frame,
+)
 from app.schemas.chat import (
     ConversationDetail,
     ConversationKindName,
@@ -141,7 +149,12 @@ def pair_key(
 
 
 async def start_conversation(
-    session: AsyncSession, event: Event, initiator: User, recipient_id: uuid.UUID, kind: StartKind
+    session: AsyncSession,
+    redis: "Redis",
+    event: Event,
+    initiator: User,
+    recipient_id: uuid.UUID,
+    kind: StartKind,
 ) -> tuple[ConversationDetail, bool]:
     """Idempotent: returns ``(conversation, created)``. The route holds the event lock, so
     starts in one event are serialized; the retries below are a backstop."""
@@ -169,6 +182,7 @@ async def start_conversation(
         except IntegrityError:
             continue  # the same pair was created concurrently, or the alias was taken
         await session.commit()
+        await after_conversation_started(session, redis, conversation_id, kind, initiator.id)
         return await conversation_detail(session, conversation_id, initiator), True
     raise AppError("INTERNAL_ERROR", 500)  # pragma: no cover - needs ANON_ATTEMPTS races
 
@@ -423,9 +437,20 @@ async def list_messages(
 
 
 async def send_message(
-    session: AsyncSession, member: ConversationMember, data: MessageCreate
+    session: AsyncSession, redis: "Redis", member: ConversationMember, data: MessageCreate
 ) -> MessagePublic:
-    """Persist first, then bump the conversation, then the hook (CLAUDE.md §7 Chat)."""
+    """Rate limit, persist, bump the conversation, commit, then publish (CLAUDE.md §7 Chat).
+    Shared by REST and the WebSocket."""
+    if member.user_id is not None:
+        await hit_message_limit(redis, member.user_id)
+    kind, last_message_at = (
+        await session.execute(
+            select(Conversation.kind, Conversation.last_message_at).where(
+                Conversation.id == member.conversation_id
+            )
+        )
+    ).one()
+    first_anonymous = kind == ConversationKind.ANONYMOUS and last_message_at is None
     now = utcnow()
     message = MessageRow(
         conversation_id=member.conversation_id,
@@ -443,18 +468,19 @@ async def send_message(
     )
     member.last_read_at = now  # you've read what you replied to
     await session.commit()
-    await after_message_created(message.id, data.client_id)
-    return build_message_public(message)
+    public = build_message_public(message)
+    await after_message_created(session, redis, public, announce=first_anonymous)
+    return public
 
 
-async def delete_message(session: AsyncSession, message: MessageRow) -> None:
+async def delete_message(session: AsyncSession, redis: "Redis", message: MessageRow) -> None:
     """Soft delete: the body is gone for good, a "Message deleted" placeholder stays."""
     if message.deleted_at is not None:
         return
     message.body = None
     message.deleted_at = utcnow()
     await session.commit()
-    await after_message_deleted(message.id)
+    await after_message_deleted(redis, message.conversation_id, message.id)
 
 
 async def mark_read(session: AsyncSession, member: ConversationMember) -> None:
@@ -466,14 +492,59 @@ async def mark_read(session: AsyncSession, member: ConversationMember) -> None:
 # ── Hooks ────────────────────────────────────────────────────────────────────
 
 
-async def after_message_created(message_id: uuid.UUID, client_id: str | None) -> None:
-    """After the message is committed."""
-    # TODO(prompt 22): publish {type: "message", conversation_id, message} on conv:{id}
-    #   and the `ack` with client_id to the sender.
+async def after_message_created(
+    session: AsyncSession, redis: "Redis", message: MessagePublic, *, announce: bool
+) -> None:
+    """After the message is committed: fan it out to the conversation's sockets.
+
+    ``announce``: the first message of an anonymous thread. Only now does the thread
+    appear for its recipient (``list_conversations`` hides it until then), so only now are
+    they told about it, never at creation (PRD FR-CHT-3)."""
+    await publish_to_conversation(redis, message.conversation_id, message_frame(message))
+    if announce:
+        others = await _member_users(
+            session, message.conversation_id, except_member=message.sender_member_id
+        )
+        await publish_to_users(redis, others, conversation_created_frame(message.conversation_id))
     # TODO(prompt 25): enqueue the `message` push to the other members (worker).
-    return None
 
 
-async def after_message_deleted(message_id: uuid.UUID) -> None:
-    # TODO(prompt 22): publish {type: "message_deleted", ...} on conv:{id}.
-    return None
+async def after_message_deleted(
+    redis: "Redis", conversation_id: uuid.UUID, message_id: uuid.UUID
+) -> None:
+    await publish_to_conversation(
+        redis, conversation_id, message_deleted_frame(conversation_id, message_id)
+    )
+
+
+async def after_conversation_started(
+    session: AsyncSession,
+    redis: "Redis",
+    conversation_id: uuid.UUID,
+    kind: StartKind,
+    initiator_id: uuid.UUID,
+) -> None:
+    """A new direct thread appears for the recipient at once; an anonymous one waits for
+    its first message (see ``after_message_created``)."""
+    if kind != "direct":
+        return
+    recipients = [
+        uid for uid in await _member_users(session, conversation_id) if uid != initiator_id
+    ]
+    await publish_to_users(redis, recipients, conversation_created_frame(conversation_id))
+
+
+async def _member_users(
+    session: AsyncSession,
+    conversation_id: uuid.UUID,
+    *,
+    except_member: uuid.UUID | None = None,
+) -> list[uuid.UUID]:
+    """Internal only: user ids to address ``user:{id}`` channels. Never serialized."""
+    stmt = select(ConversationMember.user_id).where(
+        ConversationMember.conversation_id == conversation_id,
+        ConversationMember.user_id.is_not(None),
+    )
+    if except_member is not None:
+        stmt = stmt.where(ConversationMember.id != except_member)
+    return [uid for uid in (await session.scalars(stmt)).all() if uid is not None]

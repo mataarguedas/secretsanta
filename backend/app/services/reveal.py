@@ -8,20 +8,23 @@ import random
 import uuid
 from datetime import UTC, datetime
 
+from redis.asyncio import Redis
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.errors import AppError
 from app.db.uuid7 import uuid7
 from app.models.assignment import Assignment
-from app.models.event import Event, EventState
+from app.models.event import Event, EventParticipant, EventState
 from app.models.user import User
+from app.realtime.channels import publish_to_users
+from app.realtime.frames import event_drawn_frame
 from app.schemas.events import AssignmentReceiver, MyAssignment
 from app.services.draw import MIN_PARTICIPANTS, DrawInfeasibleError, draw
 from app.services.exclusions import exclusion_pairs, participant_ids
 
 
-async def run_draw(session: AsyncSession, event_id: uuid.UUID) -> None:
+async def run_draw(session: AsyncSession, redis: "Redis", event_id: uuid.UUID) -> None:
     """Draw and persist in ONE transaction; the caller has checked the host.
 
     The event row is locked (``FOR UPDATE``) and re-read, so a double click or two tabs
@@ -60,13 +63,17 @@ async def run_draw(session: AsyncSession, event_id: uuid.UUID) -> None:
         await session.rollback()
         raise
 
-    await on_event_drawn(event_id)
+    await on_event_drawn(session, redis, event_id)
 
 
-async def on_event_drawn(event_id: uuid.UUID) -> None:
-    """Runs after the draw commits. It knows only the event id, never a pair."""
-    # TODO(prompt 22): publish {type: "event_drawn", event_id} on each participant's
-    #   user:{id} channel.
+async def on_event_drawn(session: AsyncSession, redis: "Redis", event_id: uuid.UUID) -> None:
+    """Runs after the draw commits. It knows only the event id, never a pair: every
+    participant gets the same ``event_drawn {event_id}`` frame and fetches their own
+    assignment over REST."""
+    participants = await session.scalars(
+        select(EventParticipant.user_id).where(EventParticipant.event_id == event_id)
+    )
+    await publish_to_users(redis, participants.all(), event_drawn_frame(event_id))
     # TODO(prompt 25): enqueue the `reveal` push for every participant (worker task).
     return None
 

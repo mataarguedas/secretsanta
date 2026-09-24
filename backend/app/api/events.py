@@ -4,12 +4,14 @@ import uuid
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, File, Query, Request, Response, UploadFile
+from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import (
     EventAccess,
     current_user,
     get_db,
+    get_redis,
     require_event_state,
     require_host,
     require_participant,
@@ -146,10 +148,11 @@ async def leave_event(
 async def draw_event(
     access: EventAccess = Depends(require_host),
     session: AsyncSession = Depends(get_db),
+    redis: "Redis" = Depends(get_redis),
 ) -> DrawResult:
     """FR-DRW: the reveal. The service locks the event and checks state, count and
     feasibility itself, all in one transaction. The response never carries a pair."""
-    await reveal_service.run_draw(session, access.event.id)
+    await reveal_service.run_draw(session, redis, access.event.id)
     return DrawResult(state="drawn")
 
 

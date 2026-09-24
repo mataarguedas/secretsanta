@@ -6,7 +6,7 @@ Authorization dependencies (``current_user``, ``require_participant``,
 """
 
 import uuid
-from collections.abc import AsyncIterator, Awaitable, Callable
+from collections.abc import AsyncIterator, Awaitable, Callable, Iterable
 from dataclasses import dataclass
 
 from fastapi import Depends, Request
@@ -298,3 +298,27 @@ async def require_message_sender(
         raise AppError("CONVERSATION_READ_ONLY", 409)
     access = MemberAccess(conversation=conversation, member=member, event=event, user=user)
     return OwnMessage(message=message, access=access)
+
+
+async def followable_conversations(
+    session: AsyncSession, user_id: uuid.UUID, conversation_ids: Iterable[uuid.UUID]
+) -> set[uuid.UUID]:
+    """The subset of ``conversation_ids`` the user may follow over the WebSocket: the same
+    rule as ``require_member`` (a member, and still a participant of the event), in one
+    query. Not a FastAPI dependency: the WebSocket ``subscribe`` frame calls it."""
+    wanted = set(conversation_ids)
+    if not wanted:
+        return set()
+    rows = await session.scalars(
+        select(Conversation.id)
+        .join(ConversationMember, ConversationMember.conversation_id == Conversation.id)
+        .join(
+            EventParticipant,
+            and_(
+                EventParticipant.event_id == Conversation.event_id,
+                EventParticipant.user_id == user_id,
+            ),
+        )
+        .where(Conversation.id.in_(wanted), ConversationMember.user_id == user_id)
+    )
+    return set(rows.all())

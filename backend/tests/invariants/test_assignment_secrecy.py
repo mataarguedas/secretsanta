@@ -1,9 +1,10 @@
 """Invariant 1 — assignment secrecy (CLAUDE.md §2.1, PRD FR-DRW-5, §13.3).
 
-Every GET route is discovered from the app. A route this test doesn't know how to call
-fails the test, so a new endpoint can't ship without being checked here. Each route is
-called as the host and as every participant; the only assignment data allowed anywhere
-is the caller's own, at ``my_assignment.receiver``.
+Every GET route is discovered from the app, and every WebSocket frame type is produced
+and checked too (``test_no_websocket_frame_exposes_a_pair``). A route this test doesn't
+know how to call fails the test, so a new endpoint can't ship without being checked
+here. Each route is called as the host and as every participant; the only assignment
+data allowed anywhere is the caller's own, at ``my_assignment.receiver``.
 """
 
 import json
@@ -14,10 +15,14 @@ from typing import Any
 import httpx
 import pytest
 from fastapi import FastAPI
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
-from tests.api.auth_helpers import login_as
-from tests.invariants.drawn import PEOPLE, DrawnEvent, drawn_event
+from app.models import Assignment, Conversation, ConversationKind
+from app.realtime.frames import SERVER_FRAME_TYPES
+from tests.api.auth_helpers import CSRF, login_as
+from tests.invariants.drawn import PEOPLE, DrawnEvent, drawn_event, open_event
+from tests.ws import WsClient, cookie_header
 
 API = "/api/v1"
 
@@ -178,3 +183,95 @@ def objects(value: Any) -> Iterator[dict[str, Any]]:
     elif isinstance(value, list):
         for child in value:
             yield from objects(child)
+
+
+async def test_no_websocket_frame_exposes_a_pair(
+    client: httpx.AsyncClient, db: async_sessionmaker[AsyncSession], app: FastAPI
+) -> None:
+    """Everyone is connected when the draw happens and while the chat is used afterwards;
+    every frame type the server can send is produced, and no frame ties anyone else's
+    giver to their receiver (nor carries draw keys at all)."""
+    event, ids = await open_event(client, db)
+    cookies: dict[str, str] = {}
+    for email, name in PEOPLE:
+        await login_as(client, email, name)
+        cookies[email] = cookie_header(client)
+    async with db() as session:
+        group = await session.scalar(
+            select(Conversation.id).where(
+                Conversation.event_id == uuid.UUID(event["id"]),
+                Conversation.kind == ConversationKind.GROUP,
+            )
+        )
+    sockets = {email: await WsClient(app, cookies=cookies[email]).connect() for email, _ in PEOPLE}
+    try:
+        for ws in sockets.values():
+            await ws.send_json({"type": "subscribe", "conversation_ids": [str(group)]})
+            await ws.ping()
+        host = PEOPLE[0][0]
+        drawn = await client.post(
+            f"{API}/events/{event['id']}/draw", headers={**CSRF, "cookie": cookies[host]}
+        )
+        assert drawn.status_code == 200, drawn.text
+        for ws in sockets.values():
+            assert await ws.receive_until("event_drawn") == {
+                "type": "event_drawn",
+                "event_id": event["id"],
+            }
+
+        for n, (email, _name) in enumerate(PEOPLE):
+            await sockets[email].send_json(
+                {
+                    "type": "send",
+                    "conversation_id": str(group),
+                    "body": f"hola {n}",
+                    "client_id": f"c{n}",
+                }
+            )
+            await sockets[email].receive_until("ack")
+        sent = await client.post(
+            f"{API}/conversations/{group}/messages",
+            json={"body": "borrar"},
+            headers={**CSRF, "cookie": cookies[host]},
+        )
+        await client.delete(
+            f"{API}/messages/{sent.json()['id']}", headers={**CSRF, "cookie": cookies[host]}
+        )
+        second = PEOPLE[1][0]
+        await client.post(
+            f"{API}/events/{event['id']}/conversations",
+            json={"kind": "direct", "recipient_id": str(ids[second])},
+            headers={**CSRF, "cookie": cookies[host]},
+        )
+        await sockets[second].receive_until("conversation_created")
+        await sockets[host].send_json({"type": "send", "conversation_id": str(group), "body": ""})
+        await sockets[host].receive_until("error")
+        for ws in sockets.values():
+            await ws.ping()
+            await ws.drain(0.1)
+    finally:
+        for ws in sockets.values():
+            await ws.close()
+
+    async with db() as session:
+        rows = await session.scalars(
+            select(Assignment).where(Assignment.event_id == uuid.UUID(event["id"]))
+        )
+        receiver_of = {row.giver_id: row.receiver_id for row in rows.all()}
+    fake = DrawnEvent(
+        event=event,
+        invite_token=event["invite_token"],
+        ids=ids,
+        exclusion_id="",
+        receiver_of=receiver_of,
+        group_conversation_id=group or uuid.uuid4(),
+    )
+    seen: set[str] = set()
+    for email, ws in sockets.items():
+        for frame in ws.frames:
+            seen.add(frame["type"])
+            assert not list(leaks(frame)), f"{email} frame {frame}: {list(leaks(frame))}"
+            _assert_no_foreign_pair(
+                json.dumps(frame), fake, ids[email], f"{email} WS {frame['type']}"
+            )
+    assert seen == SERVER_FRAME_TYPES, f"frame types not exercised: {SERVER_FRAME_TYPES - seen}"

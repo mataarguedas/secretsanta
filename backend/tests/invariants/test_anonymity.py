@@ -9,22 +9,33 @@ legitimate reason to appear in any of these responses.
 The route list is discovered from the chat router: a new chat endpoint fails this test
 until it's exercised here.
 
-TODO(prompt 22): the same check on every WebSocket frame U2 and U3 receive.
+The WebSocket half does the same for every frame U2 and U3 receive (every server frame
+type a chat can produce), and for every payload published on Redis while it runs.
+
 TODO(prompt 25): the same check on the rendered `message` push payload for U2.
 """
 
+import asyncio
+import contextlib
+import json
 import uuid
 from typing import Any
 
 import httpx
+from fastapi import FastAPI
+from redis.asyncio import Redis
 from sqlalchemy import update
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from app.api import chat as chat_api
 from app.api.paths import API_PREFIX
 from app.models import User
+from app.realtime.channels import PATTERNS
+from app.realtime.frames import SERVER_FRAME_TYPES
 from tests.api.auth_helpers import CSRF, login_as
 from tests.api.event_helpers import EVENTS, add_participant, create, user_id
+from tests.conftest import TEST_REDIS_URL
+from tests.ws import WsClient, cookie_header
 
 U1 = ("beto.secreto@test.local", "Beto Secreto")  # the anonymous initiator
 U2 = ("ana@test.local", "Ana")  # the recipient
@@ -176,6 +187,11 @@ async def test_the_anonymous_initiator_never_leaves_the_backend(
     missing = CHAT_ROUTES - rec.hit
     assert not missing, f"chat routes not exercised by the anonymity test: {sorted(missing)}"
 
+    for label, response in rec.responses:
+        assert_no_trace_of_u1(label, response.text, u1)
+
+
+def assert_no_trace_of_u1(label: str, text: str, u1: uuid.UUID) -> None:
     secrets = {
         "user id": str(u1),
         "user id (hex)": u1.hex,
@@ -184,7 +200,117 @@ async def test_the_anonymous_initiator_never_leaves_the_backend(
         "first name": U1[1].split()[0],
         "avatar": U1_AVATAR,
     }
-    for label, response in rec.responses:
-        text = response.text
-        for what, value in secrets.items():
-            assert value.lower() not in text.lower(), f"{label} leaks U1's {what}: {text}"
+    for what, value in secrets.items():
+        assert value.lower() not in text.lower(), f"{label} leaks U1's {what}: {text}"
+
+
+async def setup_people(
+    client: httpx.AsyncClient, db: async_sessionmaker[AsyncSession]
+) -> tuple[dict[str, Any], dict[str, str], dict[str, uuid.UUID]]:
+    """U2 hosts U1 and U3 (no group chat). Returns the event, cookies and ids by email."""
+    cookies: dict[str, str] = {}
+    for person in (U3, U1, U2):
+        await login_as(client, *person)
+        cookies[person[0]] = cookie_header(client)
+    ids = {person[0]: await user_id(db, person[0]) for person in (U1, U2, U3)}
+    async with db() as session:
+        await session.execute(
+            update(User).where(User.id == ids[U1[0]]).values(avatar_url=U1_AVATAR)
+        )
+        await session.commit()
+    event = await create(client, group_chat_enabled=False)
+    for person in (U1, U3):
+        await add_participant(db, event["id"], person[0])
+    return event, cookies, ids
+
+
+async def test_no_websocket_frame_or_redis_payload_names_the_initiator(
+    client: httpx.AsyncClient, db: async_sessionmaker[AsyncSession], app: FastAPI
+) -> None:
+    event, cookies, ids = await setup_people(client, db)
+    u1 = ids[U1[0]]
+
+    published: list[str] = []
+    listener = Redis.from_url(TEST_REDIS_URL, decode_responses=True)
+    pubsub = listener.pubsub(ignore_subscribe_messages=True)
+    await pubsub.psubscribe(*PATTERNS)
+
+    async def capture() -> None:
+        async for message in pubsub.listen():
+            published.append(f"{message['channel']} {message['data']}")
+
+    capturing = asyncio.create_task(capture())
+    u2 = await WsClient(app, cookies=cookies[U2[0]]).connect()
+    u3 = await WsClient(app, cookies=cookies[U3[0]]).connect()
+    u1_ws = await WsClient(app, cookies=cookies[U1[0]]).connect()
+    try:
+        # U1 opens the thread (REST) and writes over both paths; U2 hears of it only now.
+        started = await client.post(
+            f"{EVENTS}/{event['id']}/conversations",
+            json={"kind": "anonymous", "recipient_id": str(ids[U2[0]])},
+            headers={**CSRF, "cookie": cookies[U1[0]]},
+        )
+        anon = started.json()["id"]
+        await u1_ws.send_json({"type": "subscribe", "conversation_ids": [anon]})
+        await u1_ws.send_json(
+            {"type": "send", "conversation_id": anon, "body": "¿Talla?", "client_id": "a"}
+        )
+        await u1_ws.receive_until("ack")
+        announced = await u2.receive_until("conversation_created")
+        assert announced == {"type": "conversation_created", "conversation_id": anon}
+
+        # Both U2 and U3 try to follow it; only U2 may.
+        for ws in (u2, u3):
+            await ws.send_json({"type": "subscribe", "conversation_ids": [anon]})
+            await ws.ping()
+        rest = await client.post(
+            f"{API_PREFIX}/conversations/{anon}/messages",
+            json={"body": "Ups"},
+            headers={**CSRF, "cookie": cookies[U1[0]]},
+        )
+        await u2.receive_until("message")
+        await client.delete(
+            f"{API_PREFIX}/messages/{rest.json()['id']}",
+            headers={**CSRF, "cookie": cookies[U1[0]]},
+        )
+        await u2.receive_until("message_deleted")
+
+        # U2 replies, marks it active, and trips an error.
+        await u2.send_json(
+            {"type": "send", "conversation_id": anon, "body": "Mediana", "client_id": "b"}
+        )
+        await u2.receive_until("ack")
+        await u2.send_json({"type": "active", "conversation_id": anon})
+        await u2.send_json(
+            {"type": "send", "conversation_id": anon, "body": " ", "client_id": "bad"}
+        )
+        await u2.receive_until("error")
+        await u2.ping()
+        await u3.ping()
+        await asyncio.sleep(0.2)  # let the capture task see the last publishes
+        await u2.drain(0.1)
+        await u3.drain(0.1)
+    finally:
+        for ws in (u1_ws, u2, u3):
+            await ws.close()
+        capturing.cancel()
+        with contextlib.suppress(asyncio.CancelledError):
+            await capturing
+        await pubsub.aclose()  # type: ignore[no-untyped-call]
+        await listener.aclose()
+
+    u2_types = {frame["type"] for frame in u2.frames}
+    assert u2_types >= {"conversation_created", "message", "message_deleted", "ack", "error"}
+    assert u2_types <= SERVER_FRAME_TYPES
+    assert {frame["type"] for frame in u3.frames} == {"pong"}  # nothing from the thread
+    assert published, "expected the Redis payloads to be captured"
+
+    for who, ws in (("U2", u2), ("U3", u3)):
+        for frame in ws.frames:
+            assert_no_trace_of_u1(f"{who} frame {frame['type']}", json.dumps(frame), u1)
+    for payload in published:
+        # U1 may receive on their own user:{id} channel, but no payload names them.
+        channel, _, data = payload.partition(" ")
+        assert_no_trace_of_u1(f"Redis {channel.split(':')[0]}", data, u1)
+        if channel.startswith("conv:"):
+            assert str(u1) not in channel
