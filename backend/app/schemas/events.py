@@ -127,10 +127,20 @@ class EventDetail(BaseModel):
     my_assignment: None = None
 
 
+class DrawReadiness(BaseModel):
+    """Host only: whether the reveal can run (FR-DRW-1, FR-EXC-4)."""
+
+    participant_count: int
+    feasible: bool
+    can_draw: bool
+
+
 class HostEventDetail(EventDetail):
-    """The host's view adds the invite token (NULL when the link is disabled)."""
+    """The host's view adds the invite token (NULL when the link is disabled) and whether
+    the draw can run."""
 
     invite_token: str | None
+    draw_readiness: DrawReadiness
 
 
 class ParticipantPublic(BaseModel):

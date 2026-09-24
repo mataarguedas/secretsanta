@@ -338,6 +338,36 @@
       }
     }
   },
+  "exclusions": {
+    "title": "Exclusiones",
+    "help": "Parejas que no pueden sacarse entre sí, en ninguna dirección. Solo tú las ves.",
+    "loading": "Cargando exclusiones…",
+    "list": "Parejas excluidas",
+    "empty": "Todavía no hay exclusiones: cualquiera puede sacar a cualquiera.",
+    "and": "y",
+    "removeLabel": "Quitar la exclusión entre {{a}} y {{b}}",
+    "removed": "Exclusión eliminada.",
+    "feasible": "Con estas reglas hay un sorteo válido.",
+    "infeasible": "No hay un sorteo válido con estas reglas — quita algunas exclusiones.",
+    "locked": "Las exclusiones quedan bloqueadas después del sorteo.",
+    "pair": {
+      "title": "Agregar una pareja",
+      "first": "Primera persona",
+      "second": "Segunda persona",
+      "placeholder": "Elige a alguien",
+      "submit": "Agregar pareja",
+      "added": "Pareja agregada."
+    },
+    "group": {
+      "title": "Excluir un grupo",
+      "help": "Elige 3 o más personas (una familia, una pareja y sus hijos…): nadie del grupo se sacará entre sí.",
+      "label": "Integrantes del grupo",
+      "selected_one": "{{count}} seleccionada",
+      "selected_other": "{{count}} seleccionadas",
+      "submit": "Crear grupo",
+      "added": "Grupo creado."
+    }
+  },
   "chat": {
     "list": {
       "title": "Chats"
@@ -391,6 +421,8 @@
     "JOIN_DEADLINE_PASSED": "Ya pasó la fecha límite para unirse a este evento.",
     "ALREADY_PARTICIPANT": "Ya participas en este evento.",
     "HOST_CANNOT_LEAVE": "Quien organiza no puede salir ni ser quitado de su propio evento.",
-    "PARTICIPANT_NOT_FOUND": "Esa persona no participa en este evento."
+    "PARTICIPANT_NOT_FOUND": "Esa persona no participa en este evento.",
+    "EXCLUSION_INVALID_PARTICIPANT": "Las exclusiones solo pueden incluir a personas de este evento.",
+    "EXCLUSION_NOT_FOUND": "Esa exclusión ya no existe."
   }
 }

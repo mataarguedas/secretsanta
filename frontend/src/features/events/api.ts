@@ -48,6 +48,15 @@ export interface EventDetail {
   my_assignment: null; // TODO(prompt 16): the caller's own receiver after the draw.
   /** Present only in the host's view; null when the link is disabled. */
   invite_token?: string | null;
+  /** Present only in the host's view. */
+  draw_readiness?: DrawReadiness;
+}
+
+/** Host only: whether the reveal can run (≥ 3 people, OPEN, a valid draw exists). */
+export interface DrawReadiness {
+  participant_count: number;
+  feasible: boolean;
+  can_draw: boolean;
 }
 
 /** A roster row (`GET /events/{id}/participants`). Never an email. */
@@ -80,6 +89,7 @@ export const eventKeys = {
   section: (section: EventSection) => ['events', { section }] as const,
   detail: (id: string) => ['events', id] as const,
   participants: (id: string) => ['events', id, 'participants'] as const,
+  exclusions: (id: string) => ['events', id, 'exclusions'] as const,
 };
 
 export function useEvents(section: EventSection) {

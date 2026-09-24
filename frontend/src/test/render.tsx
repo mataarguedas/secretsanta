@@ -10,6 +10,7 @@ import { routes } from '@/app/routes';
 import { ToastProvider } from '@/components/ui';
 import type { Me } from '@/features/auth/api';
 import type { EventDetail, EventSection, EventSummary, Participant } from '@/features/events/api';
+import type { Exclusion, ExclusionList } from '@/features/exclusions/api';
 import type { InvitePreview } from '@/features/invites/api';
 import i18n from '@/i18n';
 
@@ -93,6 +94,8 @@ export function mockSession({
   invites = {},
   joinResponse,
   participants = {},
+  exclusions = {},
+  exclusionsFeasible = () => true,
 }: {
   me: Me | null;
   /** Make `PATCH /me` fail with this status (e.g. 500) instead of saving. */
@@ -109,7 +112,15 @@ export function mockSession({
   joinResponse?: (token: string) => Response;
   /** Rosters by event id (`GET /events/{id}/participants`, remove and leave). */
   participants?: Record<string, Participant[]>;
+  /**
+   * Exclusion lists by event id. Host events default to an empty, feasible list; non-hosts
+   * get 403 HOST_ONLY. POST expands `user_ids` to canonical pairs from the roster.
+   */
+  exclusions?: Record<string, ExclusionList>;
+  /** `feasible` after a POST/DELETE (default: always true). */
+  exclusionsFeasible?: (items: Exclusion[]) => boolean;
 }) {
+  const exclusionLists = new Map(Object.entries(exclusions));
   const rosters = new Map(Object.entries(participants));
   let regenerated = 0;
   const details = new Map(Object.entries(eventDetails));
@@ -172,6 +183,46 @@ export function mockSession({
         return Promise.resolve(new Response(null, { status: 204 }));
       }
       return Promise.resolve(jsonResponse(200, list));
+    }
+    const exclusionMatch = /^\/api\/v1\/events\/([^/?]+)\/exclusions(?:\/([^/?]+))?$/.exec(url);
+    if (exclusionMatch?.[1]) {
+      const id = exclusionMatch[1];
+      const event = details.get(id);
+      if (!event) return Promise.resolve(jsonResponse(404, { error: { code: 'EVENT_NOT_FOUND' } }));
+      if (event.my_role !== 'host') {
+        return Promise.resolve(jsonResponse(403, { error: { code: 'HOST_ONLY', message: '' } }));
+      }
+      const current = exclusionLists.get(id) ?? { items: [], feasible: true };
+      const save = (items: Exclusion[], status: number) => {
+        const list = { items, feasible: exclusionsFeasible(items) };
+        exclusionLists.set(id, list);
+        return Promise.resolve(jsonResponse(status, list));
+      };
+      if (method === 'POST') {
+        const { user_ids: ids } = JSON.parse(init?.body as string) as { user_ids: string[] };
+        const people = new Map((rosters.get(id) ?? []).map((p) => [p.user_id, p]));
+        const pub = (userId: string) => {
+          const p = people.get(userId);
+          return { id: userId, name: p?.name ?? userId, avatar_url: p?.avatar_url ?? null };
+        };
+        const items = [...current.items];
+        ids.forEach((x, i) => {
+          ids.slice(i + 1).forEach((y) => {
+            const [a, b] = [x, y].sort() as [string, string];
+            if (!items.some((e) => e.user_a.id === a && e.user_b.id === b)) {
+              items.push({ id: `x-${a}-${b}`, user_a: pub(a), user_b: pub(b) });
+            }
+          });
+        });
+        return save(items, 201);
+      }
+      if (method === 'DELETE') {
+        return save(
+          current.items.filter((e) => e.id !== exclusionMatch[2]),
+          200,
+        );
+      }
+      return Promise.resolve(jsonResponse(200, current));
     }
     const inviteMatch = /^\/api\/v1\/events\/([^/?]+)\/invite(\/regenerate)?$/.exec(url);
     if (inviteMatch?.[1]) {

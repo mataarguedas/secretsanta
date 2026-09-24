@@ -338,6 +338,36 @@
       }
     }
   },
+  "exclusions": {
+    "title": "Exclusions",
+    "help": "Pairs who can't draw each other, in either direction. Only you can see them.",
+    "loading": "Loading exclusions…",
+    "list": "Excluded pairs",
+    "empty": "No exclusions yet: anyone can draw anyone.",
+    "and": "and",
+    "removeLabel": "Remove the exclusion between {{a}} and {{b}}",
+    "removed": "Exclusion removed.",
+    "feasible": "A valid draw exists with these rules.",
+    "infeasible": "No valid draw exists with these rules — remove some exclusions.",
+    "locked": "Exclusions are locked after the draw.",
+    "pair": {
+      "title": "Add a pair",
+      "first": "First person",
+      "second": "Second person",
+      "placeholder": "Choose someone",
+      "submit": "Add pair",
+      "added": "Pair added."
+    },
+    "group": {
+      "title": "Group helper",
+      "help": "Choose 3 or more people (a family, a couple and their kids…): nobody in the group will draw anyone else in it.",
+      "label": "Group members",
+      "selected_one": "{{count}} selected",
+      "selected_other": "{{count}} selected",
+      "submit": "Create group",
+      "added": "Group created."
+    }
+  },
   "chat": {
     "list": {
       "title": "Chats"
@@ -391,6 +421,8 @@
     "JOIN_DEADLINE_PASSED": "The deadline to join this event has passed.",
     "ALREADY_PARTICIPANT": "You're already in this event.",
     "HOST_CANNOT_LEAVE": "The host can't leave or be removed from their own event.",
-    "PARTICIPANT_NOT_FOUND": "That person isn't in this event."
+    "PARTICIPANT_NOT_FOUND": "That person isn't in this event.",
+    "EXCLUSION_INVALID_PARTICIPANT": "Exclusions can only include people in this event.",
+    "EXCLUSION_NOT_FOUND": "That exclusion no longer exists."
   }
 }

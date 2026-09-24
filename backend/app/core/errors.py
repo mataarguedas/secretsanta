@@ -42,6 +42,9 @@ ERROR_REGISTRY: Final[dict[str, str]] = {
     # Roster (Prompt 13)
     "HOST_CANNOT_LEAVE": "The host can't leave or be removed from their own event.",
     "PARTICIPANT_NOT_FOUND": "That person isn't a participant in this event.",
+    # Exclusions (Prompt 15)
+    "EXCLUSION_INVALID_PARTICIPANT": "Exclusions can only name current participants.",
+    "EXCLUSION_NOT_FOUND": "That exclusion doesn't exist.",
 }
 
 _STATUS_TO_CODE: Final[dict[int, str]] = {

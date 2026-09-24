@@ -49,3 +49,32 @@ export function PersonIcon(props: IconProps) {
     </Icon>
   );
 }
+
+/** Tick in a circle: a positive status. */
+export function CheckCircleIcon(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <circle cx="10" cy="10" r="7.5" />
+      <path d="M6.5 10.5l2.3 2.3 4.7-5.3" />
+    </Icon>
+  );
+}
+
+/** Exclamation in a circle: a blocking status. */
+export function AlertCircleIcon(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <circle cx="10" cy="10" r="7.5" />
+      <path d="M10 6v5M10 13.75v.25" />
+    </Icon>
+  );
+}
+
+/** Diagonal cross: remove / close. */
+export function CloseIcon(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <path d="M5 5l10 10M15 5L5 15" />
+    </Icon>
+  );
+}

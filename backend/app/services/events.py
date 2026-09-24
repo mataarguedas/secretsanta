@@ -15,6 +15,7 @@ from app.core.errors import AppError
 from app.models.event import Event, EventParticipant, EventState
 from app.models.user import User
 from app.schemas.events import (
+    DrawReadiness,
     EventCreate,
     EventDetail,
     EventPage,
@@ -25,6 +26,8 @@ from app.schemas.events import (
     Section,
     UserPublic,
 )
+from app.services.draw import MIN_PARTICIPANTS
+from app.services.exclusions import check_feasible, delete_user_exclusions
 
 PAGE_SIZE: Final = 20
 # PRD §3: after the draw only these may change.
@@ -106,8 +109,26 @@ async def build_event_detail(session: AsyncSession, event: Event, viewer: User) 
         "my_role": "host" if is_host else "participant",
     }
     if is_host:
-        return HostEventDetail(**fields, invite_token=event.invite_token)
+        return HostEventDetail(
+            **fields,
+            invite_token=event.invite_token,
+            draw_readiness=await draw_readiness(session, event, fields["participant_count"]),
+        )
     return EventDetail(**fields)
+
+
+async def draw_readiness(
+    session: AsyncSession, event: Event, participant_count: int
+) -> DrawReadiness:
+    """Host only. ``can_draw``: OPEN, at least 3 people and a valid draw exists."""
+    feasible = await check_feasible(session, event.id)
+    return DrawReadiness(
+        participant_count=participant_count,
+        feasible=feasible,
+        can_draw=event.state == EventState.OPEN
+        and participant_count >= MIN_PARTICIPANTS
+        and feasible,
+    )
 
 
 async def list_participants(
@@ -277,7 +298,7 @@ async def remove_participant(session: AsyncSession, event: Event, user_id: uuid.
     )
     if getattr(result, "rowcount", 0) == 0:
         raise AppError("PARTICIPANT_NOT_FOUND", 404)
-    # TODO(prompt 15): delete the user's exclusions in this event (FR-EXC-3).
+    await delete_user_exclusions(session, event.id, user_id)  # FR-EXC-3, same transaction
     # TODO(prompt 19): delete their wishlist items and enqueue R2 cleanup of the photos.
     # TODO(prompt 21): remove them from the event's group chat membership.
     await session.commit()
