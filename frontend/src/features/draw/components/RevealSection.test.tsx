@@ -85,15 +85,16 @@ describe('Manage › Reveal', () => {
     );
   });
 
-  it.each(['drawn', 'archived'] as const)('is not offered once %s', async (state) => {
+  it('once drawn, says the draw is done instead of offering it', async () => {
     mockSession({
       me: TEST_USER,
-      eventDetails: { e1: ready({ state }) },
+      eventDetails: { e1: ready({ state: 'drawn' }) },
       participants: { e1: ROSTER },
     });
     renderApp('/events/e1/manage');
-    await screen.findByRole('heading', { level: 1 });
-    expect(screen.queryByRole('region', { name: 'El sorteo' })).not.toBeInTheDocument();
+    const done = await screen.findByRole('region', { name: 'El sorteo ya se hizo' });
+    expect(done).toHaveTextContent(/el grupo ya no puede cambiar/);
+    expect(screen.queryByRole('button', { name: 'Revelar' })).not.toBeInTheDocument();
   });
 
   it('confirms in a modal listing everyone, draws once and goes to Overview', async () => {

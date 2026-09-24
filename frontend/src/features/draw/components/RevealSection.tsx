@@ -11,9 +11,27 @@ const MIN_PARTICIPANTS = 3;
 
 /**
  * Manage › Reveal (FR-DRW-1/2): the screen's coral primary action, disabled with the
- * reason from `draw_readiness`, and a confirm Modal that lists everyone. OPEN only.
+ * reason from `draw_readiness`, and a confirm Modal that lists everyone. Once drawn it
+ * only says so.
  */
 export function RevealSection({ event }: { event: EventDetail }) {
+  if (event.state !== 'open') return <DrawDone />;
+  return <RevealAction event={event} />;
+}
+
+function DrawDone() {
+  const { t } = useTranslation();
+  return (
+    <Card as="section" aria-labelledby="manage-reveal" className="flex flex-col gap-12">
+      <h2 id="manage-reveal" className="font-serif text-heading-sm font-medium">
+        {t('draw.reveal.doneTitle')}
+      </h2>
+      <p className="text-body text-charcoal">{t('draw.reveal.doneBody')}</p>
+    </Card>
+  );
+}
+
+function RevealAction({ event }: { event: EventDetail }) {
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const reasonId = useId();

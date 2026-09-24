@@ -374,7 +374,9 @@
       "body": "When everyone is in, run the draw. Each person, you included, sees only who they're giving to.",
       "button": "Reveal",
       "needPeople": "You need at least 3 participants to reveal.",
-      "impossible": "The exclusion rules make a draw impossible."
+      "impossible": "The exclusion rules make a draw impossible.",
+      "doneTitle": "The draw is done",
+      "doneBody": "The draw is done. Everyone can see who they're giving to, and the roster can't change anymore."
     },
     "confirm": {
       "title": "Ready for the reveal?",

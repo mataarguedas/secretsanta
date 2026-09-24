@@ -114,7 +114,7 @@ describe('InviteLinkCard', () => {
 
   it('when the event is not OPEN, joining is closed', async () => {
     const { card } = await renderManage(eventDetail({ state: 'drawn' }));
-    expect(within(card).getByText(/Ya no se aceptan participantes/)).toBeInTheDocument();
+    expect(within(card).getByText(/La inscripción está cerrada/)).toBeInTheDocument();
     expect(within(card).queryByRole('button')).not.toBeInTheDocument();
   });
 

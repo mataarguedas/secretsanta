@@ -21,6 +21,9 @@ SENSITIVE_KEYS: frozenset[str] = frozenset(
         "message_body",
         "giver_id",
         "receiver_id",
+        "giver",
+        "receiver",
+        "pairs",
         # anonymous conversation member → user mappings
         "anon_user_id",
         "anonymous_user_id",
@@ -120,6 +123,10 @@ def configure_logging(level: str = "INFO") -> None:
     access.handlers.clear()
     access.propagate = False
     access.disabled = True
+    # SQL logging would print statement parameters, e.g. the assignment INSERTs (the whole
+    # draw). Pin it off whatever LOG_LEVEL says (CLAUDE.md §7 Logging).
+    for name in ("sqlalchemy", "sqlalchemy.engine", "sqlalchemy.pool"):
+        logging.getLogger(name).setLevel(logging.WARNING)
 
 
 def get_logger(name: str | None = None) -> structlog.stdlib.BoundLogger:

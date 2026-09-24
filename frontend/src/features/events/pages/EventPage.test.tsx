@@ -175,7 +175,11 @@ describe('Manage › Edit', () => {
 
   it('DRAWN: only description, location/online and date are editable; no Delete', async () => {
     await renderEvent('/events/e1/manage', [{ ...HOST_EVENT, state: 'drawn' }]);
-    expect(screen.getByText(/El sorteo ya se hizo/)).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        'El sorteo ya se hizo: solo puedes cambiar la descripción, el lugar y la fecha.',
+      ),
+    ).toBeInTheDocument();
     expect(field('Nombre del evento')).toBeDisabled();
     expect(field('Presupuesto')).toBeDisabled();
     expect(field('Fecha límite para unirse (opcional)')).toBeDisabled();

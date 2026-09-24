@@ -313,7 +313,7 @@
       "disabled": "El enlace está desactivado: nadie puede unirse con él.",
       "enable": "Activar enlace",
       "enabled": "Enlace activado.",
-      "closed": "Ya no se aceptan participantes: el sorteo se hizo."
+      "closed": "La inscripción está cerrada: el sorteo ya se hizo."
     },
     "banner": {
       "text": "Invita a tus amigos",
@@ -374,7 +374,9 @@
       "body": "Cuando estén todos, haz el sorteo. Cada persona, incluyéndote a ti, solo verá a quién le regala.",
       "button": "Revelar",
       "needPeople": "Se necesitan al menos 3 participantes para revelar.",
-      "impossible": "Las reglas de exclusión hacen imposible el sorteo."
+      "impossible": "Las reglas de exclusión hacen imposible el sorteo.",
+      "doneTitle": "El sorteo ya se hizo",
+      "doneBody": "El sorteo ya se hizo. Cada quien puede ver a quién le regala y el grupo ya no puede cambiar."
     },
     "confirm": {
       "title": "¿Todo listo para el sorteo?",

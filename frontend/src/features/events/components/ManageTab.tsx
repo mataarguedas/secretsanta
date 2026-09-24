@@ -12,8 +12,8 @@ import { eventToFormValues, lockedFields, toUpdatePayload } from '../schemas';
 import { EventForm } from './EventForm';
 
 /**
- * Host-only Manage tab: the invite link, exclusions, the reveal (OPEN only), edit (fields
- * locked by state) and delete (OPEN only). Reveal sits above the edit form so its coral
+ * Host-only Manage tab: the invite link, exclusions, the reveal ("the draw is done" once
+ * drawn), edit (fields locked by state) and delete (OPEN only). Reveal sits above the edit form so its coral
  * button and the form's coral submit never share a viewport.
  */
 export function ManageTab({ event }: { event: EventDetail }) {
@@ -28,7 +28,7 @@ export function ManageTab({ event }: { event: EventDetail }) {
     <div className="flex flex-col gap-32 md:gap-[64px]">
       <InviteLinkCard event={event} />
       <ExclusionsCard event={event} />
-      {event.state === 'open' && <RevealSection event={event} />}
+      <RevealSection event={event} />
       <EditEventSection event={event} />
       {event.state === 'open' && <DeleteEventSection event={event} />}
     </div>

@@ -52,6 +52,7 @@ async def run_draw(session: AsyncSession, event_id: uuid.UUID) -> None:
             for giver, receiver in result.items()
         )
         del result  # nothing below may touch the pairs
+        await session.flush()  # constraint violations surface here, before the state flips
         event.state = EventState.DRAWN
         event.drawn_at = datetime.now(UTC)
         await session.commit()
