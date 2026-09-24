@@ -11,14 +11,14 @@ from dataclasses import dataclass
 
 from fastapi import Depends, Request
 from redis.asyncio import Redis
-from sqlalchemy import select
+from sqlalchemy import and_, select
 from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker
 
 from app.api.cookies import ACCESS_COOKIE
 from app.core.config import Settings
 from app.core.errors import AppError
 from app.core.security import decode_access_token
-from app.models.event import Event, EventState
+from app.models.event import Event, EventParticipant, EventState
 from app.models.user import User
 from app.models.wishlist import WishlistItem
 from app.services.events import get_event_for_participant
@@ -135,6 +135,57 @@ async def require_wishlist_owner(
     if item is None:
         raise AppError("WISHLIST_ITEM_NOT_FOUND", 404)
     return WishlistItemAccess(event=access.event, user=access.user, item=item)
+
+
+def require_own_item(*states: EventState) -> Callable[..., Awaitable[WishlistItemAccess]]:
+    """For routes addressed by item id alone (``/wishlist/items/{item_id}/photos``): the
+    caller's own item in an event they still participate in, else 404
+    ``WISHLIST_ITEM_NOT_FOUND``; then 409 unless the event is in one of ``states``.
+
+    Nothing is locked here: photo uploads process the image first, and the service locks
+    the rows only for the short write that follows."""
+    allowed = frozenset(states)
+
+    async def dependency(
+        item_id: uuid.UUID,
+        user: User = Depends(current_user),
+        session: AsyncSession = Depends(get_db),
+    ) -> WishlistItemAccess:
+        row = (
+            await session.execute(
+                select(WishlistItem, Event)
+                .join(Event, Event.id == WishlistItem.event_id)
+                .join(
+                    EventParticipant,
+                    and_(
+                        EventParticipant.event_id == Event.id,
+                        EventParticipant.user_id == user.id,
+                    ),
+                )
+                .where(WishlistItem.id == item_id, WishlistItem.user_id == user.id)
+            )
+        ).one_or_none()
+        if row is None:
+            raise AppError("WISHLIST_ITEM_NOT_FOUND", 404)
+        item, event = row
+        if event.state not in allowed:
+            raise AppError(_STATE_ERRORS[event.state], 409)
+        return WishlistItemAccess(event=event, user=user, item=item)
+
+    return dependency
+
+
+async def require_source_event(
+    other_event_id: uuid.UUID,
+    user: User = Depends(current_user),
+    session: AsyncSession = Depends(get_db),
+) -> Event:
+    """A second event the caller participates in (any state), e.g. the source of a
+    wishlist copy. Otherwise 404 ``EVENT_NOT_FOUND``, like ``require_participant``."""
+    event = await get_event_for_participant(session, other_event_id, user.id)
+    if event is None:
+        raise AppError("EVENT_NOT_FOUND", 404)
+    return event
 
 
 _STATE_ERRORS: dict[str, str] = {

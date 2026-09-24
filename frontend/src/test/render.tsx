@@ -11,7 +11,7 @@ import { ToastProvider } from '@/components/ui';
 import type { Me } from '@/features/auth/api';
 import type { EventDetail, EventSection, EventSummary, Participant } from '@/features/events/api';
 import type { Exclusion, ExclusionList } from '@/features/exclusions/api';
-import type { ItemPayload, Wishlist, WishlistItem } from '@/features/wishlist/api';
+import type { CopySource, ItemPayload, Wishlist, WishlistItem } from '@/features/wishlist/api';
 import type { InvitePreview } from '@/features/invites/api';
 import i18n from '@/i18n';
 
@@ -101,6 +101,9 @@ export function mockSession({
   coverUpload,
   wishlists = {},
   reorderFails = false,
+  photoUpload,
+  copySources = {},
+  copyItems = {},
 }: {
   me: Me | null;
   /** Make `PATCH /me` fail with this status (e.g. 500) instead of saving. */
@@ -138,9 +141,19 @@ export function mockSession({
   wishlists?: Record<string, Wishlist>;
   /** Make `PUT …/wishlist/order` fail with a 500 (to test the optimistic rollback). */
   reorderFails?: boolean;
+  /**
+   * `POST /wishlist/items/{id}/photos` (through the fake XMLHttpRequest): a Response to
+   * return instead of the default, which appends a photo to the signed-in user's item.
+   */
+  photoUpload?: (itemId: string, file: File) => Response | Promise<Response> | undefined;
+  /** `GET /events/{id}/wishlist/copy-sources` by target event id (default: none). */
+  copySources?: Record<string, CopySource[]>;
+  /** Items that `POST …/wishlist/copy-from/{sourceId}` appends to the user's list. */
+  copyItems?: Record<string, WishlistItem[]>;
 }) {
   const lists = new Map(Object.entries(wishlists));
   let itemSeq = 0;
+  let photoSeq = 0;
   vi.stubGlobal('XMLHttpRequest', FakeXhr);
   let covers = 0;
   const exclusionLists = new Map(Object.entries(exclusions));
@@ -269,6 +282,65 @@ export function mockSession({
       }
       save(mine.items.filter((item) => item.id !== found.id));
       return Promise.resolve(new Response(null, { status: 204 }));
+    }
+    const photoMatch = /^\/api\/v1\/wishlist\/items\/([^/?]+)\/photos(?:\/([^/?]+))?$/.exec(url);
+    if (photoMatch?.[1] && me) {
+      const mine = lists.get(me.id);
+      const item = mine?.items.find((i) => i.id === photoMatch[1]);
+      if (!mine || !item) {
+        return Promise.resolve(
+          jsonResponse(404, { error: { code: 'WISHLIST_ITEM_NOT_FOUND', message: '' } }),
+        );
+      }
+      let updated: WishlistItem;
+      if (method === 'POST') {
+        const file = (init?.body as FormData).get('file') as File;
+        const custom = photoUpload?.(item.id, file);
+        if (custom) return Promise.resolve(custom); // may be a promise the test settles
+        photoSeq += 1;
+        const n = String(photoSeq);
+        updated = {
+          ...item,
+          photos: [
+            ...item.photos,
+            {
+              id: `photo-${n}`,
+              url: `https://storage.test/p${n}.webp`,
+              thumb_url: `https://storage.test/p${n}_thumb.webp`,
+              width: 1600,
+              height: 1200,
+            },
+          ],
+        };
+      } else {
+        updated = { ...item, photos: item.photos.filter((p) => p.id !== photoMatch[2]) };
+      }
+      lists.set(me.id, {
+        ...mine,
+        items: mine.items.map((i) => (i.id === item.id ? updated : i)),
+      });
+      return Promise.resolve(
+        method === 'POST' ? jsonResponse(201, updated) : new Response(null, { status: 204 }),
+      );
+    }
+    const copyMatch =
+      /^\/api\/v1\/events\/([^/?]+)\/wishlist\/(copy-sources|copy-from\/([^/?]+))$/.exec(url);
+    if (copyMatch?.[1] && me) {
+      if (copyMatch[2] === 'copy-sources') {
+        return Promise.resolve(jsonResponse(200, copySources[copyMatch[1]] ?? []));
+      }
+      const mine = lists.get(me.id) ?? {
+        owner: { id: me.id, name: me.name, avatar_url: me.avatar_url },
+        is_self: true,
+        items: [],
+      };
+      const copies = (copyItems[copyMatch[3] ?? ''] ?? []).map((item, i) => ({
+        ...item,
+        id: `copy-${String(i + 1)}-${item.id}`,
+        position: mine.items.length + i,
+      }));
+      lists.set(me.id, { ...mine, items: [...mine.items, ...copies] });
+      return Promise.resolve(jsonResponse(201, copies));
     }
     const coverMatch = /^\/api\/v1\/events\/([^/?]+)\/cover$/.exec(url);
     if (coverMatch?.[1]) {

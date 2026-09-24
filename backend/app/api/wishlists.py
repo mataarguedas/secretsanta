@@ -6,7 +6,7 @@ Edits are allowed while OPEN or DRAWN; an ARCHIVED event is read-only (409
 
 import uuid
 
-from fastapi import APIRouter, Depends, Response
+from fastapi import APIRouter, Depends, File, Request, Response, UploadFile
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import (
@@ -14,16 +14,30 @@ from app.api.deps import (
     WishlistItemAccess,
     get_db,
     require_event_state,
+    require_own_item,
     require_participant,
+    require_source_event,
     require_wishlist_owner,
 )
-from app.models.event import EventState
-from app.schemas.wishlists import ItemCreate, ItemOrder, ItemOut, ItemUpdate, WishlistOut
+from app.api.uploads import process_upload
+from app.core.rate_limit import upload_rate_limit
+from app.models.event import Event, EventState
+from app.schemas.wishlists import (
+    CopySourceOut,
+    ItemCreate,
+    ItemOrder,
+    ItemOut,
+    ItemUpdate,
+    WishlistOut,
+)
+from app.services import wishlist_photos as photo_service
 from app.services import wishlists as service
 
 router = APIRouter(prefix="/events/{event_id}", tags=["wishlists"])
+photos_router = APIRouter(prefix="/wishlist/items/{item_id}/photos", tags=["wishlists"])
 
 editable = require_event_state(EventState.OPEN, EventState.DRAWN)
+own_editable_item = require_own_item(EventState.OPEN, EventState.DRAWN)
 
 
 @router.get("/wishlists/{user_id}", response_model=WishlistOut)
@@ -73,3 +87,53 @@ async def reorder(
     session: AsyncSession = Depends(get_db),
 ) -> list[ItemOut]:
     return await service.reorder(session, access.event, access.user.id, order.item_ids)
+
+
+@router.get("/wishlist/copy-sources", response_model=list[CopySourceOut])
+async def copy_sources(
+    access: EventAccess = Depends(require_participant),
+    session: AsyncSession = Depends(get_db),
+) -> list[CopySourceOut]:
+    """The caller's other events whose wishlist (their own) has items: what "Copy from
+    another event" offers."""
+    return await photo_service.copy_sources(session, access.event, access.user.id)
+
+
+@router.post("/wishlist/copy-from/{other_event_id}", status_code=201, response_model=list[ItemOut])
+async def copy_from(
+    access: EventAccess = Depends(require_participant),
+    _state: EventAccess = Depends(editable),
+    source: Event = Depends(require_source_event),
+    session: AsyncSession = Depends(get_db),
+) -> list[ItemOut]:
+    """FR-WSH-5: the caller must participate in both events; the source may be in any
+    state, the target must be editable. Returns the new items."""
+    return await photo_service.copy_from(session, access.event, access.user.id, source)
+
+
+# ── Photos (addressed by item id; the event comes from the item) ─────────────
+
+
+@photos_router.post("", status_code=201, response_model=ItemOut)
+@upload_rate_limit
+async def upload_photo(
+    request: Request,
+    file: UploadFile = File(...),
+    owned: WishlistItemAccess = Depends(own_editable_item),
+    session: AsyncSession = Depends(get_db),
+) -> ItemOut:
+    """Owner, OPEN or DRAWN. At most 3 per item (409 ``PHOTO_LIMIT_REACHED``). Returns the
+    item with its photos."""
+    await photo_service.ensure_photo_slot(session, owned.item)
+    image = await process_upload(file)
+    return await photo_service.add_photo(session, owned.event, owned.item, image)
+
+
+@photos_router.delete("/{photo_id}", status_code=204)
+async def delete_photo(
+    photo_id: uuid.UUID,
+    owned: WishlistItemAccess = Depends(own_editable_item),
+    session: AsyncSession = Depends(get_db),
+) -> Response:
+    await photo_service.delete_photo(session, owned.event, owned.item, photo_id)
+    return Response(status_code=204)

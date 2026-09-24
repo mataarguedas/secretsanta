@@ -14,6 +14,10 @@ export interface CarouselProps {
   className?: string;
   /** Controls the frame's aspect ratio; defaults to square. */
   aspectClassName?: string;
+  /** Slide shown first (e.g. a lightbox opened on the photo the user was looking at). */
+  initialIndex?: number;
+  /** Called with the new index whenever the slide changes. */
+  onIndexChange?: (index: number) => void;
 }
 
 function Arrow({
@@ -63,16 +67,23 @@ export function Carousel({
   label,
   className,
   aspectClassName = 'aspect-square',
+  initialIndex = 0,
+  onIndexChange,
 }: CarouselProps) {
   const { t } = useTranslation();
-  const [index, setIndex] = useState(0);
+  const [index, setIndex] = useState(() =>
+    Math.min(Math.max(initialIndex, 0), Math.max(slides.length - 1, 0)),
+  );
   const [dragX, setDragX] = useState(0);
   const dragStart = useRef<number | null>(null);
   const count = slides.length;
   const multiple = count > 1;
 
   const go = (next: number) => {
-    setIndex(Math.min(Math.max(next, 0), count - 1));
+    const clamped = Math.min(Math.max(next, 0), count - 1);
+    if (clamped === index) return;
+    setIndex(clamped);
+    onIndexChange?.(clamped);
   };
 
   const onKeyDown = (event: KeyboardEvent<HTMLElement>) => {

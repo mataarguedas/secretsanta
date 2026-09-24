@@ -97,4 +97,24 @@ describe('Carousel', () => {
     const { container } = render(<Carousel label="Fotos" slides={slides} />);
     expect(await axe(container)).toHaveNoViolations();
   });
+
+  it('starts on initialIndex (clamped) and reports slide changes', async () => {
+    const user = userEvent.setup();
+    const changes: number[] = [];
+    const { unmount } = render(
+      <Carousel
+        label="Fotos"
+        slides={slides}
+        initialIndex={1}
+        onIndexChange={(i) => changes.push(i)}
+      />,
+    );
+    expect(screen.getByText('2 / 3')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Foto siguiente' }));
+    await user.click(screen.getByRole('button', { name: 'Foto anterior' }));
+    expect(changes).toEqual([2, 1]);
+    unmount();
+    render(<Carousel label="Fotos" slides={slides} initialIndex={9} />);
+    expect(screen.getByText('3 / 3')).toBeInTheDocument();
+  });
 });

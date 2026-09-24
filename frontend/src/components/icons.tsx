@@ -96,3 +96,12 @@ export function ArrowDownIcon(props: IconProps) {
     </Icon>
   );
 }
+
+/** Plus: add something (e.g. a photo to an empty slot). */
+export function PlusIcon(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <path d="M10 4v12M4 10h12" />
+    </Icon>
+  );
+}

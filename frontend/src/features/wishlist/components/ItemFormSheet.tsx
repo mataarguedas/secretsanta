@@ -1,6 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import type { ParseKeys } from 'i18next';
-import { useId } from 'react';
+import { useId, type ReactNode } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
 
@@ -26,6 +26,8 @@ export interface ItemFormSheetProps {
   onClose: () => void;
   /** Resolve on success (the sheet closes); throw to show the error. */
   onSubmit: (payload: ItemPayload) => Promise<unknown>;
+  /** Shown under the form (the photo uploader, which saves on its own). */
+  children?: ReactNode;
 }
 
 /** Add/edit a wishlist item (FR-WSH-2) in a Sheet: bottom sheet on mobile. */
@@ -35,6 +37,7 @@ export function ItemFormSheet({
   defaultValues = emptyItemForm,
   onClose,
   onSubmit,
+  children,
 }: ItemFormSheetProps) {
   const { t } = useTranslation();
   const toast = useToast();
@@ -140,6 +143,7 @@ export function ItemFormSheet({
           {...register('note')}
         />
       </form>
+      {children && <div className="mt-24">{children}</div>}
     </Sheet>
   );
 }

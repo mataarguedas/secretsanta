@@ -471,6 +471,36 @@
       "saved": "Cambios guardados.",
       "deleted": "Artículo eliminado.",
       "reorderFailed": "No se pudo guardar el nuevo orden. Inténtalo de nuevo."
+    },
+    "photos": {
+      "title": "Fotos",
+      "help": "Hasta 3 fotos: JPG, PNG, WebP o HEIC, de máximo 10 MB cada una.",
+      "add": "Agregar foto",
+      "addLabel": "Agregar foto {{n}} de 3",
+      "removeLabel": "Quitar la foto {{n}}",
+      "uploading": "Subiendo… {{percent}} %",
+      "progressLabel": "Progreso de la foto {{n}}",
+      "slotLabel": "Espacio para la foto {{n}}",
+      "alt": "{{title}}: foto {{n}} de {{total}}",
+      "carouselLabel": "Fotos de {{title}}",
+      "saveFirst": "Guarda el artículo y luego edítalo para agregarle fotos.",
+      "enlarge": "Ver en grande",
+      "enlargeLabel": "Ver las fotos de {{title}} en grande"
+    },
+    "copy": {
+      "open": "Copiar de otro evento",
+      "title": "Copiar de otro evento",
+      "body": "Elige una de tus otras listas. Copiaremos todos sus artículos, con fotos, al final de esta.",
+      "loading": "Buscando tus otras listas…",
+      "none": "Todavía no tienes artículos en otras listas.",
+      "sourcesLabel": "Tus otras listas",
+      "itemCount_one": "{{count}} artículo",
+      "itemCount_other": "{{count}} artículos",
+      "sourceLabel_one": "{{name}}, {{count}} artículo",
+      "sourceLabel_other": "{{name}}, {{count}} artículos",
+      "confirm": "Copiar artículos",
+      "done_one": "Se importó {{count}} artículo.",
+      "done_other": "Se importaron {{count}} artículos."
     }
   },
   "chat": {
@@ -535,6 +565,9 @@
     "IMAGE_TOO_LARGE": "La imagen es demasiado grande (demasiados píxeles).",
     "UNSUPPORTED_IMAGE": "Ese archivo no es una imagen compatible. Usa JPEG, PNG, WebP o HEIC.",
     "WISHLIST_ITEM_NOT_FOUND": "Ese artículo ya no existe.",
-    "WISHLIST_ORDER_MISMATCH": "La lista cambió mientras tanto. Recarga e inténtalo de nuevo."
+    "WISHLIST_ORDER_MISMATCH": "La lista cambió mientras tanto. Recarga e inténtalo de nuevo.",
+    "PHOTO_LIMIT_REACHED": "Cada artículo puede tener hasta 3 fotos.",
+    "PHOTO_NOT_FOUND": "Esa foto ya no existe.",
+    "WISHLIST_COPY_SAME_EVENT": "Elige otro evento para copiar."
   }
 }

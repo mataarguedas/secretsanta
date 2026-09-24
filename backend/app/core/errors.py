@@ -55,6 +55,10 @@ ERROR_REGISTRY: Final[dict[str, str]] = {
     # Wishlists (Prompt 19)
     "WISHLIST_ITEM_NOT_FOUND": "That wishlist item doesn't exist.",
     "WISHLIST_ORDER_MISMATCH": "The new order must list exactly your items.",
+    # Photos and copy-from (Prompt 20)
+    "PHOTO_LIMIT_REACHED": "An item can have at most 3 photos.",
+    "PHOTO_NOT_FOUND": "That photo doesn't exist.",
+    "WISHLIST_COPY_SAME_EVENT": "Pick a different event to copy from.",
 }
 
 _STATUS_TO_CODE: Final[dict[int, str]] = {

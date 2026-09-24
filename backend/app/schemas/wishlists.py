@@ -124,3 +124,11 @@ class WishlistOut(BaseModel):
     owner: UserPublic
     is_self: bool
     items: list[ItemOut]
+
+
+class CopySourceOut(BaseModel):
+    """Another event of the caller's that has items on their own wishlist (FR-WSH-5)."""
+
+    event_id: uuid.UUID
+    name: str
+    item_count: int

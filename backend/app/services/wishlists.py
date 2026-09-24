@@ -80,7 +80,7 @@ def item_out(item: WishlistItem) -> ItemOut:
     )
 
 
-async def _reload(session: AsyncSession, item_id: uuid.UUID) -> WishlistItem:
+async def reload_item(session: AsyncSession, item_id: uuid.UUID) -> WishlistItem:
     item = await session.scalar(
         select(WishlistItem)
         .where(WishlistItem.id == item_id)
@@ -113,7 +113,7 @@ async def create_item(
     session.add(item)
     await session.commit()
     await on_wishlist_changed_if_drawn(event, owner_id)
-    return item_out(await _reload(session, item.id))
+    return item_out(await reload_item(session, item.id))
 
 
 async def update_item(
@@ -123,7 +123,7 @@ async def update_item(
         setattr(item, field, value)
     await session.commit()
     await on_wishlist_changed_if_drawn(event, item.user_id)
-    return item_out(await _reload(session, item.id))
+    return item_out(await reload_item(session, item.id))
 
 
 async def delete_item(session: AsyncSession, event: Event, item: WishlistItem) -> None:

@@ -40,9 +40,20 @@ export interface ItemPayload {
   priority: Priority;
 }
 
+/** Another of the user's events whose wishlist has items (`GET …/wishlist/copy-sources`). */
+export interface CopySource {
+  event_id: string;
+  name: string;
+  item_count: number;
+}
+
 export const wishlistKeys = {
   list: (eventId: string, userId: string) => ['events', eventId, 'wishlists', userId] as const,
+  copySources: (eventId: string) => ['events', eventId, 'wishlist', 'copy-sources'] as const,
 };
+
+/** Photo URLs are presigned for 1 h (PRD §8). */
+const PHOTO_URL_TTL = 60 * 60_000;
 
 export function useWishlist(eventId: string, userId: string | null) {
   return useQuery({
@@ -50,6 +61,11 @@ export function useWishlist(eventId: string, userId: string | null) {
     queryFn: ({ signal }) =>
       apiClient.get<Wishlist>(`/events/${eventId}/wishlists/${userId ?? ''}`, { signal }),
     enabled: userId !== null,
+    // Stale well before the photo URLs expire, so coming back to the tab refetches fresh
+    // ones instead of leaving broken images; a visible tab renews them on its own.
+    staleTime: 5 * 60_000,
+    refetchOnWindowFocus: true,
+    refetchInterval: PHOTO_URL_TTL - 10 * 60_000,
   });
 }
 
@@ -113,6 +129,80 @@ export function useReorderItems(eventId: string, ownerId: string) {
       if (context?.previous) queryClient.setQueryData(key, context.previous);
     },
     onSettled: () => queryClient.invalidateQueries({ queryKey: key }),
+  });
+}
+
+/** Put a changed item (as the server returned it) into the owner's cached list. */
+function replaceItem(list: Wishlist | undefined, item: WishlistItem): Wishlist | undefined {
+  return list && { ...list, items: list.items.map((i) => (i.id === item.id ? item : i)) };
+}
+
+/**
+ * `POST /wishlist/items/{id}/photos` through XHR for progress. The cache is updated in the
+ * hook-level callback so it still happens if the sheet closes mid-upload.
+ */
+export function useUploadPhoto(eventId: string, ownerId: string) {
+  const queryClient = useQueryClient();
+  const key = wishlistKeys.list(eventId, ownerId);
+  return useMutation({
+    mutationFn: ({
+      itemId,
+      file,
+      onProgress,
+    }: {
+      itemId: string;
+      file: File;
+      onProgress: (fraction: number) => void;
+    }) => {
+      const form = new FormData();
+      form.append('file', file);
+      return apiClient.upload<WishlistItem>(`/wishlist/items/${itemId}/photos`, form, {
+        onProgress,
+      });
+    },
+    onSuccess: (item) => {
+      queryClient.setQueryData<Wishlist>(key, (list) => replaceItem(list, item));
+    },
+    onSettled: () => queryClient.invalidateQueries({ queryKey: key }),
+  });
+}
+
+export function useDeletePhoto(eventId: string, ownerId: string) {
+  const queryClient = useQueryClient();
+  const key = wishlistKeys.list(eventId, ownerId);
+  return useMutation({
+    mutationFn: ({ itemId, photoId }: { itemId: string; photoId: string }) =>
+      apiClient.delete<undefined>(`/wishlist/items/${itemId}/photos/${photoId}`),
+    onSuccess: (_data, { itemId, photoId }) => {
+      queryClient.setQueryData<Wishlist>(key, (list) => {
+        const item = list?.items.find((i) => i.id === itemId);
+        return item
+          ? replaceItem(list, { ...item, photos: item.photos.filter((p) => p.id !== photoId) })
+          : list;
+      });
+    },
+    onSettled: () => queryClient.invalidateQueries({ queryKey: key }),
+  });
+}
+
+export function useCopySources(eventId: string, enabled: boolean) {
+  return useQuery({
+    queryKey: wishlistKeys.copySources(eventId),
+    queryFn: ({ signal }) =>
+      apiClient.get<CopySource[]>(`/events/${eventId}/wishlist/copy-sources`, { signal }),
+    enabled,
+    staleTime: 0,
+  });
+}
+
+/** FR-WSH-5: resolves to the imported items. */
+export function useCopyFrom(eventId: string, ownerId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (sourceEventId: string) =>
+      apiClient.post<WishlistItem[]>(`/events/${eventId}/wishlist/copy-from/${sourceEventId}`),
+    onSuccess: () =>
+      queryClient.invalidateQueries({ queryKey: wishlistKeys.list(eventId, ownerId) }),
   });
 }
 

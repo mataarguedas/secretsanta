@@ -471,6 +471,36 @@
       "saved": "Changes saved.",
       "deleted": "Item deleted.",
       "reorderFailed": "The new order couldn't be saved. Try again."
+    },
+    "photos": {
+      "title": "Photos",
+      "help": "Up to 3 photos: JPG, PNG, WebP or HEIC, 10 MB max each.",
+      "add": "Add photo",
+      "addLabel": "Add photo {{n}} of 3",
+      "removeLabel": "Remove photo {{n}}",
+      "uploading": "Uploading… {{percent}}%",
+      "progressLabel": "Photo {{n}} upload progress",
+      "slotLabel": "Slot for photo {{n}}",
+      "alt": "{{title}}: photo {{n}} of {{total}}",
+      "carouselLabel": "Photos of {{title}}",
+      "saveFirst": "Save the item, then edit it to add photos.",
+      "enlarge": "View larger",
+      "enlargeLabel": "View the photos of {{title}} larger"
+    },
+    "copy": {
+      "open": "Copy from another event",
+      "title": "Copy from another event",
+      "body": "Pick one of your other lists. We'll copy all its items, with photos, to the end of this one.",
+      "loading": "Looking for your other lists…",
+      "none": "You don't have items on any other list yet.",
+      "sourcesLabel": "Your other lists",
+      "itemCount_one": "{{count}} item",
+      "itemCount_other": "{{count}} items",
+      "sourceLabel_one": "{{name}}, {{count}} item",
+      "sourceLabel_other": "{{name}}, {{count}} items",
+      "confirm": "Copy items",
+      "done_one": "{{count}} item imported.",
+      "done_other": "{{count}} items imported."
     }
   },
   "chat": {
@@ -535,6 +565,9 @@
     "IMAGE_TOO_LARGE": "The image is too large (too many pixels).",
     "UNSUPPORTED_IMAGE": "That file isn't a supported image. Use JPEG, PNG, WebP or HEIC.",
     "WISHLIST_ITEM_NOT_FOUND": "That item no longer exists.",
-    "WISHLIST_ORDER_MISMATCH": "The list changed meanwhile. Reload and try again."
+    "WISHLIST_ORDER_MISMATCH": "The list changed meanwhile. Reload and try again.",
+    "PHOTO_LIMIT_REACHED": "An item can have up to 3 photos.",
+    "PHOTO_NOT_FOUND": "That photo no longer exists.",
+    "WISHLIST_COPY_SAME_EVENT": "Pick a different event to copy from."
   }
 }

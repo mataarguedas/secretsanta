@@ -17,7 +17,10 @@ import {
   type WishlistItem,
 } from '../api';
 import { itemToFormValues } from '../schemas';
+import { CopyFromSheet } from './CopyFromSheet';
 import { ItemFormSheet } from './ItemFormSheet';
+import { ItemPhotos } from './ItemPhotos';
+import { PhotoUploader } from './PhotoUploader';
 
 type Editing = { mode: 'add' } | { mode: 'edit'; item: WishlistItem } | null;
 
@@ -46,7 +49,11 @@ export function WishlistView({
   const [editing, setEditing] = useState<Editing>(null);
   const [deleting, setDeleting] = useState<WishlistItem | null>(null);
   const [dragging, setDragging] = useState<string | null>(null);
+  const [copying, setCopying] = useState(false);
   const { items } = wishlist;
+  // The sheet edits a snapshot; its photos come from the live list so uploads show up.
+  const editedItem =
+    editing?.mode === 'edit' ? (items.find((i) => i.id === editing.item.id) ?? null) : null;
   const ids = items.map((item) => item.id);
 
   const move = (id: string, to: number) => {
@@ -67,15 +74,27 @@ export function WishlistView({
         <h2 id="wishlist-heading" className="font-serif text-heading-sm font-medium break-words">
           {heading}
         </h2>
-        {editable && items.length > 0 && (
-          <Button
-            variant="secondary"
-            onClick={() => {
-              setEditing({ mode: 'add' });
-            }}
-          >
-            {t('wishlist.add')}
-          </Button>
+        {editable && (
+          <div className="flex flex-wrap items-center gap-10">
+            <Button
+              variant="nav"
+              onClick={() => {
+                setCopying(true);
+              }}
+            >
+              {t('wishlist.copy.open')}
+            </Button>
+            {items.length > 0 && (
+              <Button
+                variant="secondary"
+                onClick={() => {
+                  setEditing({ mode: 'add' });
+                }}
+              >
+                {t('wishlist.add')}
+              </Button>
+            )}
+          </div>
         )}
       </div>
       {archived && <p className="text-body text-charcoal">{t('wishlist.readOnly')}</p>}
@@ -159,6 +178,25 @@ export function WishlistView({
               toast.success(t('wishlist.toast.added'));
             }
           }}
+        >
+          {editedItem ? (
+            <PhotoUploader eventId={eventId} ownerId={ownerId} item={editedItem} />
+          ) : (
+            editing?.mode === 'add' && (
+              <p className="text-sm text-stone">{t('wishlist.photos.saveFirst')}</p>
+            )
+          )}
+        </ItemFormSheet>
+      )}
+
+      {editable && (
+        <CopyFromSheet
+          open={copying}
+          eventId={eventId}
+          ownerId={ownerId}
+          onClose={() => {
+            setCopying(false);
+          }}
         />
       )}
 
@@ -206,42 +244,45 @@ export function WishlistView({
 function ItemCard({ item, children }: { item: WishlistItem; children?: ReactNode }) {
   const { t } = useTranslation();
   return (
-    <Card as="article" aria-label={item.title} className="flex flex-col gap-12">
-      <div className="flex flex-wrap items-start justify-between gap-12">
-        <h3 className="min-w-0 flex-1 font-sans text-subheading break-words">{item.title}</h3>
-        <div className="flex items-center gap-10">
-          {item.price_crc !== null && (
-            <span className="font-mono text-body text-ink-black">
-              <span className="sr-only">{t('wishlist.item.price')}: </span>
-              {formatCRC(item.price_crc)}
-            </span>
-          )}
-          <Pill>
-            <span className="sr-only">{t('wishlist.priority.label')}: </span>
-            {t(`wishlist.priority.${item.priority}`)}
-          </Pill>
+    <Card as="article" aria-label={item.title} className="flex flex-col gap-15 md:flex-row">
+      <ItemPhotos item={item} />
+      <div className="flex min-w-0 flex-1 flex-col gap-12">
+        <div className="flex flex-wrap items-start justify-between gap-12">
+          <h3 className="min-w-0 flex-1 font-sans text-subheading break-words">{item.title}</h3>
+          <div className="flex items-center gap-10">
+            {item.price_crc !== null && (
+              <span className="font-mono text-body text-ink-black">
+                <span className="sr-only">{t('wishlist.item.price')}: </span>
+                {formatCRC(item.price_crc)}
+              </span>
+            )}
+            <Pill>
+              <span className="sr-only">{t('wishlist.priority.label')}: </span>
+              {t(`wishlist.priority.${item.priority}`)}
+            </Pill>
+          </div>
         </div>
+        {item.note && (
+          <p className="text-body break-words whitespace-pre-line text-charcoal">{item.note}</p>
+        )}
+        {(item.url ?? children) && (
+          <div className="flex flex-wrap items-center gap-10">
+            {item.url && (
+              <Button variant="ghost" asChild>
+                <a
+                  href={item.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label={t('wishlist.item.linkLabel', { title: item.title })}
+                >
+                  {t('wishlist.item.link')}
+                </a>
+              </Button>
+            )}
+            {children}
+          </div>
+        )}
       </div>
-      {item.note && (
-        <p className="text-body break-words whitespace-pre-line text-charcoal">{item.note}</p>
-      )}
-      {(item.url ?? children) && (
-        <div className="flex flex-wrap items-center gap-10">
-          {item.url && (
-            <Button variant="ghost" asChild>
-              <a
-                href={item.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                aria-label={t('wishlist.item.linkLabel', { title: item.title })}
-              >
-                {t('wishlist.item.link')}
-              </a>
-            </Button>
-          )}
-          {children}
-        </div>
-      )}
     </Card>
   );
 }
