@@ -5,3 +5,5 @@ pnpm-lock.yaml
 public/fonts
 # Must stay verbatim with DESIGN.md (CLAUDE.md §6.1).
 src/styles/tokens.css
+test-results
+playwright-report

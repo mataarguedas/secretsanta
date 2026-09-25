@@ -469,7 +469,7 @@ Conventions:
 - **Buttons:**
   - Everything clickable is a 999px pill.
   - Primary is a Coral Pop filled pill, **at most one per viewport**: "Create event", "Join", "Reveal", "Send".
-  - Secondary is a Terracotta outlined pill.
+  - Secondary is a Terracotta outlined pill with Ink Black text (§9.2).
   - Tertiary is a black-outlined nav pill.
 - **Coral banner strip:** one per screen at most, e.g. the "You're giving to…" card header after the draw, or an "Invite your friends" band.
 - **Avatars:** 999px circles with a 1px black border (the "Category Circle" component). Participant rows use them.
@@ -484,6 +484,7 @@ Conventions:
 | Centered "Beautiful" wordmark | Centered **"Secret Santa"** wordmark in Playfair Display 500 (logo TBD) | Brand |
 | Nav pills + search icon header | Desktop (≥ 768px): header with nav pills on the left (Events, Chats), centered wordmark, profile avatar circle on the right. **Mobile (< 768px): bottom tab bar** (Events · Chats · Profile) and a compact centered wordmark top bar | Mobile ergonomics |
 | Proprietary fonts | Playfair Display / Inter / JetBrains Mono, self-hosted | Licensing |
+| Outlined Coral Button: terracotta text + border | Terracotta 1px border, **Ink Black text** | Terracotta text on white/cream is ≈ 2.8:1 and fails WCAG AA; black text keeps the accent in the outline (product owner, v1 accessibility pass) |
 
 ### 9.3 Key Screens
 1. **Landing (signed out):** hero with the serif headline, one short line, and a "Continue with Google" pill.
@@ -506,7 +507,7 @@ Conventions:
   - labels on all inputs
   - `aria-live` for toasts and incoming messages
   - hit targets ≥ 44×44 px
-- **Known conflict:** white text on Coral Pop (`#fa7864`) is ≈ 2.6:1 contrast, which fails AA. **Default:** keep DESIGN.md's white text but raise primary button text to 18px. This is flagged for product-owner review (alternative: Ink Black text on coral, ≈ 8:1).
+- **Known conflict:** white text on Coral Pop (`#fa7864`) is ≈ 2.6:1 contrast, which fails AA. **Default:** keep DESIGN.md's white text but raise primary button text to 18px. This is flagged for product-owner review (alternative: Ink Black text on coral, ≈ 8:1). The same exception covers the other coral foreground uses DESIGN.md requires: the coral Banner strip, the active bottom-tab pill, and the coral mono eyebrow labels (`OPEN`, `HOSTING`, `SECRET ELF #N`; coral on cream ≈ 2.4:1). The automated axe checks skip color-contrast results that involve Coral Pop, and nothing else.
 - Breakpoints: `sm 640`, `md 768`, `lg 1024`, `xl 1200`. Everything must work from 320px width.
 - Mobile uses safe-area insets (`env(safe-area-inset-*)`) for the bottom tab bar in standalone PWA mode.
 - Respect `prefers-reduced-motion`.

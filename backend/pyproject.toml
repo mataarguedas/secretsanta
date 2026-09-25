@@ -94,8 +94,15 @@ addopts = "-ra --strict-markers"
 filterwarnings = ["error::pytest.PytestUnraisableExceptionWarning"]
 
 [tool.coverage.run]
-source = ["app"]
+# The release gate (CLAUDE.md §9): >= 85% on services and api. `pytest --cov` measures just
+# these and fails below the threshold.
+source = ["app/services", "app/api"]
 # SQLAlchemy's asyncio layer runs ORM calls on greenlets; without this, every line after an
 # `await session.<...>` looks uncovered.
 concurrency = ["greenlet", "thread"]
 omit = ["app/worker/settings.py"]
+
+[tool.coverage.report]
+fail_under = 85
+show_missing = true
+skip_covered = true

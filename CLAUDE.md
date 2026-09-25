@@ -121,7 +121,8 @@ pnpm install
 pnpm dev                                              # Vite on :5173, proxies /api and /ws to :8000
 pnpm test            # vitest
 pnpm lint && pnpm typecheck
-pnpm e2e             # playwright (needs backend running)
+pnpm e2e             # playwright; starts its own API (ENV=test) + build (needs postgres, redis, minio)
+pnpm audit:design    # design-rule and i18n audit
 pnpm build
 
 # Utilities
@@ -160,7 +161,7 @@ Local development runs on `http://localhost`. Google OAuth and Web Push both all
   - Coral is never a large background elsewhere.
 - **Button variants:**
   - `primary`: coral fill, white text
-  - `secondary`: terracotta 1px outline + text
+  - `secondary`: terracotta 1px outline, ink-black text (terracotta text fails contrast; PRD §9.2)
   - `nav`: black 1px outline
   - `ghost`: text only
 - Button padding is 6px × 19px, content-sized (`w-auto`). A full-width button is allowed **only** on mobile forms as the sticky bottom submit, and it's still a pill.

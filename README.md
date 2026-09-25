@@ -67,6 +67,36 @@ The dev ports are bound to `127.0.0.1` only. If a native PostgreSQL already uses
 
 3. **Run the backend and frontend.** Use the commands in [CLAUDE.md §5](CLAUDE.md#5-commands).
 
+## End-to-end tests (Playwright)
+
+`frontend/e2e/happy-path.spec.ts` walks the release-gate happy path in four projects (es/en × mobile 390×844 / desktop 1280×800):
+1. create an event
+2. join by link
+3. exclusions, including an impossible set that blocks the reveal
+4. the reveal
+5. a wishlist photo
+6. an anonymous chat whose recipient never learns the sender
+
+Every screen also gets an axe scan (WCAG 2.1 A/AA) and a design-rule check: at most one coral primary in view, at most one Banner, no shadows, 44 px targets.
+
+With the dev infrastructure running (`dc up -d postgres redis minio minio-init`):
+
+```powershell
+cd frontend
+pnpm exec playwright install chromium   # once
+pnpm e2e                                # or: pnpm e2e:headed
+```
+
+`playwright.config.ts` starts its own servers, isolated from your dev data:
+- the API with `ENV=test` on :8001 (`backend/tests/e2e_server.py`). It uses the database `santa_e2e`, rebuilt on every start, Redis DB 14, and the MinIO bucket `secret-santa-e2e`.
+- a production build served by `vite preview` on :4174.
+
+Storage always goes to local MinIO, never R2. It signs in with `R2_ACCESS_KEY_ID` / `R2_SECRET_ACCESS_KEY` from `infra/.env`, so those must be your MinIO root user and password. If they aren't, set `E2E_S3_ACCESS_KEY_ID` / `E2E_S3_SECRET_ACCESS_KEY`.
+
+To reuse servers you already started, set `E2E_BASE_URL`. CI runs the suite on pushes to `main` only, and deploys wait for it.
+
+The release gate is tracked in [`RELEASE_CHECKLIST.md`](RELEASE_CHECKLIST.md).
+
 ## Production
 
 One VPS (Hetzner CX22, Ubuntu 24.04) runs `infra/docker-compose.yml`:

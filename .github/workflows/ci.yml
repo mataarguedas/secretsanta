@@ -109,10 +109,13 @@ jobs:
       - name: Typecheck
         run: pnpm typecheck
 
+      - name: Design and i18n audit
+        run: pnpm audit:design
+
       - name: Vitest
         run: pnpm test
 
-      - name: Build
+      - name: Build (fails if the initial JS is over 250 KB gzipped)
         run: pnpm build
 
   e2e:
@@ -121,7 +124,91 @@ jobs:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     needs: [backend, frontend]
     runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: santa
+          POSTGRES_PASSWORD: santa
+          POSTGRES_DB: santa
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U santa -d santa"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+      redis:
+        image: redis:7
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+
+    env:
+      CI: "true"
+      # tests.e2e_server derives santa_e2e / Redis DB 14 / bucket secret-santa-e2e from these.
+      DATABASE_URL: postgresql+asyncpg://santa:santa@127.0.0.1:5432/santa
+      REDIS_URL: redis://127.0.0.1:6379/0
+      E2E_S3_ACCESS_KEY_ID: e2e-minio
+      E2E_S3_SECRET_ACCESS_KEY: e2e-minio-secret
+
     steps:
-      - name: Playwright
-        # TODO(prompt 30): run the Playwright suite (pnpm e2e) against the full stack.
-        run: echo "The Playwright suite arrives in Prompt 30."
+      - uses: actions/checkout@v4
+
+      # A service container can't be given MinIO's `server` command, so start it here.
+      - name: MinIO
+        run: |
+          docker run -d --name minio -p 9000:9000             -e MINIO_ROOT_USER="$E2E_S3_ACCESS_KEY_ID"             -e MINIO_ROOT_PASSWORD="$E2E_S3_SECRET_ACCESS_KEY"             quay.io/minio/minio:RELEASE.2025-04-22T22-12-26Z server /data
+          for i in $(seq 1 30); do
+            curl -fsS http://127.0.0.1:9000/minio/health/ready && exit 0
+            sleep 1
+          done
+          docker logs minio
+          exit 1
+
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+          cache-dependency-glob: backend/uv.lock
+
+      - name: Backend dependencies
+        working-directory: backend
+        run: uv sync --locked
+
+      - uses: pnpm/action-setup@v4
+        with:
+          package_json_file: frontend/package.json
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+          cache-dependency-path: frontend/pnpm-lock.yaml
+
+      - name: Frontend dependencies
+        working-directory: frontend
+        run: pnpm install --frozen-lockfile
+
+      - name: Playwright browser
+        working-directory: frontend
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Playwright (es/en × mobile/desktop)
+        working-directory: frontend
+        run: pnpm e2e
+
+      - name: Report
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: |
+            frontend/playwright-report
+            frontend/test-results
+          retention-days: 7

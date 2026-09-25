@@ -35,7 +35,8 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
           id={ids.id}
           aria-invalid={error ? true : undefined}
           aria-describedby={ids.describedBy}
-          className="min-w-0 flex-1 bg-transparent py-6 font-mono text-body text-ink-black outline-none placeholder:text-stone disabled:cursor-not-allowed"
+          // The input itself is the click target, so it carries the 44px minimum.
+          className="min-h-11 min-w-0 flex-1 bg-transparent py-6 font-mono text-body text-ink-black outline-none placeholder:text-stone disabled:cursor-not-allowed"
           {...props}
         />
       </div>

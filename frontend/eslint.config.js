@@ -40,6 +40,12 @@ export default defineConfig([
     },
   },
 
+  // Playwright fixtures call `use()`, which isn't React's hook.
+  {
+    files: ['e2e/**/*.ts'],
+    rules: { 'react-hooks/rules-of-hooks': 'off' },
+  },
+
   // Design-system guard rails (CLAUDE.md §6.2) for all app code.
   {
     files: ['src/**/*.{ts,tsx}'],

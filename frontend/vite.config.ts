@@ -6,7 +6,8 @@ import type { ProxyOptions } from 'vite';
 import { VitePWA, type ManifestOptions } from 'vite-plugin-pwa';
 import { defineConfig } from 'vitest/config';
 
-const API_TARGET = 'http://localhost:8000';
+// The Playwright suite runs its own API on another port (playwright.config.ts).
+const API_TARGET = process.env.API_TARGET ?? 'http://localhost:8000';
 
 // Same-origin in the browser: /api and /ws are forwarded to FastAPI (CLAUDE.md §5).
 const proxy: Record<string, ProxyOptions> = {
@@ -65,6 +66,7 @@ export default defineConfig({
     globals: false,
     setupFiles: ['./src/test/setup.ts'],
     include: ['src/**/*.test.{ts,tsx}', 'eslint-rules/**/*.test.ts', 'tests/**/*.test.ts'],
+    exclude: ['e2e/**', 'node_modules/**'],
     css: false,
     restoreMocks: true,
   },

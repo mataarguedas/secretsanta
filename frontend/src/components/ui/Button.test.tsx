@@ -8,7 +8,7 @@ import { Button } from './Button';
 describe('Button', () => {
   it.each([
     ['primary', ['bg-coral-pop', 'text-pure-white', 'text-body-lg']],
-    ['secondary', ['border', 'border-terracotta-whisper', 'text-terracotta-whisper']],
+    ['secondary', ['border', 'border-terracotta-whisper', 'text-ink-black']],
     ['nav', ['border', 'border-ink-black', 'text-ink-black']],
     ['ghost', ['text-ink-black']],
   ] as const)('%s variant is a content-sized pill with ≥ 44px hit target', (variant, classes) => {
@@ -86,7 +86,9 @@ describe('Button', () => {
       </Button>,
     );
     const button = screen.getByRole('button', { name: 'Cerrar' });
-    expect(button).toHaveClass('size-11', 'rounded-full-2');
+    expect(button).toHaveClass('size-11', 'shrink-0', 'rounded-full-2');
+    // A width utility after size-11 would win the width and squash the circle to its icon.
+    expect(button.className).not.toMatch(/(^|\s)(w-\S+|md:w-\S+)/);
   });
 
   it('enforces the aria-label and asChild rules at the type level', () => {

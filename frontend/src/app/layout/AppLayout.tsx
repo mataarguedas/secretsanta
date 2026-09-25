@@ -66,7 +66,7 @@ function Shell({ me }: { me: Me | null }) {
     >
       <a
         href="#main"
-        className="sr-only z-50 rounded-full-2 border border-ink-black bg-pure-white px-19 py-6 text-sm focus:not-sr-only focus:fixed focus:top-8 focus:left-8"
+        className="sr-only z-50 min-h-11 items-center rounded-full-2 border border-ink-black bg-pure-white px-19 py-6 text-sm focus:not-sr-only focus:fixed focus:top-8 focus:left-8 focus:inline-flex"
       >
         {t('nav.skipToContent')}
       </a>
