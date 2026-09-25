@@ -3,12 +3,16 @@
 import asyncio
 import uuid
 from typing import Any
+from zoneinfo import ZoneInfo
 
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
+from app.core.config import get_settings
 from app.core.logging import get_logger
+from app.db.mixins import utcnow
 from app.notifications import pushes
 from app.notifications.sender import notify
+from app.services import scheduled
 from app.storage.r2 import get_storage
 
 log = get_logger(__name__)
@@ -63,6 +67,23 @@ async def send_wishlist_updated(ctx: dict[str, Any], event_id: str, owner_id: st
             session, uuid.UUID(event_id), uuid.UUID(owner_id)
         )
     return result.sent
+
+
+async def send_exchange_reminders(ctx: dict[str, Any]) -> int:
+    """Cron, every 15 min: the T-7d / T-1d reminders due now (idempotent)."""
+    async with _sessionmaker(ctx)() as session:
+        run = await scheduled.send_exchange_reminders(session, utcnow(), tz=_timezone())
+    return run.claimed
+
+
+async def prune_refresh_tokens(ctx: dict[str, Any]) -> int:
+    """Cron, daily: refresh tokens expired or revoked over a week ago."""
+    async with _sessionmaker(ctx)() as session:
+        return await scheduled.prune_refresh_tokens(session, utcnow())
+
+
+def _timezone() -> ZoneInfo:
+    return ZoneInfo(get_settings().default_timezone)
 
 
 def _sessionmaker(ctx: dict[str, Any]) -> async_sessionmaker[AsyncSession]:

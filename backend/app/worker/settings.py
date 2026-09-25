@@ -2,7 +2,9 @@
 
 import logging
 from typing import Any, ClassVar
+from zoneinfo import ZoneInfo
 
+from arq import cron
 from arq.connections import RedisSettings
 
 from app.core.config import get_settings
@@ -15,6 +17,8 @@ from app.worker.tasks import (
     delete_objects,
     delete_prefix,
     ping,
+    prune_refresh_tokens,
+    send_exchange_reminders,
     send_message_push,
     send_reveal,
     send_test_notification,
@@ -60,4 +64,11 @@ class WorkerSettings:
     redis_settings = RedisSettings.from_dsn(_settings.redis_url)
     on_startup = startup
     on_shutdown = shutdown
-    # TODO(prompt 26): cron_jobs (reminders, auto-archive, token pruning, backups).
+    # Cron times are Costa Rica wall-clock time (CLAUDE.md §7). `unique` (the default) keeps
+    # one run per tick across workers; the jobs are idempotent anyway.
+    timezone = ZoneInfo(_settings.default_timezone)
+    cron_jobs: ClassVar[list[Any]] = [
+        cron(send_exchange_reminders, minute={0, 15, 30, 45}, run_at_startup=True),
+        cron(prune_refresh_tokens, hour=4, minute=10),
+        # TODO(prompt 27): auto_archive_events, daily 03:00. TODO(prompt 29): backups.
+    ]
