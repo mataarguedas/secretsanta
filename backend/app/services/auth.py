@@ -41,16 +41,10 @@ class RefreshOutcome:
     tokens: SessionTokens | None = None
 
 
-def locale_from_accept_language(header: str | None) -> str:
-    """First sign-in locale (FR-AUTH-2): ``en`` if the header starts with ``en``, else ``es``."""
-    return "en" if (header or "").strip().lower().startswith("en") else DEFAULT_LOCALE
-
-
-async def upsert_google_user(
-    session: AsyncSession, profile: GoogleProfile, accept_language: str | None
-) -> User:
+async def upsert_google_user(session: AsyncSession, profile: GoogleProfile) -> User:
     """Find the user by Google ``sub`` (or, failing that, by verified email) and refresh the
-    profile fields; create it on first sign-in. The locale is only set on creation."""
+    profile fields; create it on first sign-in. New accounts always start in Spanish,
+    whatever the browser's language; only the user changes it (Profile, Language)."""
     user = await session.scalar(select(User).where(User.google_sub == profile.sub))
     if user is None:
         # Same verified address, new sub (e.g. a test-login user): link instead of failing
@@ -62,7 +56,7 @@ async def upsert_google_user(
             email=profile.email,
             name=profile.name,
             avatar_url=profile.picture,
-            locale=locale_from_accept_language(accept_language),
+            locale=DEFAULT_LOCALE,
         )
         session.add(user)
         log.info("user_created", provider="google")

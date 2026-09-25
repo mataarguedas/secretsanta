@@ -1,8 +1,8 @@
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it } from 'vitest';
 
 import en from './en.json';
 import es from './es.json';
-import i18n, { DEFAULT_LANGUAGE, detectLanguage } from './index';
+import i18n, { DEFAULT_LANGUAGE } from './index';
 
 function keys(obj: object, prefix = ''): string[] {
   return Object.entries(obj).flatMap(([k, v]: [string, unknown]) =>
@@ -16,34 +16,15 @@ function lookup(dict: object, key: string): unknown {
     .reduce<unknown>((o, k) => (o as Record<string, unknown> | undefined)?.[k], dict);
 }
 
-describe('detectLanguage', () => {
-  it.each([
-    [['en-US'], 'en'],
-    [['en'], 'en'],
-    [['EN-gb', 'es'], 'en'],
-    [['es-CR'], 'es'],
-    [['es'], 'es'],
-    [['fr-FR', 'en-US'], 'es'], // only the first preference counts; unsupported → es
-    [['english'], 'es'],
-    [[], 'es'],
-  ] as const)('%j → %s', (languages, expected) => {
-    expect(detectLanguage(languages)).toBe(expected);
-  });
-
-  it('reads navigator.languages by default', () => {
-    vi.spyOn(navigator, 'languages', 'get').mockReturnValue(['en-US', 'es']);
-    expect(detectLanguage()).toBe('en');
-    vi.spyOn(navigator, 'languages', 'get').mockReturnValue(['es-CR']);
-    expect(detectLanguage()).toBe('es');
-  });
-});
-
 describe('i18n', () => {
   afterEach(async () => {
     await i18n.changeLanguage(DEFAULT_LANGUAGE);
   });
 
-  it('defaults and falls back to Spanish', () => {
+  it('starts in Spanish whatever the browser language, and falls back to it', () => {
+    // jsdom reports an English browser (navigator.language === 'en-US').
+    expect(navigator.language).toMatch(/^en/);
+    expect(i18n.options.lng).toBe('es');
     expect(DEFAULT_LANGUAGE).toBe('es');
     expect(i18n.options.fallbackLng).toEqual(['es']);
   });

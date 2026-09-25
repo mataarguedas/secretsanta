@@ -77,7 +77,7 @@ A role is per event: the same user can be host of event A and a plain participan
 
 ### 4.1 Authentication (FR-AUTH)
 - **FR-AUTH-1** Sign-in only via Google OAuth 2.0 (Authorization Code + PKCE, handled server-side).
-- **FR-AUTH-2** On first sign-in, create the user from the Google profile: `google_sub`, email, name, avatar URL. The locale defaults to the browser language (`es` or `en`, falling back to `es`).
+- **FR-AUTH-2** On first sign-in, create the user from the Google profile: `google_sub`, email, name, avatar URL. The locale always starts as `es`, whatever the browser language; the user switches to `en` in Profile › Language. The UI is also Spanish before sign-in.
 - **FR-AUTH-3** Sessions:
   - Access JWT: 15-minute expiry, in an httpOnly cookie.
   - Refresh token: 30-day expiry, rotated on use, stored hashed in the DB, in an httpOnly cookie.

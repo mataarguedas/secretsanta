@@ -12,7 +12,7 @@ from app.core.config import Settings
 from app.models.user import User
 from app.schemas.auth import TestLoginRequest
 from app.schemas.me import MeResponse
-from app.services.auth import issue_session, locale_from_accept_language
+from app.services.auth import issue_session
 
 router = APIRouter(prefix="/test", tags=["test"])
 
@@ -32,7 +32,6 @@ async def login_for_tests(
             google_sub=f"test:{body.email.lower()}",
             email=body.email,
             name=body.name,
-            locale=locale_from_accept_language(request.headers.get("accept-language")),
         )
         session.add(user)
         await session.flush()

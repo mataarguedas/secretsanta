@@ -115,9 +115,7 @@ async def google_callback(
     if not profile.email_verified:
         return _failure_redirect(settings, "email_unverified")
 
-    user = await auth_service.upsert_google_user(
-        session, profile, request.headers.get("accept-language")
-    )
+    user = await auth_service.upsert_google_user(session, profile)
     tokens, _ = await auth_service.issue_session(
         session, user.id, settings, request.headers.get("user-agent")
     )

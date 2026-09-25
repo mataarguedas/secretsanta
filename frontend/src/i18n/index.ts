@@ -13,18 +13,6 @@ export const resources = {
   en: { translation: en },
 } as const;
 
-/** `en*` → `en`; anything else (including `es-CR`) → `es` (FR-AUTH-2, FR-I18N-1). */
-export function detectLanguage(
-  languages: readonly string[] | undefined = typeof navigator === 'undefined'
-    ? undefined
-    : navigator.languages.length > 0
-      ? navigator.languages
-      : [navigator.language],
-): Language {
-  const first = languages?.[0]?.toLowerCase() ?? '';
-  return first === 'en' || first.startsWith('en-') ? 'en' : DEFAULT_LANGUAGE;
-}
-
 function syncHtmlLang(lng: string): void {
   if (typeof document !== 'undefined') {
     document.documentElement.lang = lng;
@@ -33,9 +21,11 @@ function syncHtmlLang(lng: string): void {
 
 i18n.on('languageChanged', syncHtmlLang);
 
+// Always Spanish to start, whatever the browser's language. Once signed in, the saved
+// locale takes over (useSyncLocale); users switch in Profile › Language.
 void i18n.use(initReactI18next).init({
   resources,
-  lng: detectLanguage(),
+  lng: DEFAULT_LANGUAGE,
   fallbackLng: DEFAULT_LANGUAGE,
   supportedLngs: SUPPORTED_LANGUAGES,
   interpolation: { escapeValue: false }, // React already escapes.

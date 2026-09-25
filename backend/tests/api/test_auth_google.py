@@ -123,7 +123,7 @@ async def test_callback_creates_user_sets_cookies_and_redirects(
             "Ana Rojas",
         )
         assert user.avatar_url == PROFILE.picture
-        assert user.locale == "en"
+        assert user.locale == "es"  # Spanish even for an English browser
         token = await session.scalar(select(RefreshToken))
         assert token is not None
         raw = cookie_value(response, "refresh_token")
@@ -137,22 +137,18 @@ async def test_callback_creates_user_sets_cookies_and_redirects(
     assert me.json()["email"] == "ana@example.com"
 
 
-@pytest.mark.parametrize(
-    ("accept_language", "locale"),
-    [("es-CR,es;q=0.9", "es"), ("fr-FR", "es"), (None, "es"), ("EN", "en")],
-)
-async def test_first_sign_in_locale_from_accept_language(
+@pytest.mark.parametrize("accept_language", ["es-CR,es;q=0.9", "fr-FR", None, "EN", "en-US"])
+async def test_new_accounts_always_start_in_spanish(
     client: httpx.AsyncClient,
     google: FakeGoogle,
     db: async_sessionmaker[AsyncSession],
     accept_language: str | None,
-    locale: str,
 ) -> None:
     state = await start_login(client)
     headers = {"Accept-Language": accept_language} if accept_language else {}
     await client.get(CALLBACK, params={"code": "c", "state": state}, headers=headers)
     async with db() as session:
-        assert await session.scalar(select(User.locale)) == locale
+        assert await session.scalar(select(User.locale)) == "es"
 
 
 async def test_returning_user_keeps_locale_and_gets_fresh_profile(
