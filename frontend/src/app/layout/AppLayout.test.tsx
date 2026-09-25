@@ -4,7 +4,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { axe } from 'vitest-axe';
 
 import i18n from '@/i18n';
-import { jsonResponse, mockSession, renderApp, TEST_USER } from '@/test/render';
+import { jsonResponse, mockSession, renderApp, TEST_USER, urlOf } from '@/test/render';
 
 const desktopNav = () => screen.getByRole('navigation', { name: 'Navegación principal' });
 const tabBar = () => screen.getByRole('navigation', { name: 'Navegación' });
@@ -59,7 +59,7 @@ describe('AppLayout (signed in)', () => {
   });
 
   it('bottom tab bar: fixed, mobile only, safe-area padded, three tabs', async () => {
-    await renderSignedIn('/chats/abc');
+    await renderSignedIn('/chats');
     expect(tabBar()).toHaveClass('fixed', 'bottom-0', 'md:hidden');
     expect(tabBar().className).toContain('pb-[env(safe-area-inset-bottom)]');
     const tabs = within(tabBar()).getAllByRole('link');
@@ -68,6 +68,12 @@ describe('AppLayout (signed in)', () => {
       'aria-current',
       'page',
     );
+  });
+
+  it('a chat thread is full height: no tab bar and no mobile wordmark bar', async () => {
+    await renderSignedIn('/chats/abc');
+    expect(screen.queryByRole('navigation', { name: 'Navegación' })).not.toBeInTheDocument();
+    expect(screen.getByRole('main').parentElement).toHaveClass('overflow-hidden');
   });
 
   it('pads the content so nothing hides behind the tab bar', async () => {
@@ -88,10 +94,9 @@ describe('AppLayout (signed in)', () => {
   it.each([
     ['/events/new', 'Crear evento'],
     ['/chats', 'Chats'],
-    ['/chats/123', 'Conversación'],
     ['/privacy', 'Política de privacidad'],
     ['/terms', 'Términos del servicio'],
-  ])('%s shows its placeholder title', async (path, title) => {
+  ])('%s shows its title', async (path, title) => {
     await renderSignedIn(path);
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(title);
     expect(document.title).toBe(`Secret Santa · ${title}`);
@@ -201,6 +206,7 @@ describe('AppLayout (resolving the session)', () => {
     expect(
       await screen.findByRole('heading', { level: 1, name: 'Crear evento' }),
     ).toBeInTheDocument();
-    expect(fetchSpy).toHaveBeenCalledTimes(2);
+    const sessionChecks = fetchSpy.mock.calls.filter(([input]) => urlOf(input) === '/api/v1/me');
+    expect(sessionChecks).toHaveLength(2);
   });
 });

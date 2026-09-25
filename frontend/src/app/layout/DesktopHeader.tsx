@@ -6,6 +6,7 @@ import type { Me } from '@/features/auth/api';
 import { cn } from '@/lib/cn';
 
 import { NAV_ITEMS } from './navItems';
+import { UnreadBadge, UnreadLabel } from './UnreadBadge';
 import { Wordmark } from './Wordmark';
 
 /**
@@ -14,9 +15,11 @@ import { Wordmark } from './Wordmark';
  */
 export function DesktopHeader({
   user,
+  unread = 0,
   className,
 }: {
   user: Pick<Me, 'name' | 'avatar_url'>;
+  unread?: number;
   className?: string;
 }) {
   const { t } = useTranslation();
@@ -48,6 +51,12 @@ export function DesktopHeader({
                   )}
                 >
                   {t(item.labelKey)}
+                  {item.key === 'chats' && (
+                    <>
+                      <UnreadBadge count={unread} className="ml-8" />
+                      <UnreadLabel count={unread} />
+                    </>
+                  )}
                 </Link>
               </li>
             );

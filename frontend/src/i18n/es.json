@@ -158,7 +158,9 @@
     "primary": "Navegación principal",
     "tabs": "Navegación",
     "skipToContent": "Saltar al contenido",
-    "home": "Secret Santa, inicio"
+    "home": "Secret Santa, inicio",
+    "unread_one": "{{count}} mensaje sin leer",
+    "unread_other": "{{count}} mensajes sin leer"
   },
   "events": {
     "state": {
@@ -240,7 +242,6 @@
       "details": "Detalles",
       "groupChatOn": "Activado",
       "groupChatOff": "Desactivado",
-      "comingSoon": "Esta sección llega pronto.",
       "tabs": {
         "label": "Secciones del evento",
         "overview": "Resumen",
@@ -505,10 +506,87 @@
   },
   "chat": {
     "list": {
-      "title": "Chats"
+      "title": "Chats",
+      "loading": "Cargando tus conversaciones…",
+      "loadMore": "Ver más conversaciones",
+      "noMessages": "Todavía no hay mensajes",
+      "mine": "Tú: {{text}}",
+      "asAlias": "Te ven como {{alias}}",
+      "unread_one": "{{count}} mensaje sin leer",
+      "unread_other": "{{count}} mensajes sin leer",
+      "empty": {
+        "title": "Todavía no tienes conversaciones",
+        "body": "Abre un evento y empieza una desde la pestaña Chat.",
+        "cta": "Ir a mis eventos"
+      }
+    },
+    "time": {
+      "now": "ahora"
+    },
+    "group": {
+      "title": "Chat grupal"
+    },
+    "member": {
+      "anonymous": "Elfo secreto #{{n}}",
+      "former": "Ex participante",
+      "you": "Tú"
     },
     "thread": {
-      "title": "Conversación"
+      "title": "Conversación",
+      "loading": "Cargando la conversación…",
+      "back": "Volver a los chats",
+      "notFound": {
+        "title": "No encontramos esta conversación",
+        "body": "Puede que ya no participes en ese evento."
+      },
+      "anonymousNotice": "Eres anónimo: te ven como {{alias}}.",
+      "readOnly": "Este evento está archivado: el chat es de solo lectura.",
+      "loadOlder": "Cargar mensajes anteriores",
+      "reconnecting": "Reconectando…",
+      "messagesLabel": "Mensajes",
+      "newMessage": "Nuevo mensaje de {{name}}: {{body}}"
+    },
+    "message": {
+      "deleted": "Mensaje eliminado",
+      "pending": "Enviando…",
+      "failed": "No se envió. {{reason}}",
+      "retry": "Reintentar",
+      "delete": "Eliminar",
+      "deleteLabel": "Eliminar tu mensaje",
+      "deleteConfirm": {
+        "title": "¿Eliminar este mensaje?",
+        "body": "Todos verán «Mensaje eliminado» en su lugar. No se puede deshacer.",
+        "confirm": "Sí, eliminar",
+        "cancel": "Cancelar"
+      }
+    },
+    "composer": {
+      "label": "Escribir un mensaje",
+      "placeholder": "Escribe un mensaje",
+      "counter": "{{count}} / {{max}}",
+      "tooLong": "Máximo {{max}} caracteres.",
+      "send": "Enviar"
+    },
+    "eventTab": {
+      "title": "Conversaciones",
+      "new": "Nueva conversación",
+      "empty": {
+        "title": "Todavía no hay conversaciones",
+        "body": "Escríbele a alguien del evento, con tu nombre o como elfo secreto."
+      }
+    },
+    "new": {
+      "title": "Nueva conversación",
+      "who": "¿Con quién?",
+      "mode": "¿Cómo quieres aparecer?",
+      "named": "Con mi nombre",
+      "anonymous": "Anónimo",
+      "namedHelp": "Verán tu nombre y tu foto.",
+      "anonymousHelp": "Te verán como un elfo secreto con un número. Nunca sabrán quién eres.",
+      "start": "Empezar",
+      "cancel": "Cancelar",
+      "loading": "Cargando participantes…",
+      "noOne": "Todavía no hay nadie más en este evento."
     }
   },
   "profile": {

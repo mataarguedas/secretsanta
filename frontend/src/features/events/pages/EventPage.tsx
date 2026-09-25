@@ -12,6 +12,7 @@ import { EventNotFound } from '../components/EventNotFound';
 import { EventOverview } from '../components/EventOverview';
 import { ManageTab } from '../components/ManageTab';
 import { ParticipantsTab } from '../components/ParticipantsTab';
+import { EventChatTab } from '@/features/chat/components/EventChatTab';
 import { WishlistsTab } from '@/features/wishlist/components/WishlistsTab';
 
 import { EVENT_TABS, eventTabPath, isEventTab, type EventTab } from '../tabs';
@@ -88,9 +89,8 @@ function EventView({ event, tab }: { event: EventDetail; tab: EventTab }) {
         <TabPanel value="wishlists">
           <WishlistsTab event={event} />
         </TabPanel>
-        {/* TODO(prompt 23): event chats. */}
         <TabPanel value="chat">
-          <ComingSoon />
+          <EventChatTab event={event} />
         </TabPanel>
         {event.my_role === 'host' && (
           <TabPanel value="manage">
@@ -100,9 +100,4 @@ function EventView({ event, tab }: { event: EventDetail; tab: EventTab }) {
       </Tabs>
     </>
   );
-}
-
-function ComingSoon() {
-  const { t } = useTranslation();
-  return <p className="text-body text-charcoal">{t('events.detail.comingSoon')}</p>;
 }

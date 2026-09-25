@@ -4,12 +4,13 @@ import { Link, useLocation } from 'react-router';
 import { cn } from '@/lib/cn';
 
 import { NAV_ITEMS } from './navItems';
+import { UnreadBadge, UnreadLabel } from './UnreadBadge';
 
 /**
  * < 768px fixed tab bar: Events · Chats · Profile. The active tab is a coral pill;
  * `env(safe-area-inset-bottom)` keeps it above the iOS home indicator (PRD §9.4).
  */
-export function BottomTabBar({ className }: { className?: string }) {
+export function BottomTabBar({ unread = 0, className }: { unread?: number; className?: string }) {
   const { t } = useTranslation();
   const { pathname } = useLocation();
 
@@ -35,8 +36,14 @@ export function BottomTabBar({ className }: { className?: string }) {
                   active ? 'bg-coral-pop text-ink-black' : 'text-ink-black hover:bg-pure-white',
                 )}
               >
-                <Icon />
+                <span className="relative inline-flex">
+                  <Icon />
+                  {key === 'chats' && (
+                    <UnreadBadge count={unread} className="absolute -top-6 -right-12" />
+                  )}
+                </span>
                 <span>{t(labelKey)}</span>
+                {key === 'chats' && <UnreadLabel count={unread} />}
               </Link>
             </li>
           );

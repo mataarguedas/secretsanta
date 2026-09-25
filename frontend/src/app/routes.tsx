@@ -1,5 +1,7 @@
 import type { RouteObject } from 'react-router';
 
+import { ChatsPage } from '@/features/chat/pages/ChatsPage';
+import { ThreadPage } from '@/features/chat/pages/ThreadPage';
 import { CreateEventPage } from '@/features/events/pages/CreateEventPage';
 import { EventPage } from '@/features/events/pages/EventPage';
 import { JoinPage } from '@/features/invites/pages/JoinPage';
@@ -38,11 +40,8 @@ export const routes: RouteObject[] = [
           { path: 'events/:id/:tab?', element: <EventPage /> },
           // Signed out: the landing with `next=/join/<token>`, and sign-in returns here (FR-AUTH-5).
           { path: 'join/:token', element: <JoinPage /> },
-          { path: 'chats', element: <PlaceholderPage titleKey="chat.list.title" /> },
-          {
-            path: 'chats/:conversationId',
-            element: <PlaceholderPage titleKey="chat.thread.title" />,
-          },
+          { path: 'chats', element: <ChatsPage /> },
+          { path: 'chats/:conversationId', element: <ThreadPage /> },
           { path: 'profile', element: <ProfilePage /> },
         ],
       },

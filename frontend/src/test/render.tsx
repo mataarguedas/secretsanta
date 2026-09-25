@@ -10,6 +10,12 @@ import { routes } from '@/app/routes';
 import { ToastProvider } from '@/components/ui';
 import type { Me } from '@/features/auth/api';
 import type { EventDetail, EventSection, EventSummary, Participant } from '@/features/events/api';
+import type {
+  ConversationDetail,
+  ConversationSummary,
+  MemberPublic,
+  MessagePublic,
+} from '@/features/chat/api';
 import type { Exclusion, ExclusionList } from '@/features/exclusions/api';
 import type { CopySource, ItemPayload, Wishlist, WishlistItem } from '@/features/wishlist/api';
 import type { InvitePreview } from '@/features/invites/api';
@@ -104,6 +110,10 @@ export function mockSession({
   photoUpload,
   copySources = {},
   copyItems = {},
+  conversations = [],
+  messages = {},
+  messagePageSize = 50,
+  sendFails,
 }: {
   me: Me | null;
   /** Make `PATCH /me` fail with this status (e.g. 500) instead of saving. */
@@ -150,10 +160,25 @@ export function mockSession({
   copySources?: Record<string, CopySource[]>;
   /** Items that `POST …/wishlist/copy-from/{sourceId}` appends to the user's list. */
   copyItems?: Record<string, WishlistItem[]>;
+  /** The user's conversations (with members), newest activity first. */
+  conversations?: ConversationDetail[];
+  /** History by conversation id, newest first. */
+  messages?: Record<string, MessagePublic[]>;
+  messagePageSize?: number;
+  /** Make REST sends fail with this error code. */
+  sendFails?: string;
 }) {
   const lists = new Map(Object.entries(wishlists));
   let itemSeq = 0;
   let photoSeq = 0;
+  const convs = new Map(conversations.map((c) => [c.id, c]));
+  const history = new Map(Object.entries(messages).map(([id, list]) => [id, [...list]]));
+  let messageSeq = 0;
+  let convSeq = 0;
+  const summaryOf = (c: ConversationDetail): ConversationSummary => {
+    const { members: _members, ...summary } = c;
+    return summary;
+  };
   vi.stubGlobal('XMLHttpRequest', FakeXhr);
   let covers = 0;
   const exclusionLists = new Map(Object.entries(exclusions));
@@ -282,6 +307,113 @@ export function mockSession({
       }
       save(mine.items.filter((item) => item.id !== found.id));
       return Promise.resolve(new Response(null, { status: 204 }));
+    }
+    if (url.startsWith('/api/v1/conversations') && me) {
+      const parsed = new URL(url, 'http://x');
+      const path = parsed.pathname;
+      if (path === '/api/v1/conversations') {
+        const eventId = parsed.searchParams.get('event_id');
+        const items = [...convs.values()]
+          .filter((c) => !eventId || c.event.id === eventId)
+          .map(summaryOf);
+        return Promise.resolve(jsonResponse(200, { items, next_cursor: null }));
+      }
+      const convMatch = /^\/api\/v1\/conversations\/([^/]+)(?:\/(messages|read))?$/.exec(path);
+      const conv = convMatch?.[1] ? convs.get(convMatch[1]) : undefined;
+      if (!convMatch || !conv) {
+        return Promise.resolve(
+          jsonResponse(404, { error: { code: 'CONVERSATION_NOT_FOUND', message: '' } }),
+        );
+      }
+      if (convMatch[2] === 'read') {
+        convs.set(conv.id, { ...conv, unread_count: 0 });
+        return Promise.resolve(new Response(null, { status: 204 }));
+      }
+      if (convMatch[2] === 'messages' && method === 'POST') {
+        if (sendFails) {
+          return Promise.resolve(jsonResponse(409, { error: { code: sendFails, message: '' } }));
+        }
+        const { body } = JSON.parse(init?.body as string) as { body: string };
+        messageSeq += 1;
+        const message: MessagePublic = {
+          id: `sent-${String(messageSeq)}`,
+          conversation_id: conv.id,
+          sender_member_id: conv.my_member.id,
+          body,
+          deleted: false,
+          created_at: new Date().toISOString(),
+        };
+        history.set(conv.id, [message, ...(history.get(conv.id) ?? [])]);
+        convs.set(conv.id, { ...conv, last_message: message, last_message_at: message.created_at });
+        return Promise.resolve(jsonResponse(201, message));
+      }
+      if (convMatch[2] === 'messages') {
+        const all = history.get(conv.id) ?? [];
+        const start = Number(parsed.searchParams.get('cursor') ?? 0);
+        const items = all.slice(start, start + messagePageSize);
+        const next = start + messagePageSize < all.length ? String(start + messagePageSize) : null;
+        return Promise.resolve(jsonResponse(200, { items, next_cursor: next }));
+      }
+      return Promise.resolve(jsonResponse(200, convs.get(conv.id)));
+    }
+    const deleteMessageMatch = /^\/api\/v1\/messages\/([^/?]+)$/.exec(url);
+    if (deleteMessageMatch?.[1] && method === 'DELETE') {
+      for (const [id, list] of history) {
+        history.set(
+          id,
+          list.map((m) =>
+            m.id === deleteMessageMatch[1] ? { ...m, body: null, deleted: true } : m,
+          ),
+        );
+      }
+      return Promise.resolve(new Response(null, { status: 204 }));
+    }
+    const startMatch = /^\/api\/v1\/events\/([^/?]+)\/conversations$/.exec(url);
+    if (startMatch?.[1] && method === 'POST' && me) {
+      const eventId = startMatch[1];
+      const { kind, recipient_id: recipientId } = JSON.parse(init?.body as string) as {
+        kind: 'direct' | 'anonymous';
+        recipient_id: string;
+      };
+      const existing = [...convs.values()].find(
+        (c) =>
+          c.event.id === eventId && c.kind === kind && c.title_member?.id === `mem-${recipientId}`,
+      );
+      if (existing) return Promise.resolve(jsonResponse(200, existing));
+      const event = details.get(eventId);
+      const person = (rosters.get(eventId) ?? []).find((p) => p.user_id === recipientId);
+      convSeq += 1;
+      const mine: MemberPublic = {
+        id: `mem-me-${String(convSeq)}`,
+        display_name: kind === 'anonymous' ? 'Secret Elf #7' : me.name,
+        avatar_url: kind === 'anonymous' ? null : me.avatar_url,
+        is_self: true,
+        is_anonymous: kind === 'anonymous',
+        anon_number: kind === 'anonymous' ? 7 : null,
+        is_former: false,
+      };
+      const other: MemberPublic = {
+        id: `mem-${recipientId}`,
+        display_name: person?.name ?? recipientId,
+        avatar_url: person?.avatar_url ?? null,
+        is_self: false,
+        is_anonymous: false,
+        anon_number: null,
+        is_former: false,
+      };
+      const created: ConversationDetail = {
+        id: `conv-new-${String(convSeq)}`,
+        event: { id: eventId, name: event?.name ?? 'Evento', state: event?.state ?? 'open' },
+        kind,
+        title_member: other,
+        my_member: mine,
+        last_message: null,
+        last_message_at: null,
+        unread_count: 0,
+        members: [mine, other],
+      };
+      convs.set(created.id, created);
+      return Promise.resolve(jsonResponse(201, created));
     }
     const photoMatch = /^\/api\/v1\/wishlist\/items\/([^/?]+)\/photos(?:\/([^/?]+))?$/.exec(url);
     if (photoMatch?.[1] && me) {
@@ -590,6 +722,56 @@ export function participant(overrides: Partial<Participant> = {}): Participant {
     is_host: false,
     is_self: false,
     joined_at: '2026-09-23T12:00:00Z',
+    ...overrides,
+  };
+}
+
+/** A conversation member (the API's MemberPublic). */
+export function member(overrides: Partial<MemberPublic> = {}): MemberPublic {
+  return {
+    id: 'mem-beto',
+    display_name: 'Beto Solís',
+    avatar_url: null,
+    is_self: false,
+    is_anonymous: false,
+    anon_number: null,
+    is_former: false,
+    ...overrides,
+  };
+}
+
+export const MY_MEMBER = member({
+  id: 'mem-me',
+  display_name: TEST_USER.name,
+  avatar_url: TEST_USER.avatar_url,
+  is_self: true,
+});
+
+export function conversation(overrides: Partial<ConversationDetail> = {}): ConversationDetail {
+  const mine = overrides.my_member ?? MY_MEMBER;
+  const other = overrides.title_member === undefined ? member() : overrides.title_member;
+  return {
+    id: 'conv-1',
+    event: { id: eventDetail().id, name: 'Oficina 2026', state: 'open' },
+    kind: 'direct',
+    title_member: other,
+    my_member: mine,
+    last_message: null,
+    last_message_at: null,
+    unread_count: 0,
+    members: other ? [mine, other] : [mine],
+    ...overrides,
+  };
+}
+
+export function message(overrides: Partial<MessagePublic> = {}): MessagePublic {
+  return {
+    id: 'msg-1',
+    conversation_id: 'conv-1',
+    sender_member_id: 'mem-beto',
+    body: 'Hola',
+    deleted: false,
+    created_at: '2026-09-24T12:00:00Z',
     ...overrides,
   };
 }

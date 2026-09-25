@@ -158,7 +158,9 @@
     "primary": "Main navigation",
     "tabs": "Navigation",
     "skipToContent": "Skip to content",
-    "home": "Secret Santa, home"
+    "home": "Secret Santa, home",
+    "unread_one": "{{count}} unread message",
+    "unread_other": "{{count}} unread messages"
   },
   "events": {
     "state": {
@@ -240,7 +242,6 @@
       "details": "Details",
       "groupChatOn": "On",
       "groupChatOff": "Off",
-      "comingSoon": "This section is coming soon.",
       "tabs": {
         "label": "Event sections",
         "overview": "Overview",
@@ -505,10 +506,87 @@
   },
   "chat": {
     "list": {
-      "title": "Chats"
+      "title": "Chats",
+      "loading": "Loading your conversations…",
+      "loadMore": "Show more conversations",
+      "noMessages": "No messages yet",
+      "mine": "You: {{text}}",
+      "asAlias": "They see you as {{alias}}",
+      "unread_one": "{{count}} unread message",
+      "unread_other": "{{count}} unread messages",
+      "empty": {
+        "title": "No conversations yet",
+        "body": "Open an event and start one from its Chat tab.",
+        "cta": "Go to my events"
+      }
+    },
+    "time": {
+      "now": "now"
+    },
+    "group": {
+      "title": "Group chat"
+    },
+    "member": {
+      "anonymous": "Secret Elf #{{n}}",
+      "former": "Former participant",
+      "you": "You"
     },
     "thread": {
-      "title": "Conversation"
+      "title": "Conversation",
+      "loading": "Loading the conversation…",
+      "back": "Back to chats",
+      "notFound": {
+        "title": "We couldn't find this conversation",
+        "body": "You may no longer be in that event."
+      },
+      "anonymousNotice": "You are anonymous — they see you as {{alias}}.",
+      "readOnly": "This event is archived: its chat is read-only.",
+      "loadOlder": "Load earlier messages",
+      "reconnecting": "Reconnecting…",
+      "messagesLabel": "Messages",
+      "newMessage": "New message from {{name}}: {{body}}"
+    },
+    "message": {
+      "deleted": "Message deleted",
+      "pending": "Sending…",
+      "failed": "Not sent. {{reason}}",
+      "retry": "Retry",
+      "delete": "Delete",
+      "deleteLabel": "Delete your message",
+      "deleteConfirm": {
+        "title": "Delete this message?",
+        "body": "Everyone will see “Message deleted” instead. This can't be undone.",
+        "confirm": "Yes, delete",
+        "cancel": "Cancel"
+      }
+    },
+    "composer": {
+      "label": "Write a message",
+      "placeholder": "Write a message",
+      "counter": "{{count}} / {{max}}",
+      "tooLong": "{{max}} characters at most.",
+      "send": "Send"
+    },
+    "eventTab": {
+      "title": "Conversations",
+      "new": "New conversation",
+      "empty": {
+        "title": "No conversations yet",
+        "body": "Write to someone in the event, with your name or as a secret elf."
+      }
+    },
+    "new": {
+      "title": "New conversation",
+      "who": "Who with?",
+      "mode": "How do you want to appear?",
+      "named": "With my name",
+      "anonymous": "Anonymous",
+      "namedHelp": "They'll see your name and photo.",
+      "anonymousHelp": "They'll see you as a numbered secret elf. They'll never know who you are.",
+      "start": "Start",
+      "cancel": "Cancel",
+      "loading": "Loading participants…",
+      "noOne": "There's nobody else in this event yet."
     }
   },
   "profile": {
