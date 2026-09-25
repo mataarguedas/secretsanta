@@ -1,0 +1,323 @@
+SECRET SANTA — MANUAL SETUP BEFORE PROMPT 29
+=============================================
+
+Prompt 29 (production) needs a few things that only you can create, because they
+involve your accounts, payment details and a domain. Do the steps below in order.
+They take about 45–60 minutes, most of it waiting for DNS.
+
+You already have:  a Hetzner account and a Cloudflare account.
+You are skipping:  Sentry (leave SENTRY_DSN empty; the app works without it).
+
+When you finish, you will have:
+  [ ] a production hostname (for example santa.snhware.lat)
+  [ ] a Hetzner server running Ubuntu 24.04, with its public IPv4 address
+  [ ] a DNS "A" record pointing the hostname at that server
+  [ ] a private Cloudflare R2 bucket, plus an R2 access key ID and secret
+  [ ] your Cloudflare account ID
+  [ ] the remaining production secrets generated and stored safely
+
+KEEP EVERY VALUE IN A PASSWORD MANAGER, NOT IN THIS REPOSITORY. Nothing from these
+steps belongs in git. The production ".env" file will live only on the server.
+
+All commands below are for PowerShell on your Windows PC unless stated otherwise.
+
+
+-----------------------------------------------------------------------------------
+STEP 1 — CHOOSE THE PRODUCTION HOSTNAME
+-----------------------------------------------------------------------------------
+
+Why: Google sign-in refuses IP addresses as redirect URLs, and Web Push and PWA
+installation need HTTPS. Both need a real hostname (PRD §11.1).
+
+Pick ONE option:
+
+  (a) Recommended, free: a subdomain of a domain you already own.
+      Example: santa.snhware.lat if you own snhware.lat.
+
+  (b) Buy a cheap domain. Cloudflare Registrar sells domains at cost
+      (Cloudflare dashboard › Domain Registration › Register Domains), but not every
+      ending (TLD) is available there. Any other registrar works too.
+
+Write down:
+  HOSTNAME = ______________________   (e.g. santa.snhware.lat — no https://, no slash)
+
+You will create the DNS record in Step 3, once the server has an IP address.
+
+
+-----------------------------------------------------------------------------------
+STEP 2 — CREATE THE HETZNER SERVER
+-----------------------------------------------------------------------------------
+
+2.1  Create an SSH key on your PC (skip if you already have ~/.ssh/id_ed25519).
+     This key is for YOU to log into the server as an administrator.
+
+        ssh-keygen -t ed25519 -C "santa-admin" -f $HOME\.ssh\id_ed25519
+
+     Choose a passphrase when asked. Then show the PUBLIC key (the .pub file):
+
+        Get-Content $HOME\.ssh\id_ed25519.pub
+
+     Never share or upload the file WITHOUT .pub; that is the private key.
+
+2.2  In the Hetzner Cloud Console (https://console.hetzner.cloud):
+       • Create a project, for example "secret-santa".
+       • Inside it: Servers › Add Server.
+
+2.3  Server settings:
+       • Location: any EU location (Falkenstein, Nuremberg or Helsinki).
+         Note: Hetzner's cheapest shared "CX" plans have usually only been offered in
+         the EU. The US locations (Ashburn, Hillsboro) are closer to Costa Rica but
+         only offer the pricier "CPX" plans. For ~50 users, EU latency is fine.
+       • Image: Ubuntu 24.04.
+       • Type: Shared vCPU › x86 › CX22 (2 vCPU, 4 GB RAM, 40 GB disk).
+         Hetzner renames plans from time to time. If CX22 isn't listed, pick the
+         closest replacement with at least 2 vCPU and 4 GB RAM.
+       • Networking: keep BOTH "Public IPv4" and "Public IPv6" on. IPv4 costs a
+         little extra but many mobile networks still need it.
+       • SSH keys: "Add SSH key", paste the contents of id_ed25519.pub from 2.1.
+         This also stops Hetzner from emailing you a root password.
+       • Volumes, Placement groups, Labels, Cloud config: leave empty. The
+         provisioning script from Prompt 29 does the server setup.
+       • Backups: optional (about +20% of the server price). The app will also back
+         up the database to R2 every night.
+       • Name: santa-prod.
+
+     Click "Create & Buy now".
+
+2.4  Optional but recommended: a Hetzner Cloud Firewall (a second layer on top of the
+     ufw firewall the provisioning script will configure):
+       • Firewalls › Create Firewall › name "santa-web".
+       • Inbound rules: TCP 22, TCP 80, TCP 443 (and optionally ICMP).
+         Delete anything else.
+       • Apply to: server santa-prod.
+
+2.5  Write down the server's public IPv4 address from the console:
+       SERVER_IP = 89.167.20.140
+
+2.6  Check that you can log in (type "yes" the first time to trust the host key):
+
+        ssh root@SERVER_IP
+
+     Then type "exit". Don't harden the server by hand. In Prompt 29,
+     infra/provision.sh creates a "deploy" user, turns off root and password
+     logins, and sets up the firewall and automatic security updates.
+     Until then, root login with your key is expected.
+
+
+-----------------------------------------------------------------------------------
+STEP 3 — POINT THE HOSTNAME AT THE SERVER (DNS)
+-----------------------------------------------------------------------------------
+
+Open the DNS settings wherever the domain's DNS is managed.
+
+If the domain is on Cloudflare (Cloudflare dashboard › your domain › DNS › Records):
+  • Add record
+      Type:          A
+      Name:          the subdomain part only, e.g. "santa" for santa.snhware.lat
+                     (use "@" if the app will live on the bare domain)
+      IPv4 address:  SERVER_IP
+      Proxy status:  DNS only (GREY cloud, not orange)
+      TTL:           Auto
+  • Optional: an AAAA record with the server's IPv6 address, also DNS only.
+
+  Why "DNS only": Caddy on the server gets its own free Let's Encrypt certificate,
+  and WebSockets and Web Push work without extra Cloudflare settings. You can turn
+  the orange proxy on later if you want, but then set SSL/TLS mode to "Full (strict)".
+
+If the domain is at another provider, create the same A record there.
+
+Check it (it can take from a few minutes to a few hours):
+
+    nslookup HOSTNAME
+
+The answer must show SERVER_IP. Caddy can't get a certificate until it does.
+
+
+-----------------------------------------------------------------------------------
+STEP 4 — CREATE THE CLOUDFLARE R2 BUCKET AND API TOKEN
+-----------------------------------------------------------------------------------
+
+R2 stores wishlist photos, event covers and the nightly database backups.
+
+4.1  Turn on R2: Cloudflare dashboard › R2 Object Storage.
+     Cloudflare asks for a payment method even for the free tier
+     (10 GB storage and generous request limits per month). This app will stay far
+     below that.
+
+4.2  Create the bucket: R2 › Create bucket.
+       • Name: secret-santa
+         (this matches R2_BUCKET; if you choose another name, use it in .env too)
+       • Location: Automatic.
+       • IMPORTANT: do NOT choose a jurisdiction (such as "EU"). The app builds
+         the storage address as https://<ACCOUNT_ID>.r2.cloudflarestorage.com, and
+         jurisdiction buckets use a different address.
+       • Default storage class: Standard.
+     Create it.
+
+4.3  Keep the bucket PRIVATE:
+       • Bucket › Settings › Public access: leave "R2.dev subdomain" DISABLED and
+         don't connect a custom domain.
+       • The app serves photos through short-lived signed links (1 hour), so the
+         bucket never needs to be public.
+       • No CORS policy is needed: uploads go through the API, and the browser only
+         shows images (<img>), which doesn't use CORS.
+
+4.4  Find your Account ID: on the R2 overview page (right side, "Account details"),
+     or in the dashboard URL (dash.cloudflare.com/<ACCOUNT_ID>/...). It's a
+     32-character hex string.
+       R2_ACCOUNT_ID = ______________________
+
+4.5  Create an API token for the app:
+       R2 › Manage R2 API Tokens (or "API" › "Manage API tokens") › Create API token
+       • Token name:    santa-prod
+       • Permissions:   Object Read & Write
+       • Specify bucket(s): Apply to specific buckets only › secret-santa
+         (backups go into the same bucket, under backups/)
+       • TTL:           Forever (rotate it by hand if it ever leaks)
+       • Client IP filtering: leave empty (the server's IP could change)
+     Create it. The next page shows the values ONCE. Copy these two now:
+       R2_ACCESS_KEY_ID     = ______________________
+       R2_SECRET_ACCESS_KEY = ______________________
+     Ignore the "Token value" field: that's for Cloudflare's own API, not for S3.
+     Also check the S3 endpoint shown there: it should be
+       https://<R2_ACCOUNT_ID>.r2.cloudflarestorage.com
+     In production, leave S3_ENDPOINT_URL empty; the app derives this address.
+
+4.6  Optional safety net: Bucket › Settings › Object lifecycle rules › Add rule:
+     delete objects with prefix "backups/" after 30 days. The app already deletes
+     backups older than 14 days itself; this only catches anything it misses.
+
+
+-----------------------------------------------------------------------------------
+STEP 5 — GOOGLE SIGN-IN FOR THE PRODUCTION HOSTNAME
+-----------------------------------------------------------------------------------
+
+(Prompt 29's manual test step 6 also covers this; doing it now saves time.)
+
+Google Cloud Console › APIs & Services › Credentials › your OAuth 2.0 Client ID
+(the "Web application" one you use locally):
+  • Authorized JavaScript origins: add   https://HOSTNAME
+  • Authorized redirect URIs:      add   https://HOSTNAME/api/v1/auth/google/callback
+Keep the localhost entries so development keeps working. Save.
+
+If the OAuth consent screen is still in "Testing", only the test users listed there
+can sign in. Add the Google accounts that will use the app, or publish the app.
+For basic scopes (email, profile), publishing needs no Google review.
+
+
+-----------------------------------------------------------------------------------
+STEP 6 — GENERATE THE REMAINING PRODUCTION SECRETS
+-----------------------------------------------------------------------------------
+
+Use NEW values for production. Don't reuse the ones from your local infra/.env.
+
+6.1  JWT secret (signs sign-in sessions):
+
+        python -c "import secrets; print(secrets.token_urlsafe(64))"
+
+       JWT_SECRET = ______________________
+
+6.2  Database password. Use hex, because it goes inside a URL and must not contain
+     characters like @ / : #
+
+        python -c "import secrets; print(secrets.token_hex(24))"
+
+       POSTGRES_PASSWORD = ______________________
+
+6.3  Web Push (VAPID) keys, from the backend folder:
+
+        cd backend
+        uv run python -m app.scripts.gen_vapid_keys
+
+       VAPID_PUBLIC_KEY  = ______________________
+       VAPID_PRIVATE_KEY = ______________________
+     Keep this pair for as long as the app runs. Changing it later silently breaks
+     every phone's notification subscription.
+
+6.4  A SEPARATE SSH key for GitHub Actions to deploy with. Use no passphrase, because
+     a robot uses it. Don't use your admin key from Step 2.1:
+
+        ssh-keygen -t ed25519 -C "santa-deploy" -f $HOME\.ssh\santa_deploy
+
+     When it asks for a passphrase, just press Enter twice (empty). This creates santa_deploy (private) and santa_deploy.pub (public).
+     Don't install it anywhere yet: in Prompt 29, the README says where the public
+     key goes (the "deploy" user on the server) and where the private key goes
+     (GitHub secret VPS_SSH_KEY).
+
+
+-----------------------------------------------------------------------------------
+STEP 7 — YOUR PRODUCTION .env, READY TO PASTE LATER
+-----------------------------------------------------------------------------------
+
+Fill this in inside your password manager, NOT in the repository. In Prompt 29 it
+becomes /opt/santa/.env on the server.
+
+    ENV=production
+    APP_BASE_URL=https://HOSTNAME
+    APP_DOMAIN=HOSTNAME
+
+    POSTGRES_PASSWORD=<from 6.2>
+    DATABASE_URL=postgresql+asyncpg://santa:<from 6.2>@postgres:5432/santa
+    REDIS_URL=redis://redis:6379/0
+
+    JWT_SECRET=<from 6.1>
+    GOOGLE_CLIENT_ID=<the same client as in development>
+    GOOGLE_CLIENT_SECRET=<the same client as in development>
+
+    VAPID_PUBLIC_KEY=<from 6.3>
+    VAPID_PRIVATE_KEY=<from 6.3>
+    VAPID_SUBJECT=mailto:<an email address you read>
+
+    R2_ACCOUNT_ID=<from 4.4>
+    R2_ACCESS_KEY_ID=<from 4.5>
+    R2_SECRET_ACCESS_KEY=<from 4.5>
+    R2_BUCKET=secret-santa
+    S3_ENDPOINT_URL=
+    S3_PUBLIC_ENDPOINT_URL=
+
+    SENTRY_DSN=
+    DEFAULT_TIMEZONE=America/Costa_Rica
+
+Notes:
+  • HOSTNAME appears three times: twice as https://HOSTNAME and once bare.
+  • S3_ENDPOINT_URL, S3_PUBLIC_ENDPOINT_URL and SENTRY_DSN stay EMPTY on purpose.
+  • Prompt 29 may add a few variables (for example the GHCR image owner or tag).
+    Its README will list them; add them to this block then.
+
+
+-----------------------------------------------------------------------------------
+STEP 8 — FINAL CHECKLIST (THEN RUN PROMPT 29)
+-----------------------------------------------------------------------------------
+
+  [ ] HOSTNAME chosen
+  [ ] Hetzner server santa-prod created (Ubuntu 24.04), SERVER_IP noted
+  [ ] "ssh root@SERVER_IP" works with your admin key
+  [ ] A record HOSTNAME → SERVER_IP ("DNS only"), and "nslookup HOSTNAME" shows it
+  [ ] R2 bucket "secret-santa" created: private, no jurisdiction
+  [ ] R2_ACCOUNT_ID, R2_ACCESS_KEY_ID and R2_SECRET_ACCESS_KEY saved
+  [ ] Google OAuth: production origin and redirect URI added
+  [ ] JWT_SECRET, POSTGRES_PASSWORD and the VAPID key pair generated and saved
+  [ ] Deploy SSH key pair (santa_deploy / santa_deploy.pub) created
+  [ ] Production .env block filled in (in the password manager)
+  [ ] Sentry: skipped for now. To add it later, create a project and put its DSN
+      in SENTRY_DSN (backend and worker) and in VITE_SENTRY_DSN (frontend build).
+
+When everything is ticked, run Prompt 29. Its README covers the rest: running
+infra/provision.sh on the server, GitHub secrets (VPS_HOST = HOSTNAME or SERVER_IP,
+VPS_USER = deploy, VPS_SSH_KEY = the contents of santa_deploy), the first deploy,
+and backups.
+
+
+-----------------------------------------------------------------------------------
+IF SOMETHING GOES WRONG
+-----------------------------------------------------------------------------------
+
+• "ssh: Permission denied (publickey)": the key in Hetzner doesn't match
+  id_ed25519.pub. In Hetzner, Servers › santa-prod › Rescue can reset root access,
+  or delete and recreate the server (it's empty at this point).
+• nslookup shows an old or wrong IP: wait for the TTL to expire, and check there's
+  exactly one A record for the name.
+• nslookup shows Cloudflare IPs (104.x / 172.x): the record is proxied (orange
+  cloud). Switch it to "DNS only".
+• You lost the R2 secret: you can't view it again. Delete that API token and
+  create a new one (Step 4.5).

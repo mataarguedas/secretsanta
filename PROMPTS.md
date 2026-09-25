@@ -789,7 +789,7 @@ Use the event with A (host), B and C from Prompt 12.
 
 ---
 
-## Prompt 14 — The pure draw module
+## Prompt 14 — The pure draw module - DONE
 
 ```text
 Read CLAUDE.md §7 (Draw), §9, PRD.md §4.4, §4.5, §6 and the "Rules for every prompt" section of PROMPTS.md. This is Prompt 14 (Milestone 4: Exclusions & draw).
@@ -836,7 +836,7 @@ Goal: `app/services/draw.py`, a **pure** module (no I/O, no DB, no logging of pa
 
 ---
 
-## Prompt 15 — Exclusions API and editor
+## Prompt 15 — Exclusions API and editor - DONE
 
 ```text
 Read CLAUDE.md §2, §7 (Exclusions), PRD.md §4.4, §7 (exclusions), §8, §9.3 (Manage) and the "Rules for every prompt" section of PROMPTS.md. This is Prompt 15 (Milestone 4).
@@ -883,7 +883,7 @@ You need 4 participants: A (host), B, C and D. Have D join with another browser 
 
 ---
 
-## Prompt 16 — The reveal (draw endpoint, confirm modal, "You're giving to…")
+## Prompt 16 — The reveal (draw endpoint, confirm modal, "You're giving to…") - DONE
 
 ```text
 Read CLAUDE.md §2 (1, 3, 4), §7 (Draw), PRD.md §4.5, §6 (steps 4–5), §7 (assignments), §8, §9.1 (Banner), §9.3 (Event page, Manage) and the "Rules for every prompt" section of PROMPTS.md. This is Prompt 16 (Milestone 4).
@@ -938,7 +938,7 @@ Use a **new** OPEN event with A (host), B and C.
 
 ---
 
-## Prompt 17 — Frozen roster, secrecy invariants and the drawn-state UI
+## Prompt 17 — Frozen roster, secrecy invariants and the drawn-state UI - DONE
 
 ```text
 Read CLAUDE.md §2 (1, 3, 4, 7), §7 (Logging), §9, PRD.md §3, §4.5 (FR-DRW-5), §13 (3, 4) and the "Rules for every prompt" section of PROMPTS.md. This is Prompt 17 (the last one in Milestone 4).
@@ -981,7 +981,7 @@ Use the drawn event from Prompt 16.
 
 ---
 
-## Prompt 18 — Storage, image pipeline, worker cleanup and event cover photo
+## Prompt 18 — Storage, image pipeline, worker cleanup and event cover photo - DONE
 
 ```text
 Read CLAUDE.md §7 (Uploads, Deletion cleanup, Rate limits), PRD.md §4.2 (cover photo), §4.6 (FR-WSH-3), §8 (Photo URLs), §10 and the "Rules for every prompt" section of PROMPTS.md. This is Prompt 18 (Milestone 5: Wishlists).
@@ -1100,7 +1100,7 @@ Goal: per-event wishlists, without photo uploads yet.
 
 ---
 
-## Prompt 20 — Item photos, carousel and copy-from-event
+## Prompt 20 — Item photos, carousel and copy-from-event - DONE
 
 ```text
 Read CLAUDE.md §7 (Uploads), PRD.md §4.6 (FR-WSH-2, 3, 5), §8, §9.3 (Wishlist: carousel, 3-slot uploader) and the "Rules for every prompt" section of PROMPTS.md. This is Prompt 20 (the last one in Milestone 5).
@@ -1143,7 +1143,7 @@ API, worker and frontend must all be running.
 
 ---
 
-## Prompt 21 — Chat backend: models, anonymity-safe serialization and REST
+## Prompt 21 — Chat backend: models, anonymity-safe serialization and REST - DONE
 
 ```text
 Read CLAUDE.md §2 (2, 6, 7), §7 (Chat, Serialization of chat, Rate limits), §9, PRD.md §4.7, §7 (conversations, conversation_members, messages), §8, §13 (7) and the "Rules for every prompt" section of PROMPTS.md. This is Prompt 21 (Milestone 6: Chat).
@@ -1201,7 +1201,7 @@ Use an event with A, B and C (group chat enabled). Console as **B**:
 
 ---
 
-## Prompt 22 — Realtime: WebSocket, Redis fan-out and active-conversation tracking
+## Prompt 22 — Realtime: WebSocket, Redis fan-out and active-conversation tracking - DONE
 
 ```text
 Read CLAUDE.md §2 (1, 2), §7 (Chat and realtime), PRD.md §4.7 (FR-CHT-3, 5), §8 (WebSocket), §10 (Real-time) and the "Rules for every prompt" section of PROMPTS.md. This is Prompt 22 (Milestone 6).
@@ -1263,7 +1263,7 @@ Goal: real-time delivery that works across several processes.
 
 ---
 
-## Prompt 23 — Chat frontend: Chats tab, threads, anonymous and group
+## Prompt 23 — Chat frontend: Chats tab, threads, anonymous and group - DONE
 
 ```text
 Read CLAUDE.md §2 (2), §6, §8 (ws.ts, Responsiveness), PRD.md §4.7, §9.3 (Chats), §9.4 and the "Rules for every prompt" section of PROMPTS.md. This is Prompt 23 (the last one in Milestone 6).
@@ -1332,7 +1332,7 @@ Put browsers **A** and **B** side by side. Use a new drawn or open event with gr
 
 ---
 
-## Prompt 24 — PWA: manifest, service worker, push subscriptions, install and permission UX
+## Prompt 24 — PWA: manifest, service worker, push subscriptions, install and permission UX - DONE
 
 ```text
 Read CLAUDE.md §8 (Push UX, Service worker), §13, PRD.md §4.8 (FR-NTF-1, 9, 10), §4.9 (FR-ACC-2 devices), §4.11, §7 (push_subscriptions), §8, §9.3 (Profile, iOS install guide) and the "Rules for every prompt" section of PROMPTS.md. This is Prompt 24 (Milestone 7: Notifications).
@@ -1392,7 +1392,7 @@ Goal: an installable PWA with working push subscriptions.
 
 ---
 
-## Prompt 25 — The notify pipeline: reveal, message and wishlist pushes, preferences
+## Prompt 25 — The notify pipeline: reveal, message and wishlist pushes, preferences - DONE
 
 ```text
 Read CLAUDE.md §2 (1, 2, 5), §7 (Notifications, Chat and realtime), §9, PRD.md §4.6 (FR-WSH-7), §4.7 (FR-CHT-3), §4.8 (all of it), §5, §13 (3, 6, 7) and the "Rules for every prompt" section of PROMPTS.md. This is Prompt 25 (Milestone 7).
@@ -1447,7 +1447,7 @@ Run the API, **worker** and frontend. A, B and C have push enabled (Prompt 24). 
 
 ---
 
-## Prompt 26 — Scheduled jobs: exchange reminders and token pruning
+## Prompt 26 — Scheduled jobs: exchange reminders and token pruning - DONE
 
 ```text
 Read CLAUDE.md §7 (Cron jobs), PRD.md §4.8 (exchange_reminder), §7 (notification_log), §12, §13 (8) and the "Rules for every prompt" section of PROMPTS.md. This is Prompt 26 (the last one in Milestone 7).
@@ -1491,7 +1491,7 @@ Use a drawn event. Replace the event id and pick "now" values that fit your date
 
 ---
 
-## Prompt 27 — Lifecycle: archiving and the read-only archived UI
+## Prompt 27 — Lifecycle: archiving and the read-only archived UI - DONE
 
 ```text
 Read CLAUDE.md §2 (6), §7 (Cron jobs), PRD.md §3 (Archiving), §4.6 (FR-WSH-6), §4.7 (FR-CHT-7), §8 (archive), §12 and the "Rules for every prompt" section of PROMPTS.md. This is Prompt 27 (Milestone 8: Lifecycle & account).
@@ -1584,7 +1584,7 @@ Goal: users can delete themselves safely, and the legal placeholder pages exist.
 
 ---
 
-## Prompt 29 — Production: Docker images, Caddy, deploy, backups, Sentry, hardening
+## Prompt 29 — Production: Docker images, Caddy, deploy, backups, Sentry, hardening - DONE 
 
 > **Do this first, by hand:** decide on the production hostname (PRD §11.1, for example `santa.snhware.lat`), create a Hetzner CX22 running Ubuntu 24.04, create a Cloudflare R2 bucket and API token, and (optionally) a Sentry project.
 
