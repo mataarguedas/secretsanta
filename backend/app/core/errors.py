@@ -66,6 +66,9 @@ ERROR_REGISTRY: Final[dict[str, str]] = {
     "MESSAGE_NOT_FOUND": "Message not found.",
     # Realtime (Prompt 22)
     "INVALID_FRAME": "That WebSocket frame isn't valid.",
+    # Push (Prompt 24)
+    "PUSH_NOT_CONFIGURED": "Push notifications aren't set up on this server.",
+    "PUSH_SUBSCRIPTION_NOT_FOUND": "That device isn't registered for notifications.",
 }
 
 _STATUS_TO_CODE: Final[dict[int, str]] = {

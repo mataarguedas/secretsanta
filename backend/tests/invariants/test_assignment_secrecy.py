@@ -49,6 +49,8 @@ GET_ROUTES: dict[str, RouteCalls] = {
     f"{API}/events/{{event_id}}/wishlist/copy-sources": lambda d: [
         f"{API}/events/{d.id}/wishlist/copy-sources"
     ],
+    f"{API}/push/vapid-public-key": lambda d: [f"{API}/push/vapid-public-key"],
+    f"{API}/push/subscriptions": lambda d: [f"{API}/push/subscriptions"],
     f"{API}/conversations": lambda d: [
         f"{API}/conversations",
         f"{API}/conversations?event_id={d.id}",

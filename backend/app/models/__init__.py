@@ -9,6 +9,7 @@ from app.models.assignment import Assignment
 from app.models.chat import Conversation, ConversationKind, ConversationMember, Message
 from app.models.event import Event, EventParticipant, EventState
 from app.models.exclusion import Exclusion
+from app.models.push import PushSubscription
 from app.models.refresh_token import RefreshToken
 from app.models.user import User
 from app.models.wishlist import WishlistItem, WishlistPhoto
@@ -24,6 +25,7 @@ __all__ = [
     "EventState",
     "Exclusion",
     "Message",
+    "PushSubscription",
     "RefreshToken",
     "User",
     "WishlistItem",

@@ -602,6 +602,64 @@
     },
     "signOut": "Sign out"
   },
+  "notifications": {
+    "title": "Notifications",
+    "intro": "Get notified when the draw happens, when someone writes to you, or when the person you're giving to changes their wishlist.",
+    "enabledHere": "Notifications are on for this device.",
+    "unsupported": "This browser can't receive notifications.",
+    "enable": {
+      "action": "Enable notifications",
+      "success": "Notifications are on for this device.",
+      "failed": "Couldn't turn on notifications. Please try again."
+    },
+    "blocked": {
+      "title": "Notifications are blocked for this site.",
+      "howTo": "To turn them on, open your browser's site settings (the icon next to the address), allow notifications and reload the page."
+    },
+    "ios": {
+      "body": "On iPhone and iPad, notifications only work once the app is on your Home Screen.",
+      "action": "How to install the app"
+    },
+    "iosGuide": {
+      "title": "Add to Home Screen",
+      "intro": "In Safari:",
+      "steps": {
+        "share": "Tap the Share button in Safari's toolbar.",
+        "add": "Scroll down and tap “Add to Home Screen”.",
+        "open": "Tap “Add”, then open Secret Santa from your Home Screen."
+      },
+      "note": "Then go to Profile › Notifications inside the installed app. Requires iOS 16.4 or later.",
+      "done": "Got it"
+    },
+    "install": {
+      "title": "Install Secret Santa",
+      "body": "Open it like an app and get notified about the draw and your messages.",
+      "bodyIos": "Add it to your Home Screen to get notifications on your iPhone or iPad.",
+      "action": "Install",
+      "howTo": "How to install",
+      "dismiss": "Hide install suggestion"
+    },
+    "test": {
+      "action": "Send test notification",
+      "sent": "Test notification sent. It should arrive in a few seconds."
+    },
+    "devices": {
+      "title": "Devices",
+      "loading": "Loading devices…",
+      "error": "Couldn't load your devices.",
+      "retry": "Retry",
+      "empty": "No devices get notifications yet.",
+      "name": "{{browser}} on {{os}}",
+      "unknownBrowser": "Browser",
+      "thisDevice": "This device",
+      "added": "Added {{date}}",
+      "lastSent": "last notified {{when}}",
+      "justNow": "just now",
+      "remove": "Remove",
+      "removeNamed": "Remove {{name}}",
+      "removed": "Device removed."
+    }
+  },
   "legal": {
     "privacy": {
       "title": "Privacy Policy"
@@ -651,6 +709,8 @@
     "CONVERSATION_READ_ONLY": "This event is archived; its chats are read-only.",
     "CONVERSATION_WITH_SELF": "You can't start a conversation with yourself.",
     "MESSAGE_NOT_FOUND": "Message not found.",
-    "INVALID_FRAME": "That WebSocket frame isn't valid."
+    "INVALID_FRAME": "That WebSocket frame isn't valid.",
+    "PUSH_NOT_CONFIGURED": "Push notifications aren't set up on this server.",
+    "PUSH_SUBSCRIPTION_NOT_FOUND": "That device isn't registered for notifications anymore."
   }
 }

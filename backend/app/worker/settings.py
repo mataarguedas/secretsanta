@@ -8,7 +8,9 @@ from arq.connections import RedisSettings
 from app.core.config import get_settings
 from app.core.logging import configure_logging, get_logger
 from app.core.sentry import init_sentry
-from app.worker.tasks import delete_objects, delete_prefix, ping
+from app.db.engine import create_engine
+from app.db.session import create_sessionmaker
+from app.worker.tasks import delete_objects, delete_prefix, ping, send_test_notification
 
 _settings = get_settings()
 configure_logging(_settings.log_level)
@@ -17,19 +19,28 @@ init_sentry(_settings, component="worker")
 log = get_logger(__name__)
 
 
-async def startup(_ctx: dict[str, Any]) -> None:
+async def startup(ctx: dict[str, Any]) -> None:
     # The arq CLI applies its own dictConfig *after* importing this module, adding a
     # plain-text handler to the "arq" logger. Drop it so job logs are JSON only.
     logging.getLogger("arq").handlers.clear()
+    ctx["engine"] = create_engine(_settings)
+    ctx["sessionmaker"] = create_sessionmaker(ctx["engine"])
     log.info("worker_startup", env=_settings.env)
 
 
-async def shutdown(_ctx: dict[str, Any]) -> None:
+async def shutdown(ctx: dict[str, Any]) -> None:
+    if engine := ctx.get("engine"):
+        await engine.dispose()
     log.info("worker_shutdown")
 
 
 class WorkerSettings:
-    functions: ClassVar[list[Any]] = [ping, delete_objects, delete_prefix]
+    functions: ClassVar[list[Any]] = [
+        ping,
+        delete_objects,
+        delete_prefix,
+        send_test_notification,
+    ]
     redis_settings = RedisSettings.from_dsn(_settings.redis_url)
     on_startup = startup
     on_shutdown = shutdown

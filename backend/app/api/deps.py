@@ -20,6 +20,7 @@ from app.core.errors import AppError
 from app.core.security import decode_access_token
 from app.models.chat import Conversation, ConversationMember, Message
 from app.models.event import Event, EventParticipant, EventState
+from app.models.push import PushSubscription
 from app.models.user import User
 from app.models.wishlist import WishlistItem
 from app.services.events import get_event_for_participant
@@ -322,3 +323,19 @@ async def followable_conversations(
         .where(Conversation.id.in_(wanted), ConversationMember.user_id == user_id)
     )
     return set(rows.all())
+
+
+async def require_own_push_subscription(
+    subscription_id: uuid.UUID,
+    user: User = Depends(current_user),
+    session: AsyncSession = Depends(get_db),
+) -> PushSubscription:
+    """One of the current user's devices. Anyone else's is 404, the same as a missing one."""
+    subscription = await session.scalar(
+        select(PushSubscription).where(
+            PushSubscription.id == subscription_id, PushSubscription.user_id == user.id
+        )
+    )
+    if subscription is None:
+        raise AppError("PUSH_SUBSCRIPTION_NOT_FOUND", 404)
+    return subscription

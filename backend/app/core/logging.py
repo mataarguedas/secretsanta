@@ -31,6 +31,10 @@ SENSITIVE_KEYS: frozenset[str] = frozenset(
         "anon_member_map",
         "member_user_map",
         "anon_mapping",
+        # Web Push: the endpoint is a capability URL, the keys encrypt the payload
+        "endpoint",
+        "p256dh",
+        "auth",
     }
 )
 

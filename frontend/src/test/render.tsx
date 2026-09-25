@@ -19,6 +19,7 @@ import type {
 import type { Exclusion, ExclusionList } from '@/features/exclusions/api';
 import type { CopySource, ItemPayload, Wishlist, WishlistItem } from '@/features/wishlist/api';
 import type { InvitePreview } from '@/features/invites/api';
+import type { PushDevice } from '@/features/notifications/api';
 import i18n from '@/i18n';
 
 export function createTestQueryClient(): QueryClient {
@@ -71,6 +72,21 @@ export const TEST_USER: Me = {
   notify_reminder: true,
 };
 
+/** A valid-looking VAPID public key (base64url of a 65-byte uncompressed P-256 point). */
+export const TEST_VAPID_KEY =
+  'BNcRdreALRFXTkOOUHK1EtK2wtaz5Ry4YfYCA_0QTpQtUbVlUls0VJXg7A8u-Ts1XbjhazAkj7I99e8QcYP7DkM';
+
+export function pushDevice(overrides: Partial<PushDevice> = {}): PushDevice {
+  return {
+    id: 'device-1',
+    browser: 'Chrome',
+    os: 'Windows',
+    created_at: '2026-09-20T12:00:00Z',
+    last_success_at: null,
+    ...overrides,
+  };
+}
+
 export function jsonResponse(status: number, body?: unknown): Response {
   return new Response(body === undefined ? null : JSON.stringify(body), {
     status,
@@ -114,6 +130,8 @@ export function mockSession({
   messages = {},
   messagePageSize = 50,
   sendFails,
+  devices = [],
+  vapidKey = TEST_VAPID_KEY,
 }: {
   me: Me | null;
   /** Make `PATCH /me` fail with this status (e.g. 500) instead of saving. */
@@ -167,7 +185,13 @@ export function mockSession({
   messagePageSize?: number;
   /** Make REST sends fail with this error code. */
   sendFails?: string;
+  /** My push devices (`/push/subscriptions`); a POST upserts by endpoint. */
+  devices?: PushDevice[];
+  /** `GET /push/vapid-public-key`; `null` = 503 PUSH_NOT_CONFIGURED. */
+  vapidKey?: string | null;
 }) {
+  const myDevices = new Map(devices.map((d) => [d.id, d]));
+  const deviceByEndpoint = new Map<string, string>();
   const lists = new Map(Object.entries(wishlists));
   let itemSeq = 0;
   let photoSeq = 0;
@@ -590,6 +614,38 @@ export function mockSession({
         return Promise.resolve(new Response(null, { status: 204 }));
       }
       return Promise.resolve(jsonResponse(200, event));
+    }
+    if (url.startsWith('/api/v1/push/') && me) {
+      if (url === '/api/v1/push/vapid-public-key') {
+        return Promise.resolve(
+          vapidKey
+            ? jsonResponse(200, { public_key: vapidKey })
+            : jsonResponse(503, { error: { code: 'PUSH_NOT_CONFIGURED', message: '' } }),
+        );
+      }
+      if (url === '/api/v1/push/test' && method === 'POST') {
+        return Promise.resolve(new Response(null, { status: 202 }));
+      }
+      if (url === '/api/v1/push/subscriptions' && method === 'POST') {
+        const { endpoint } = JSON.parse(init?.body as string) as { endpoint: string };
+        const id = deviceByEndpoint.get(endpoint) ?? `device-${String(deviceByEndpoint.size + 1)}`;
+        deviceByEndpoint.set(endpoint, id);
+        const device = pushDevice({ id, created_at: '2026-09-24T12:00:00Z' });
+        myDevices.set(id, device);
+        return Promise.resolve(jsonResponse(201, device));
+      }
+      if (url === '/api/v1/push/subscriptions') {
+        return Promise.resolve(jsonResponse(200, [...myDevices.values()].reverse()));
+      }
+      const removeMatch = /^\/api\/v1\/push\/subscriptions\/([^/?]+)$/.exec(url);
+      if (removeMatch?.[1] && method === 'DELETE') {
+        if (!myDevices.delete(removeMatch[1])) {
+          return Promise.resolve(
+            jsonResponse(404, { error: { code: 'PUSH_SUBSCRIPTION_NOT_FOUND', message: '' } }),
+          );
+        }
+        return Promise.resolve(new Response(null, { status: 204 }));
+      }
     }
     if (url === '/api/v1/auth/logout') return Promise.resolve(new Response(null, { status: 204 }));
     return Promise.resolve(jsonResponse(404, { error: { code: 'NOT_FOUND', message: '' } }));

@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router';
 
 import { Button, Eyebrow } from '@/components/ui';
+import { InstallBanner } from '@/features/notifications/components/InstallBanner';
 import { useDocumentTitle } from '@/lib/useDocumentTitle';
 
 import { useEvents, type EventSection } from '../api';
@@ -48,6 +49,8 @@ export function DashboardPage() {
           <Link to="/events/new">{t('events.dashboard.create')}</Link>
         </Button>
       </header>
+
+      <InstallBanner />
 
       {SECTIONS.map((section) => {
         const query = queries[section];

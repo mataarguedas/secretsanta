@@ -2,6 +2,8 @@ import { useTranslation } from 'react-i18next';
 
 import { Avatar, Button, useToast } from '@/components/ui';
 import { useLogout, useMe } from '@/features/auth/api';
+import { DeviceList } from '@/features/notifications/components/DeviceList';
+import { NotificationSettings } from '@/features/notifications/components/NotificationSettings';
 import { errorMessage } from '@/lib/errors';
 import { useDocumentTitle } from '@/lib/useDocumentTitle';
 
@@ -11,7 +13,8 @@ import { ProfileSection } from '../components/ProfileSection';
 /**
  * `/profile` (PRD §9.3.8, FR-ACC-1/2). Identity comes from Google and is read-only.
  * Settings are `ProfileSection`s, added in order as their prompts land:
- * Language (now) → Notifications → Devices → Install guide → Legal links → Delete account.
+ * Language → Notifications (the install guide on iOS) → Devices → Legal links → Delete
+ * account.
  * Nothing is rendered for a section that doesn't exist yet.
  */
 export function ProfilePage() {
@@ -39,6 +42,12 @@ export function ProfilePage() {
       <div className="flex flex-col gap-20">
         <ProfileSection title={t('profile.language.title')}>
           <LanguageSetting locale={me.locale} />
+        </ProfileSection>
+        <ProfileSection title={t('notifications.title')}>
+          <NotificationSettings />
+        </ProfileSection>
+        <ProfileSection title={t('notifications.devices.title')}>
+          <DeviceList />
         </ProfileSection>
       </div>
 

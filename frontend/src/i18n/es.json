@@ -602,6 +602,64 @@
     },
     "signOut": "Cerrar sesión"
   },
+  "notifications": {
+    "title": "Notificaciones",
+    "intro": "Recibe un aviso cuando se haga el sorteo, te escriban o cambie la lista de la persona a quien le regalas.",
+    "enabledHere": "Las notificaciones están activadas en este dispositivo.",
+    "unsupported": "Este navegador no puede recibir notificaciones.",
+    "enable": {
+      "action": "Activar notificaciones",
+      "success": "Notificaciones activadas en este dispositivo.",
+      "failed": "No se pudieron activar las notificaciones. Inténtalo de nuevo."
+    },
+    "blocked": {
+      "title": "Las notificaciones están bloqueadas para este sitio.",
+      "howTo": "Para activarlas, abre la configuración del sitio en tu navegador (el ícono junto a la dirección), permite las notificaciones y recarga la página."
+    },
+    "ios": {
+      "body": "En iPhone y iPad, las notificaciones solo funcionan con la app instalada en la pantalla de inicio.",
+      "action": "Cómo instalar la app"
+    },
+    "iosGuide": {
+      "title": "Agregar a la pantalla de inicio",
+      "intro": "En Safari:",
+      "steps": {
+        "share": "Toca el botón Compartir en la barra de Safari.",
+        "add": "Desplázate y toca «Agregar a inicio».",
+        "open": "Toca «Agregar» y abre Secret Santa desde la pantalla de inicio."
+      },
+      "note": "Luego ve a Perfil › Notificaciones dentro de la app instalada. Requiere iOS 16.4 o posterior.",
+      "done": "Entendido"
+    },
+    "install": {
+      "title": "Instala Secret Santa",
+      "body": "Ábrela como una app y recibe notificaciones del sorteo y los mensajes.",
+      "bodyIos": "Agrégala a tu pantalla de inicio para recibir notificaciones en tu iPhone o iPad.",
+      "action": "Instalar",
+      "howTo": "Cómo instalar",
+      "dismiss": "Ocultar sugerencia de instalación"
+    },
+    "test": {
+      "action": "Enviar notificación de prueba",
+      "sent": "Notificación de prueba enviada. Debería llegar en unos segundos."
+    },
+    "devices": {
+      "title": "Dispositivos",
+      "loading": "Cargando dispositivos…",
+      "error": "No se pudieron cargar tus dispositivos.",
+      "retry": "Reintentar",
+      "empty": "Ningún dispositivo recibe notificaciones todavía.",
+      "name": "{{browser}} en {{os}}",
+      "unknownBrowser": "Navegador",
+      "thisDevice": "Este dispositivo",
+      "added": "Agregado el {{date}}",
+      "lastSent": "última notificación {{when}}",
+      "justNow": "ahora mismo",
+      "remove": "Quitar",
+      "removeNamed": "Quitar {{name}}",
+      "removed": "Dispositivo quitado."
+    }
+  },
   "legal": {
     "privacy": {
       "title": "Política de privacidad"
@@ -651,6 +709,8 @@
     "CONVERSATION_READ_ONLY": "Este evento está archivado: sus chats son de solo lectura.",
     "CONVERSATION_WITH_SELF": "No puedes iniciar una conversación contigo.",
     "MESSAGE_NOT_FOUND": "No encontramos este mensaje.",
-    "INVALID_FRAME": "Ese mensaje del WebSocket no es válido."
+    "INVALID_FRAME": "Ese mensaje del WebSocket no es válido.",
+    "PUSH_NOT_CONFIGURED": "Las notificaciones no están configuradas en este servidor.",
+    "PUSH_SUBSCRIPTION_NOT_FOUND": "Ese dispositivo ya no está registrado para notificaciones."
   }
 }

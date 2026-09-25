@@ -7,7 +7,7 @@ from arq import create_pool
 from arq.connections import RedisSettings
 from fastapi import FastAPI
 
-from app.api import testing
+from app.api import push, testing
 from app.api.router import API_PREFIX, api_router
 from app.core.config import Settings, get_settings
 from app.core.errors import register_exception_handlers
@@ -73,6 +73,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     register_rate_limiting(app)
     app.include_router(api_router)
     app.include_router(realtime_router)  # /ws, outside the /api/v1 prefix
+    if not settings.is_production:
+        # Dev-only "Send test notification"; the path doesn't exist in production.
+        app.include_router(push.dev_router, prefix=API_PREFIX)
     if settings.is_test:
         # Test-only login; never mounted in development or production.
         app.include_router(testing.router, prefix=API_PREFIX)

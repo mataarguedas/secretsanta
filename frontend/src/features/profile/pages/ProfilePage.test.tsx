@@ -36,7 +36,11 @@ describe('ProfilePage', () => {
   it('shows only the sections that exist (no empty placeholders)', async () => {
     await renderProfile();
     const headings = within(screen.getByRole('main')).getAllByRole('heading', { level: 2 });
-    expect(headings.map((h) => h.textContent)).toEqual(['Idioma']);
+    expect(headings.map((h) => h.textContent)).toEqual([
+      'Idioma',
+      'Notificaciones',
+      'Dispositivos',
+    ]);
   });
 
   it('language switch: PATCHes /me, switches instantly and toasts in the new language', async () => {
@@ -51,7 +55,7 @@ describe('ProfilePage', () => {
     // Instant: the UI, <html lang> and the tab title are English before the response lands.
     expect(i18n.language).toBe('en');
     expect(document.documentElement.lang).toBe('en');
-    expect(screen.getByRole('heading', { level: 2 })).toHaveTextContent('Language');
+    expect(screen.getByRole('heading', { level: 2, name: 'Language' })).toBeInTheDocument();
     expect(
       within(languageGroup('Language')).getByRole('button', { name: 'English' }),
     ).toHaveAttribute('aria-pressed', 'true');
