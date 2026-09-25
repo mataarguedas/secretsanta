@@ -15,6 +15,7 @@ from app.db.engine import create_engine
 from app.db.session import create_sessionmaker
 from app.worker.tasks import (
     auto_archive_events,
+    backup_database,
     delete_objects,
     delete_prefix,
     ping,
@@ -65,6 +66,8 @@ class WorkerSettings:
     redis_settings = RedisSettings.from_dsn(_settings.redis_url)
     on_startup = startup
     on_shutdown = shutdown
+    # The compose healthcheck runs `arq --check`, which reads this key (default: hourly).
+    health_check_interval = 60
     # Cron times are Costa Rica wall-clock time (CLAUDE.md §7). `unique` (the default) keeps
     # one run per tick across workers; the jobs are idempotent anyway.
     timezone = ZoneInfo(_settings.default_timezone)
@@ -72,5 +75,5 @@ class WorkerSettings:
         cron(send_exchange_reminders, minute={0, 15, 30, 45}, run_at_startup=True),
         cron(prune_refresh_tokens, hour=4, minute=10),
         cron(auto_archive_events, hour=3, minute=0),
-        # TODO(prompt 29): backups.
+        cron(backup_database, hour=2, minute=0, timeout=1800),
     ]

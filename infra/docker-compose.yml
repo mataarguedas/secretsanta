@@ -1,10 +1,114 @@
-# Base compose file. Production services (caddy, api, worker) are added in Prompt 29.
-# Variables are interpolated from infra/.env (Compose loads it automatically because
-# this file's directory is the project directory).
+# Production stack (CLAUDE.md §10). On the server this file lives in /opt/santa next to
+# its .env; the deploy workflow copies it there on every deploy. Variables are
+# interpolated from the .env next to this file (or --env-file).
+#
+#   docker compose pull && docker compose run --rm api alembic upgrade head && docker compose up -d
+#
+# Only caddy publishes ports. Locally, the dev override adds MinIO and 127.0.0.1-only
+# ports for postgres/redis; for development start just those services:
+#   docker compose -f infra/docker-compose.yml -f infra/docker-compose.dev.yml up -d postgres redis minio minio-init
+# `docker compose -f infra/docker-compose.yml build` builds both images locally.
 
 name: santa
 
+x-app-image: &app-image
+  image: ghcr.io/${GHCR_OWNER:-mataarguedas}/santa-api:${IMAGE_TAG:-latest}
+  build:
+    context: ../backend
+
+# The API and the worker share one configuration. DATABASE_URL and REDIS_URL are built
+# here from the compose service names, whatever the .env says (its values are for a
+# backend running on the host).
+x-app-environment: &app-environment
+  ENV: ${ENV:-production}
+  APP_BASE_URL: ${APP_BASE_URL:-}
+  APP_DOMAIN: ${APP_DOMAIN:-}
+  DATABASE_URL: postgresql+asyncpg://santa:${POSTGRES_PASSWORD}@postgres:5432/santa
+  REDIS_URL: redis://redis:6379/0
+  JWT_SECRET: ${JWT_SECRET:-}
+  GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+  GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+  VAPID_PUBLIC_KEY: ${VAPID_PUBLIC_KEY:-}
+  VAPID_PRIVATE_KEY: ${VAPID_PRIVATE_KEY:-}
+  VAPID_SUBJECT: ${VAPID_SUBJECT:-}
+  R2_ACCOUNT_ID: ${R2_ACCOUNT_ID:-}
+  R2_ACCESS_KEY_ID: ${R2_ACCESS_KEY_ID:-}
+  R2_SECRET_ACCESS_KEY: ${R2_SECRET_ACCESS_KEY:-}
+  R2_BUCKET: ${R2_BUCKET:-secret-santa}
+  # Production: both empty, so storage (and presigned photo URLs) use the R2 endpoint.
+  S3_ENDPOINT_URL: ${S3_ENDPOINT_URL:-}
+  S3_PUBLIC_ENDPOINT_URL: ${S3_PUBLIC_ENDPOINT_URL:-}
+  SENTRY_DSN: ${SENTRY_DSN:-}
+  DEFAULT_TIMEZONE: ${DEFAULT_TIMEZONE:-America/Costa_Rica}
+  LOG_LEVEL: ${LOG_LEVEL:-INFO}
+
+x-app-depends-on: &app-depends-on
+  postgres:
+    condition: service_healthy
+  redis:
+    condition: service_healthy
+
 services:
+  caddy:
+    image: ghcr.io/${GHCR_OWNER:-mataarguedas}/santa-web:${IMAGE_TAG:-latest}
+    build:
+      context: ..
+      dockerfile: frontend/Dockerfile
+      args:
+        VITE_SENTRY_DSN: ${VITE_SENTRY_DSN:-}
+    restart: unless-stopped
+    environment:
+      APP_DOMAIN: ${APP_DOMAIN:-localhost}
+      HSTS_MAX_AGE: ${HSTS_MAX_AGE:-31536000}
+      CSP_IMG_EXTRA: ${CSP_IMG_EXTRA:-}
+      CSP_CONNECT_EXTRA: ${CSP_CONNECT_EXTRA:-}
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp" # HTTP/3
+    volumes:
+      - caddy-data:/data # certificates: keep this volume
+      - caddy-config:/config
+    depends_on:
+      api:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:2019/config/"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  api:
+    <<: *app-image
+    restart: unless-stopped
+    environment: *app-environment
+    depends_on: *app-depends-on
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/v1/health', timeout=4)"
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+  worker:
+    <<: *app-image
+    command: ["arq", "app.worker.settings.WorkerSettings"]
+    restart: unless-stopped
+    environment: *app-environment
+    depends_on: *app-depends-on
+    healthcheck:
+      # arq writes a health key to Redis every health_check_interval (60 s).
+      test: ["CMD", "arq", "--check", "app.worker.settings.WorkerSettings"]
+      interval: 60s
+      timeout: 15s
+      retries: 3
+      start_period: 30s
+
   postgres:
     image: postgres:16
     restart: unless-stopped
@@ -36,3 +140,5 @@ services:
 volumes:
   postgres-data:
   redis-data:
+  caddy-data:
+  caddy-config:

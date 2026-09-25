@@ -7,7 +7,7 @@ Presigning is local (no network) and can be called directly.
 
 from collections.abc import Iterable
 from functools import lru_cache
-from typing import Any, Final
+from typing import Any, BinaryIO, Final
 
 import boto3
 from botocore.config import Config
@@ -51,6 +51,13 @@ class ObjectStorage:
             # Keys are unique per upload (a new uuid each time), so they never change.
             CacheControl="private, max-age=31536000, immutable",
         )
+
+    def upload_file(self, path: str, key: str, content_type: str) -> None:
+        """Stream a local file up (multipart for large files, e.g. database backups)."""
+        self._client.upload_file(path, self.bucket, key, ExtraArgs={"ContentType": content_type})
+
+    def download_fileobj(self, key: str, fileobj: BinaryIO) -> None:
+        self._client.download_fileobj(self.bucket, key, fileobj)
 
     def copy(self, source_key: str, dest_key: str) -> None:
         self._client.copy_object(

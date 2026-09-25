@@ -4,6 +4,7 @@
     uv run python -m app.scripts.run_job send_exchange_reminders --now 2026-12-13T09:05:00-06:00
     uv run python -m app.scripts.run_job prune_refresh_tokens
     uv run python -m app.scripts.run_job auto_archive_events
+    uv run python -m app.scripts.run_job backup_database
 
 ``--now`` is refused when ``ENV=production``: faking the clock there could send real
 reminders at the wrong time. A ``--now`` without an offset is read as Costa Rica time
@@ -25,7 +26,8 @@ from app.core.logging import configure_logging
 from app.db.engine import create_engine
 from app.db.mixins import utcnow
 from app.db.session import create_sessionmaker
-from app.services import scheduled
+from app.services import backup, scheduled
+from app.storage.r2 import get_storage
 
 Job = Callable[[AsyncSession, datetime, Settings], Awaitable[Any]]
 
@@ -38,6 +40,11 @@ JOBS: dict[str, Job] = {
     ),
     "auto_archive_events": lambda session, now, _settings: scheduled.auto_archive_events(
         session, now
+    ),
+    # Needs pg_dump, so run it where the worker runs:
+    #   docker compose run --rm worker python -m app.scripts.run_job backup_database
+    "backup_database": lambda _session, now, settings: asyncio.to_thread(
+        backup.run_backup, settings, get_storage(), now
     ),
 }
 

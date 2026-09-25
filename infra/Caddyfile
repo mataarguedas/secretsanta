@@ -1,0 +1,52 @@
+# Production web server (CLAUDE.md §10): automatic TLS for APP_DOMAIN, the built PWA from
+# /srv/dist, and /api/* + /ws proxied to the API. Baked into the "web" image
+# (frontend/Dockerfile). Environment:
+#   APP_DOMAIN         required, e.g. santa.example.com (localhost gets Caddy's local CA)
+#   HSTS_MAX_AGE       default one year; the local smoke test sets 0 so the browser
+#                      doesn't pin https on localhost
+#   CSP_IMG_EXTRA      optional extra img-src sources (local smoke test: http://localhost:9000)
+#   CSP_CONNECT_EXTRA  optional extra connect-src sources (frontend Sentry's ingest host)
+
+{$APP_DOMAIN} {
+	encode zstd gzip
+
+	header {
+		Strict-Transport-Security "max-age={$HSTS_MAX_AGE:31536000}; includeSubDomains"
+		# CLAUDE.md §10, plus: blob: previews of a picked cover photo, the service worker,
+		# the manifest, and no framing. style/script/font fall back to default-src 'self'.
+		Content-Security-Policy "default-src 'self'; img-src 'self' data: blob: https://*.r2.cloudflarestorage.com https://lh3.googleusercontent.com {$CSP_IMG_EXTRA}; connect-src 'self' wss://{$APP_DOMAIN} {$CSP_CONNECT_EXTRA}; worker-src 'self'; manifest-src 'self'; frame-ancestors 'none'; base-uri 'self'; object-src 'none'"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		Permissions-Policy "camera=(), microphone=(), geolocation=(), payment=(), usb=()"
+		-Server
+	}
+
+	handle /api/* {
+		reverse_proxy api:8000
+	}
+
+	handle /ws {
+		reverse_proxy api:8000
+	}
+
+	root * /srv/dist
+
+	# Content-hashed bundles never change. No SPA fallback here: a stale tab asking for
+	# an old chunk gets a 404, not index.html cached for a year.
+	handle /assets/* {
+		@exists file
+		header @exists Cache-Control "public, max-age=31536000, immutable"
+		file_server
+	}
+
+	handle {
+		@static path /fonts/* /icons/*
+		header @static Cache-Control "public, max-age=604800"
+		# index.html (and every SPA route that falls back to it), sw.js, registerSW.js
+		# and the manifest must be revalidated so a deploy reaches everyone.
+		@revalidate not path /fonts/* /icons/*
+		header @revalidate Cache-Control "no-cache"
+		try_files {path} /index.html
+		file_server
+	}
+}

@@ -4,6 +4,7 @@ from urllib.parse import parse_qs, urlsplit
 
 import pytest
 
+from app.core.config import get_settings
 from app.storage.r2 import ObjectStorage
 from app.worker.tasks import delete_objects, delete_prefix
 
@@ -48,3 +49,14 @@ async def test_delete_tasks(s3: ObjectStorage) -> None:
     assert await delete_objects({}, ["events/e1/cover/a.webp"]) == 1
     assert await delete_prefix({}, "events/e1/") == 1
     assert keys(s3) == {"events/e2/x.webp"}
+
+
+def test_production_presigned_urls_use_the_r2_host_the_csp_allows() -> None:
+    # Production: no S3_ENDPOINT_URL / S3_PUBLIC_ENDPOINT_URL, so the R2 account endpoint,
+    # which Caddy's CSP allows as img-src https://*.r2.cloudflarestorage.com.
+    settings = get_settings().model_copy(
+        update={"r2_account_id": "abc123", "s3_endpoint_url": "", "s3_public_endpoint_url": ""}
+    )
+    parts = urlsplit(ObjectStorage(settings).presign_get("events/e1/cover/a.webp"))
+    assert parts.scheme == "https"
+    assert parts.netloc == "abc123.r2.cloudflarestorage.com"

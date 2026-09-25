@@ -9,6 +9,10 @@ import { AppProviders } from './app/providers';
 import { router } from './app/router';
 import { listenForInstallPrompt } from './features/notifications/installPrompt';
 import { listenForNotificationNavigation } from './features/notifications/notificationNavigation';
+import { initSentry } from './lib/sentry';
+
+// A no-op unless the build set VITE_SENTRY_DSN.
+void initSentry();
 
 // Both events can arrive before any component mounts.
 listenForInstallPrompt();

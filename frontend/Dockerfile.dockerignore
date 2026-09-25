@@ -1,0 +1,10 @@
+# Used for frontend/Dockerfile, whose build context is the repository root.
+**
+!frontend
+!infra/Caddyfile
+frontend/node_modules
+frontend/dist
+frontend/dev-dist
+frontend/coverage
+frontend/test-results
+frontend/playwright-report

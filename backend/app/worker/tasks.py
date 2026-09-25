@@ -12,7 +12,7 @@ from app.core.logging import get_logger
 from app.db.mixins import utcnow
 from app.notifications import pushes
 from app.notifications.sender import notify
-from app.services import scheduled
+from app.services import backup, scheduled
 from app.storage.r2 import get_storage
 
 log = get_logger(__name__)
@@ -86,6 +86,13 @@ async def auto_archive_events(ctx: dict[str, Any]) -> int:
     """Cron, daily 03:00 CR: DRAWN events more than 7 days past the exchange."""
     async with _sessionmaker(ctx)() as session:
         return await scheduled.auto_archive_events(session, utcnow())
+
+
+async def backup_database(ctx: dict[str, Any]) -> str:
+    """Cron, daily 02:00 CR: ``pg_dump | gzip`` → R2 ``backups/``, keeping 14 days."""
+    result = await asyncio.to_thread(backup.run_backup, get_settings(), get_storage(), utcnow())
+    log.info("backup_database", key=result.key, size=result.size, pruned=len(result.deleted))
+    return result.key
 
 
 def _timezone() -> ZoneInfo:

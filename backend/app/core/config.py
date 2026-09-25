@@ -69,6 +69,12 @@ class Settings(BaseSettings):
             "VAPID_PUBLIC_KEY": self.vapid_public_key,
             "VAPID_PRIVATE_KEY": self.vapid_private_key,
         }
+        # Photos and backups live in R2: its keys, and its account (or an explicit endpoint).
+        required |= {
+            "R2_ACCESS_KEY_ID": self.r2_access_key_id,
+            "R2_SECRET_ACCESS_KEY": self.r2_secret_access_key,
+            "R2_ACCOUNT_ID": self.r2_account_id or self.s3_endpoint_url,
+        }
         missing = sorted(name for name, value in required.items() if not value)
         if missing:
             raise ValueError(f"Missing required production settings: {', '.join(missing)}")

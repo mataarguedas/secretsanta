@@ -114,3 +114,14 @@ jobs:
 
       - name: Build
         run: pnpm build
+
+  e2e:
+    name: E2E (Playwright)
+    # Only on pushes to main, after both apps pass (CLAUDE.md §10). Deploy waits for CI.
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: [backend, frontend]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Playwright
+        # TODO(prompt 30): run the Playwright suite (pnpm e2e) against the full stack.
+        run: echo "The Playwright suite arrives in Prompt 30."

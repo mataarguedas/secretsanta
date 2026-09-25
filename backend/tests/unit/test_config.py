@@ -15,6 +15,9 @@ PROD_SECRETS: dict[str, Any] = {
     "google_client_secret": "x",
     "vapid_public_key": "x",
     "vapid_private_key": "x",
+    "r2_account_id": "x",
+    "r2_access_key_id": "x",
+    "r2_secret_access_key": "x",
 }
 
 
@@ -57,3 +60,11 @@ def test_production_requires_secrets() -> None:
 def test_env_must_be_known() -> None:
     with pytest.raises(ValidationError):
         make(env="staging")
+
+
+def test_production_requires_r2_account_or_endpoint() -> None:
+    no_storage = {**PROD_SECRETS, "r2_account_id": "", "s3_endpoint_url": ""}
+    with pytest.raises(ValidationError, match="R2_ACCOUNT_ID"):
+        make(env="production", **no_storage)
+    # A local production smoke test against MinIO sets the endpoint instead.
+    assert make(env="production", **{**no_storage, "s3_endpoint_url": "http://minio:9000"})
