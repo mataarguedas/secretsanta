@@ -70,8 +70,8 @@ def _block_reason(event: Event, already_participant: bool) -> JoinBlockReason | 
 
 async def preview_invite(session: AsyncSession, token: str, user: User) -> InvitePreview:
     event = await _event_by_token(session, token)
-    host = await session.get(User, event.host_id)
-    if host is None:  # pragma: no cover - host_id is a NOT NULL FK
+    host = await session.get(User, event.host_id) if event.host_id else None
+    if host is None:  # pragma: no cover - a deleted host's events have no invite link
         raise AppError("INVITE_INVALID", 404)
     already = await is_participant(session, event.id, user.id)
     reason = _block_reason(event, already)

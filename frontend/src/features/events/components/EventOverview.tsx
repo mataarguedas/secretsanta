@@ -16,6 +16,7 @@ import { LeaveEventButton } from './LeaveEventButton';
  */
 export function EventOverview({ event }: { event: EventDetail }) {
   const { t, i18n } = useTranslation();
+  const hostName = event.host?.name ?? t('events.detail.deletedHost');
   const when = (iso: string) => <time dateTime={iso}>{formatDateTime(iso, i18n.language)}</time>;
 
   const details: [string, ReactNode][] = [
@@ -74,8 +75,8 @@ export function EventOverview({ event }: { event: EventDetail }) {
           {t('events.detail.host')}
         </h2>
         <div className="flex items-center gap-12">
-          <Avatar size="md" src={event.host.avatar_url} alt={event.host.name} />
-          <p className="font-serif text-subheading font-medium break-words">{event.host.name}</p>
+          <Avatar size="md" src={event.host?.avatar_url ?? null} alt={hostName} />
+          <p className="font-serif text-subheading font-medium break-words">{hostName}</p>
         </div>
       </Card>
     </div>

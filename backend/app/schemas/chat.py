@@ -20,7 +20,8 @@ from app.models.user import User
 
 BODY_MAX: Final = 2000
 CLIENT_ID_MAX: Final = 64
-FORMER_MEMBER_NAME: Final = "Former participant"  # left the event or deleted the account
+FORMER_MEMBER_NAME: Final = "Former participant"  # left or was removed from the event
+DELETED_USER_NAME: Final = "Deleted user"  # deleted their account (FR-ACC-3)
 
 ConversationKindName = Literal["direct", "anonymous", "group"]
 StartKind = Literal["direct", "anonymous"]
@@ -38,9 +39,12 @@ class MemberPublic(BaseModel):
     is_self: bool
     is_anonymous: bool
     anon_number: int | None
-    # No longer in the event (left, removed, or deleted their account): shown as a former
-    # participant; their past messages stay.
+    # No longer in the event (left or removed): shown as a former participant; their past
+    # messages stay.
     is_former: bool
+    # Deleted their account: shown as "Deleted user"; their messages are emptied.
+    # Never set for anonymous members, who stay "Secret Elf #N" (CLAUDE.md §2.2).
+    is_deleted: bool
 
 
 def build_member_public(member: ConversationMember, viewer: User) -> MemberPublic:
@@ -55,18 +59,23 @@ def build_member_public(member: ConversationMember, viewer: User) -> MemberPubli
             is_self=member.user_id is not None and member.user_id == viewer.id,
             is_anonymous=True,
             anon_number=member.anon_number,
-            is_former=member.user_id is None,
+            # Always false: flagging a vanished initiator would let the recipient match the
+            # alias to whoever just left or deleted their account.
+            is_former=False,
+            is_deleted=False,
         )
     user = member.user
     if user is None:
+        deleted = bool(member.account_deleted)  # None on an unsaved row
         return MemberPublic(
             id=member.id,
-            display_name=FORMER_MEMBER_NAME,
+            display_name=DELETED_USER_NAME if deleted else FORMER_MEMBER_NAME,
             avatar_url=None,
             is_self=False,
             is_anonymous=False,
             anon_number=None,
-            is_former=True,
+            is_former=not deleted,
+            is_deleted=deleted,
         )
     return MemberPublic(
         id=member.id,
@@ -76,6 +85,7 @@ def build_member_public(member: ConversationMember, viewer: User) -> MemberPubli
         is_anonymous=False,
         anon_number=None,
         is_former=False,
+        is_deleted=False,
     )
 
 

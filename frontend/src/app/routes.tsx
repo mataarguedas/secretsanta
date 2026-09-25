@@ -10,7 +10,7 @@ import { ProfilePage } from '@/features/profile/pages/ProfilePage';
 import { AppLayout } from './layout/AppLayout';
 import { HomeRoute } from './pages/HomeRoute';
 import { NotFoundPage } from './pages/NotFoundPage';
-import { PlaceholderPage } from './pages/PlaceholderPage';
+import { LegalPage } from './pages/LegalPage';
 import { ProtectedRoute } from './ProtectedRoute';
 
 // Dev-only routes. `import.meta.env.DEV` is statically false in production builds, so the
@@ -24,15 +24,15 @@ const devRoutes: RouteObject[] = import.meta.env.DEV
     ]
   : [];
 
-/** Every route from CLAUDE.md §8. Placeholders are replaced feature by feature. */
+/** Every route from CLAUDE.md §8. */
 export const routes: RouteObject[] = [
   {
     element: <AppLayout />,
     children: [
       // Public: the landing (or dashboard when signed in), legal pages, 404, dev showcase.
       { index: true, element: <HomeRoute /> },
-      { path: 'privacy', element: <PlaceholderPage titleKey="legal.privacy.title" /> },
-      { path: 'terms', element: <PlaceholderPage titleKey="legal.terms.title" /> },
+      { path: 'privacy', element: <LegalPage doc="privacy" /> },
+      { path: 'terms', element: <LegalPage doc="terms" /> },
       {
         element: <ProtectedRoute />,
         children: [

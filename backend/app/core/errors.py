@@ -71,6 +71,8 @@ ERROR_REGISTRY: Final[dict[str, str]] = {
     # Push (Prompt 24)
     "PUSH_NOT_CONFIGURED": "Push notifications aren't set up on this server.",
     "PUSH_SUBSCRIPTION_NOT_FOUND": "That device isn't registered for notifications.",
+    # Account (Prompt 28)
+    "ACCOUNT_IN_ACTIVE_DRAW": "You can't delete your account while you're in a drawn event.",
 }
 
 _STATUS_TO_CODE: Final[dict[int, str]] = {

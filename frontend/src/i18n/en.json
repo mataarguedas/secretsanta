@@ -1,7 +1,6 @@
 {
   "app": {
     "name": "Secret Santa",
-    "placeholder": "This screen is coming soon.",
     "notFound": {
       "title": "We couldn't find this page",
       "body": "The link may be broken or the page no longer exists.",
@@ -249,7 +248,8 @@
         "wishlists": "Wishlists",
         "chat": "Chat",
         "manage": "Manage"
-      }
+      },
+      "deletedHost": "Deleted user"
     },
     "manage": {
       "edit": {
@@ -542,7 +542,8 @@
     "member": {
       "anonymous": "Secret Elf #{{n}}",
       "former": "Former participant",
-      "you": "You"
+      "you": "You",
+      "deleted": "Deleted user"
     },
     "thread": {
       "title": "Conversation",
@@ -613,7 +614,27 @@
       },
       "saved": "Language updated."
     },
-    "signOut": "Sign out"
+    "signOut": "Sign out",
+    "delete": {
+      "section": "Delete account",
+      "title": "Delete your account?",
+      "body": "Erase your profile, wishlists, photos and devices. Messages you sent are emptied. This can't be undone.",
+      "open": "Delete account",
+      "loading": "Checking your events…",
+      "retry": "Try again",
+      "blocked": "You can't delete your account yet: you're in an event whose draw has already happened, and leaving it would break the chain of gifts.",
+      "blockingLabel": "Drawn events",
+      "blockedHint": "You can delete your account once these events are archived (7 days after their exchange).",
+      "warning": "Your profile, wishlists, photos, devices and sessions will be erased, and the messages you sent will be emptied. Archived events stay for the other participants.",
+      "hostedIntro": "These events you host haven't been drawn yet. They'll be deleted too, for everyone in them:",
+      "hostedLabel": "Events that will be deleted",
+      "confirmWord": "DELETE",
+      "typeLabel": "Type {{word}} to confirm",
+      "cancel": "Cancel",
+      "close": "Got it",
+      "confirm": "Delete my account",
+      "done": "Your account has been deleted."
+    }
   },
   "notifications": {
     "title": "Notifications",
@@ -694,10 +715,68 @@
   },
   "legal": {
     "privacy": {
-      "title": "Privacy Policy"
+      "title": "Privacy Policy",
+      "sections": {
+        "collect": {
+          "title": "What we collect",
+          "body": "When you sign in with Google we receive your name, email address and profile photo. Everything else is what you add: events, wishlists with their photos, exclusion rules and chat messages. If you turn on notifications, we store your device's push subscription."
+        },
+        "use": {
+          "title": "How we use it",
+          "body": "Only to run your gift exchanges: showing events and wishlists to their participants, running the draw, delivering messages and sending the notifications you chose. We don't sell your data or show ads."
+        },
+        "visibility": {
+          "title": "Who sees what",
+          "body": "Participants of an event see its wishlists and each other's names. Only you can see whom you give to; not even the host can. If you start an anonymous chat, the other person only ever sees a \"Secret Elf\" number."
+        },
+        "storage": {
+          "title": "Where it is stored",
+          "body": "Data is kept on our servers and photos in private cloud storage. Photos are stripped of location and other metadata when you upload them."
+        },
+        "deletion": {
+          "title": "Deleting your data",
+          "body": "You can delete your account from your Profile at any time, except while you're in an event that has been drawn. Deleting it erases your profile, wishlists, photos and devices, and empties the messages you sent."
+        },
+        "contact": {
+          "title": "Contact",
+          "body": "Questions about your data can be sent to the people who run this app. Contact details will be added in the final version."
+        }
+      }
     },
     "terms": {
-      "title": "Terms of Service"
+      "title": "Terms of Service",
+      "sections": {
+        "use": {
+          "title": "Using Secret Santa",
+          "body": "Secret Santa helps groups organize gift exchanges. You need a Google account to use it, and you're responsible for what you do with it."
+        },
+        "content": {
+          "title": "Your content",
+          "body": "You keep ownership of what you add. Only add photos and text you have the right to share, and be kind: anonymous chats are for gift hints, not for harassment."
+        },
+        "events": {
+          "title": "Events and the draw",
+          "body": "The host runs the event and triggers the draw. After the draw, no one can join or leave, and it can't be redrawn."
+        },
+        "availability": {
+          "title": "Availability",
+          "body": "The app is offered as is, without guarantees that it will always be available or free of errors. Notifications depend on your browser and device."
+        },
+        "changes": {
+          "title": "Changes",
+          "body": "These terms may change. We'll update this page when they do."
+        }
+      }
+    },
+    "updated": "Draft version, September 2026.",
+    "placeholder": {
+      "eyebrow": "Placeholder",
+      "body": "Placeholder — final text pending. This page summarizes how Secret Santa works today; it is not the final legal text."
+    },
+    "links": {
+      "label": "Legal",
+      "privacy": "Privacy Policy",
+      "terms": "Terms of Service"
     }
   },
   "errors": {
@@ -744,6 +823,7 @@
     "INVALID_FRAME": "That WebSocket frame isn't valid.",
     "PUSH_NOT_CONFIGURED": "Push notifications aren't set up on this server.",
     "PUSH_SUBSCRIPTION_NOT_FOUND": "That device isn't registered for notifications anymore.",
-    "ARCHIVE_TOO_EARLY": "An event can be archived only after its exchange date."
+    "ARCHIVE_TOO_EARLY": "An event can be archived only after its exchange date.",
+    "ACCOUNT_IN_ACTIVE_DRAW": "You can't delete your account while you're in an event that has been drawn."
   }
 }

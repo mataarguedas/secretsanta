@@ -3,7 +3,12 @@
 import uuid
 
 from app.models import ConversationMember, User
-from app.schemas.chat import FORMER_MEMBER_NAME, MemberPublic, build_member_public
+from app.schemas.chat import (
+    DELETED_USER_NAME,
+    FORMER_MEMBER_NAME,
+    MemberPublic,
+    build_member_public,
+)
 
 ANON_USER = User(
     id=uuid.uuid4(),
@@ -46,6 +51,7 @@ def test_anonymous_member_seen_by_the_recipient() -> None:
         "is_anonymous": True,
         "anon_number": 7,
         "is_former": False,
+        "is_deleted": False,
     }
     assert_hides_initiator(public)
 
@@ -105,3 +111,36 @@ def test_a_former_member_is_shown_as_such() -> None:
         False,
         None,
     )
+
+
+def test_a_deleted_account_is_shown_as_deleted_user() -> None:
+    member = ConversationMember(
+        id=uuid.uuid4(),
+        conversation_id=uuid.uuid4(),
+        event_id=uuid.uuid4(),
+        user_id=None,
+        account_deleted=True,
+    )
+    member.user = None
+    public = build_member_public(member, RECIPIENT)
+    assert (public.display_name, public.is_deleted, public.is_former, public.avatar_url) == (
+        DELETED_USER_NAME,
+        True,
+        False,
+        None,
+    )
+
+
+def test_a_deleted_anonymous_initiator_is_still_only_the_alias() -> None:
+    """Nothing tells the recipient that the elf's account is gone: that would let them
+    match the alias to whoever just deleted their account."""
+    member = anonymous_member()
+    member.user_id = None
+    member.account_deleted = True
+    public = build_member_public(member, RECIPIENT)
+    assert (public.display_name, public.is_deleted, public.is_former) == (
+        "Secret Elf #7",
+        False,
+        False,
+    )
+    assert_hides_initiator(public)

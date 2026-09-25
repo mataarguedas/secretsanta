@@ -1,7 +1,6 @@
 {
   "app": {
     "name": "Secret Santa",
-    "placeholder": "Esta pantalla llega pronto.",
     "notFound": {
       "title": "No encontramos esta página",
       "body": "El enlace puede estar roto o la página ya no existe.",
@@ -249,7 +248,8 @@
         "wishlists": "Listas de deseos",
         "chat": "Chat",
         "manage": "Administrar"
-      }
+      },
+      "deletedHost": "Usuario eliminado"
     },
     "manage": {
       "edit": {
@@ -542,7 +542,8 @@
     "member": {
       "anonymous": "Elfo secreto #{{n}}",
       "former": "Ex participante",
-      "you": "Tú"
+      "you": "Tú",
+      "deleted": "Usuario eliminado"
     },
     "thread": {
       "title": "Conversación",
@@ -613,7 +614,27 @@
       },
       "saved": "Idioma actualizado."
     },
-    "signOut": "Cerrar sesión"
+    "signOut": "Cerrar sesión",
+    "delete": {
+      "section": "Eliminar cuenta",
+      "title": "¿Eliminar tu cuenta?",
+      "body": "Borra tu perfil, tus listas de deseos, tus fotos y tus dispositivos. Los mensajes que enviaste se vacían. No se puede deshacer.",
+      "open": "Eliminar cuenta",
+      "loading": "Revisando tus eventos…",
+      "retry": "Reintentar",
+      "blocked": "Todavía no puedes eliminar tu cuenta: estás en un evento que ya se sorteó, y salirte rompería la cadena de regalos.",
+      "blockingLabel": "Eventos sorteados",
+      "blockedHint": "Podrás eliminar tu cuenta cuando estos eventos se archiven (7 días después del intercambio).",
+      "warning": "Se borrarán tu perfil, tus listas de deseos, tus fotos, tus dispositivos y tus sesiones, y se vaciarán los mensajes que enviaste. Los eventos archivados se mantienen para los demás participantes.",
+      "hostedIntro": "Estos eventos que organizas aún no se han sorteado. También se eliminarán, para todas las personas que están en ellos:",
+      "hostedLabel": "Eventos que se eliminarán",
+      "confirmWord": "ELIMINAR",
+      "typeLabel": "Escribe {{word}} para confirmar",
+      "cancel": "Cancelar",
+      "close": "Entendido",
+      "confirm": "Eliminar mi cuenta",
+      "done": "Tu cuenta se eliminó."
+    }
   },
   "notifications": {
     "title": "Notificaciones",
@@ -694,10 +715,68 @@
   },
   "legal": {
     "privacy": {
-      "title": "Política de privacidad"
+      "title": "Política de privacidad",
+      "sections": {
+        "collect": {
+          "title": "Qué recopilamos",
+          "body": "Cuando entras con Google recibimos tu nombre, tu correo y tu foto de perfil. Todo lo demás lo agregas tú: eventos, listas de deseos con sus fotos, reglas de exclusión y mensajes de chat. Si activas las notificaciones, guardamos la suscripción push de tu dispositivo."
+        },
+        "use": {
+          "title": "Para qué lo usamos",
+          "body": "Solo para organizar tus intercambios: mostrar eventos y listas a sus participantes, hacer el sorteo, entregar mensajes y enviar las notificaciones que elegiste. No vendemos tus datos ni mostramos anuncios."
+        },
+        "visibility": {
+          "title": "Quién ve qué",
+          "body": "Los participantes de un evento ven sus listas de deseos y los nombres de los demás. Solo tú ves a quién le regalas; ni siquiera quien organiza. Si inicias un chat anónimo, la otra persona solo ve un número de «Elfo secreto»."
+        },
+        "storage": {
+          "title": "Dónde se guarda",
+          "body": "Los datos se guardan en nuestros servidores y las fotos en almacenamiento privado en la nube. Al subir una foto le quitamos la ubicación y demás metadatos."
+        },
+        "deletion": {
+          "title": "Borrar tus datos",
+          "body": "Puedes eliminar tu cuenta desde tu Perfil cuando quieras, excepto mientras estés en un evento ya sorteado. Al eliminarla se borran tu perfil, tus listas, tus fotos y tus dispositivos, y se vacían los mensajes que enviaste."
+        },
+        "contact": {
+          "title": "Contacto",
+          "body": "Las consultas sobre tus datos se pueden enviar a quienes administran esta app. Los datos de contacto se agregarán en la versión final."
+        }
+      }
     },
     "terms": {
-      "title": "Términos del servicio"
+      "title": "Términos del servicio",
+      "sections": {
+        "use": {
+          "title": "Uso de Secret Santa",
+          "body": "Secret Santa ayuda a grupos a organizar intercambios de regalos. Necesitas una cuenta de Google para usarla y eres responsable de lo que hagas con ella."
+        },
+        "content": {
+          "title": "Tu contenido",
+          "body": "Lo que agregas sigue siendo tuyo. Sube solo fotos y textos que tengas derecho a compartir, y sé amable: los chats anónimos son para pistas de regalos, no para molestar a nadie."
+        },
+        "events": {
+          "title": "Eventos y sorteo",
+          "body": "Quien organiza administra el evento y hace el sorteo. Después del sorteo nadie puede entrar ni salir, y no se puede repetir."
+        },
+        "availability": {
+          "title": "Disponibilidad",
+          "body": "La app se ofrece tal como está, sin garantía de que siempre esté disponible o libre de errores. Las notificaciones dependen de tu navegador y tu dispositivo."
+        },
+        "changes": {
+          "title": "Cambios",
+          "body": "Estos términos pueden cambiar. Si cambian, actualizaremos esta página."
+        }
+      }
+    },
+    "updated": "Versión borrador, septiembre de 2026.",
+    "placeholder": {
+      "eyebrow": "Provisional",
+      "body": "Texto provisional: la versión final está pendiente. Esta página resume cómo funciona Secret Santa hoy; no es el texto legal definitivo."
+    },
+    "links": {
+      "label": "Legal",
+      "privacy": "Política de privacidad",
+      "terms": "Términos del servicio"
     }
   },
   "errors": {
@@ -744,6 +823,7 @@
     "INVALID_FRAME": "Ese mensaje del WebSocket no es válido.",
     "PUSH_NOT_CONFIGURED": "Las notificaciones no están configuradas en este servidor.",
     "PUSH_SUBSCRIPTION_NOT_FOUND": "Ese dispositivo ya no está registrado para notificaciones.",
-    "ARCHIVE_TOO_EARLY": "Un evento solo se puede archivar después de la fecha del intercambio."
+    "ARCHIVE_TOO_EARLY": "Un evento solo se puede archivar después de la fecha del intercambio.",
+    "ACCOUNT_IN_ACTIVE_DRAW": "No puedes eliminar tu cuenta mientras estés en un evento que ya se sorteó."
   }
 }

@@ -33,14 +33,29 @@ describe('ProfilePage', () => {
     expect(document.title).toBe('Secret Santa · Perfil');
   });
 
-  it('shows only the sections that exist (no empty placeholders)', async () => {
+  it('shows every section in order, Delete account last', async () => {
     await renderProfile();
     const headings = within(screen.getByRole('main')).getAllByRole('heading', { level: 2 });
     expect(headings.map((h) => h.textContent)).toEqual([
       'Idioma',
       'Notificaciones',
       'Dispositivos',
+      'Legal',
+      'Eliminar cuenta',
     ]);
+  });
+
+  it('links the privacy and terms pages', async () => {
+    await renderProfile();
+    const legal = screen.getByRole('region', { name: 'Legal' });
+    expect(within(legal).getByRole('link', { name: 'Política de privacidad' })).toHaveAttribute(
+      'href',
+      '/privacy',
+    );
+    expect(within(legal).getByRole('link', { name: 'Términos del servicio' })).toHaveAttribute(
+      'href',
+      '/terms',
+    );
   });
 
   it('language switch: PATCHes /me, switches instantly and toasts in the new language', async () => {

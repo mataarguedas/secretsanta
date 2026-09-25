@@ -114,6 +114,12 @@ class ConversationMember(UUIDPrimaryKeyMixin, TimestampMixin, Base):
         Boolean, nullable=False, default=False, server_default=false()
     )
     anon_number: Mapped[int | None] = mapped_column(SmallInteger, nullable=True)
+    # The user deleted their account (FR-ACC-3): ``user_id`` is NULL and a named member is
+    # shown as "Deleted user" rather than a former participant. Anonymous rows stay
+    # "Secret Elf #N" whatever this says: it is never serialized for them.
+    account_deleted: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=False, server_default=false()
+    )
     # Private to this member: never shown to anyone else (no read receipts).
     last_read_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 

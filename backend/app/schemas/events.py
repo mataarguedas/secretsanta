@@ -135,7 +135,7 @@ class EventDetail(BaseModel):
     state: EventStateName
     drawn_at: datetime | None
     archived_at: datetime | None
-    host: UserPublic
+    host: UserPublic | None  # None: an archived event whose host deleted their account
     participant_count: int
     # Presigned (1 h) GET URLs, or null without a cover (PRD §8 Photo URLs).
     cover_url: str | None = None

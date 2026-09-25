@@ -22,6 +22,8 @@ export interface MemberPublic {
   is_anonymous: boolean;
   anon_number: number | null;
   is_former: boolean;
+  /** Deleted their account: "Deleted user". Never true for an anonymous member. */
+  is_deleted: boolean;
 }
 
 export interface MessagePublic {

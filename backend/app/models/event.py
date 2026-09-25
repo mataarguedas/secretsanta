@@ -41,8 +41,12 @@ class Event(UUIDPrimaryKeyMixin, TimestampMixin, Base):
         Index("ix_events_state_exchange_at", "state", "exchange_at"),
     )
 
-    host_id: Mapped[uuid.UUID] = mapped_column(
-        Uuid(as_uuid=True), ForeignKey("users.id"), nullable=False, index=True
+    # NULL only for an ARCHIVED event whose host deleted their account (FR-ACC-3): the
+    # event stays readable for everyone else and the UI shows "Deleted user". No ON DELETE
+    # rule on purpose: account deletion clears or deletes every hosted event itself, so a
+    # host row that slipped through fails loudly instead of orphaning an active event.
+    host_id: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid(as_uuid=True), ForeignKey("users.id"), nullable=True, index=True
     )
     name: Mapped[str] = mapped_column(Text, nullable=False)
     description: Mapped[str | None] = mapped_column(Text, nullable=True)

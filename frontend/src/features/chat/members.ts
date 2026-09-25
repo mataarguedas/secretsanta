@@ -10,6 +10,7 @@ export function memberName(t: TFunction, member: MemberPublic): string {
   if (member.is_anonymous && member.anon_number !== null) {
     return t('chat.member.anonymous', { n: member.anon_number });
   }
+  if (member.is_deleted) return t('chat.member.deleted');
   if (member.is_former) return t('chat.member.former');
   return member.display_name;
 }

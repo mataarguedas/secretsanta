@@ -37,3 +37,26 @@ class MeUpdate(BaseModel):
         if nulls:
             raise ValueError(f"must not be null: {', '.join(sorted(nulls))}")
         return self
+
+
+class EventRefOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: uuid.UUID
+    name: str
+
+
+class HostedEventRefOut(EventRefOut):
+    participant_count: int
+
+
+class DeletionPreviewOut(BaseModel):
+    """``GET /me/deletion-preview``: what ``DELETE /me`` would do (FR-ACC-3)."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    blocked: bool
+    # DRAWN events the user is in: deletion is refused until they are archived.
+    blocking_events: list[EventRefOut]
+    # OPEN events the user hosts: deleted together with the account.
+    hosted_open_events: list[HostedEventRefOut]

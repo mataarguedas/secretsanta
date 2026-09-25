@@ -7,15 +7,16 @@ import { NotificationSettings } from '@/features/notifications/components/Notifi
 import { errorMessage } from '@/lib/errors';
 import { useDocumentTitle } from '@/lib/useDocumentTitle';
 
+import { DeleteAccountSection } from '../components/DeleteAccountSection';
 import { LanguageSetting } from '../components/LanguageSetting';
+import { LegalLinks } from '../components/LegalLinks';
 import { ProfileSection } from '../components/ProfileSection';
 
 /**
  * `/profile` (PRD §9.3.8, FR-ACC-1/2). Identity comes from Google and is read-only.
  * Settings are `ProfileSection`s, added in order as their prompts land:
- * Language → Notifications (the install guide on iOS) → Devices → Legal links → Delete
- * account.
- * Nothing is rendered for a section that doesn't exist yet.
+ * Language → Notifications (the install guide on iOS) → Devices → Legal links, then Sign
+ * out, and Delete account last (a secondary pill, never coral).
  */
 export function ProfilePage() {
   const { t } = useTranslation();
@@ -49,6 +50,9 @@ export function ProfilePage() {
         <ProfileSection title={t('notifications.devices.title')}>
           <DeviceList />
         </ProfileSection>
+        <ProfileSection title={t('legal.links.label')}>
+          <LegalLinks />
+        </ProfileSection>
       </div>
 
       <div>
@@ -64,6 +68,10 @@ export function ProfilePage() {
           {t('profile.signOut')}
         </Button>
       </div>
+
+      <ProfileSection title={t('profile.delete.section')}>
+        <DeleteAccountSection />
+      </ProfileSection>
     </>
   );
 }

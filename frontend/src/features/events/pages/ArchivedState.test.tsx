@@ -155,6 +155,18 @@ describe('Archived event', () => {
     expect(await axe(container)).toHaveNoViolations();
   });
 
+  it('a host who deleted their account shows as "Deleted user"', async () => {
+    const { draw_readiness: _hostOnly, ...rest } = archived({
+      my_role: 'participant',
+      invite_token: null,
+      host: null,
+    });
+    await open(rest, '/events/e1');
+    const host = screen.getByRole('region', { name: 'Organiza' });
+    expect(within(host).getByText('Usuario eliminado')).toBeInTheDocument();
+    expect(within(host).getByRole('img', { name: 'Usuario eliminado' })).toBeInTheDocument();
+  });
+
   it('Participants: no Remove buttons', async () => {
     await open(archived(), '/events/e1/participants');
     const list = await screen.findByRole('list', { name: 'Participantes' });

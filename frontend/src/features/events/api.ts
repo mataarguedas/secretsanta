@@ -46,7 +46,8 @@ export interface EventDetail {
   state: EventState;
   drawn_at: string | null;
   archived_at: string | null;
-  host: UserPublic;
+  /** null: an archived event whose host deleted their account ("Deleted user"). */
+  host: UserPublic | null;
   participant_count: number;
   /** Presigned (1 h) URLs, or null without a cover. */
   cover_url: string | null;

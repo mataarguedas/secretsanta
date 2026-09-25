@@ -1,4 +1,4 @@
-import { screen } from '@testing-library/react';
+import { screen, within } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import { axe } from 'vitest-axe';
 
@@ -71,6 +71,19 @@ describe('LandingPage', () => {
       initialEntries: [`/?auth_error=${encodeURIComponent(code)}`],
     });
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+  });
+
+  it('links the privacy and terms pages from its footer', () => {
+    renderWithProviders(<LandingPage />);
+    const footer = screen.getByRole('contentinfo', { name: 'Legal' });
+    expect(within(footer).getByRole('link', { name: 'Política de privacidad' })).toHaveAttribute(
+      'href',
+      '/privacy',
+    );
+    expect(within(footer).getByRole('link', { name: 'Términos del servicio' })).toHaveAttribute(
+      'href',
+      '/terms',
+    );
   });
 
   it('has no axe violations', async () => {

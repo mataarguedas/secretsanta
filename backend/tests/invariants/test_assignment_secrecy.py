@@ -39,6 +39,7 @@ GET_ROUTES: dict[str, RouteCalls] = {
     f"{API}/auth/google/login": lambda d: [f"{API}/auth/google/login"],
     f"{API}/auth/google/callback": lambda d: [f"{API}/auth/google/callback"],
     f"{API}/me": lambda d: [f"{API}/me"],
+    f"{API}/me/deletion-preview": lambda d: [f"{API}/me/deletion-preview"],
     f"{API}/events": lambda d: [
         f"{API}/events?section={section}" for section in ("hosting", "participating", "past")
     ],

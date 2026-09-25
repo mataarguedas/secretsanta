@@ -93,10 +93,13 @@ async def count_participants(session: AsyncSession, event_id: uuid.UUID) -> int:
 
 async def build_event_detail(session: AsyncSession, event: Event, viewer: User) -> EventDetail:
     """The detail view for a participant; the host's view adds ``invite_token``."""
-    host = viewer if viewer.id == event.host_id else await session.get(User, event.host_id)
-    if host is None:  # pragma: no cover - host_id is a NOT NULL FK
-        raise AppError("EVENT_NOT_FOUND", 404)
     is_host = viewer.id == event.host_id
+    if is_host:
+        host: User | None = viewer
+    elif event.host_id is None:  # a deleted host's archived event (FR-ACC-3)
+        host = None
+    else:
+        host = await session.get(User, event.host_id)
     cover_url, cover_thumb_url = cover_urls(event)
     fields: dict[str, Any] = {
         "id": event.id,
@@ -111,7 +114,9 @@ async def build_event_detail(session: AsyncSession, event: Event, viewer: User) 
         "state": event.state,
         "drawn_at": event.drawn_at,
         "archived_at": event.archived_at,
-        "host": UserPublic(id=host.id, name=host.name, avatar_url=host.avatar_url),
+        "host": UserPublic(id=host.id, name=host.name, avatar_url=host.avatar_url)
+        if host
+        else None,
         "participant_count": await count_participants(session, event.id),
         "cover_url": cover_url,
         "cover_thumb_url": cover_thumb_url,
@@ -323,14 +328,23 @@ async def remove_participant(session: AsyncSession, event: Event, user_id: uuid.
     """
     if user_id == event.host_id:
         raise AppError("HOST_CANNOT_LEAVE", 409)
+    await detach_participant(session, event.id, user_id)
+    await session.commit()
+
+
+async def detach_participant(
+    session: AsyncSession, event_id: uuid.UUID, user_id: uuid.UUID
+) -> None:
+    """Everything a participant owns inside an OPEN event, without committing: the roster
+    row, their exclusions, their wishlist (photos: R2 cleanup after the commit) and their
+    group-chat membership (their messages stay). Also the account-deletion path."""
     result = await session.execute(
         delete(EventParticipant).where(
-            EventParticipant.event_id == event.id, EventParticipant.user_id == user_id
+            EventParticipant.event_id == event_id, EventParticipant.user_id == user_id
         )
     )
     if getattr(result, "rowcount", 0) == 0:
         raise AppError("PARTICIPANT_NOT_FOUND", 404)
-    await delete_user_exclusions(session, event.id, user_id)  # FR-EXC-3, same transaction
-    await delete_user_items(session, event.id, user_id)  # photos: R2 cleanup after commit
-    await chat_service.detach_group_member(session, event.id, user_id)  # messages stay
-    await session.commit()
+    await delete_user_exclusions(session, event_id, user_id)  # FR-EXC-3, same transaction
+    await delete_user_items(session, event_id, user_id)
+    await chat_service.detach_group_member(session, event_id, user_id)

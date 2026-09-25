@@ -6,7 +6,6 @@ Every roster-changing action returns 409 ``EVENT_ALREADY_DRAWN`` and changes not
 import uuid
 
 import httpx
-import pytest
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
@@ -91,14 +90,25 @@ async def test_archived_roster_is_frozen_too(
     assert await counts(db, drawn.id) == before
 
 
-@pytest.mark.xfail(
-    reason="Prompt 28: DELETE /me must refuse with ACCOUNT_IN_ACTIVE_DRAW", strict=True
-)
 async def test_account_deletion_is_refused_during_a_draw(
     client: httpx.AsyncClient, db: async_sessionmaker[AsyncSession]
 ) -> None:
-    await drawn_event(client, db)
+    drawn = await drawn_event(client, db)
+    before = await counts(db, drawn.id)
+    # Any participant, the host included: nobody can leave the chain by deleting themselves.
+    for person in (BETO, ANA):
+        await login_as(client, *person)
+        response = await client.delete("/api/v1/me", headers=CSRF)
+        assert response.status_code == 409
+        assert response.json()["error"]["code"] == "ACCOUNT_IN_ACTIVE_DRAW"
+        assert (await client.get("/api/v1/me")).status_code == 200
+    assert await counts(db, drawn.id) == before
+
+
+async def test_account_deletion_is_allowed_once_archived(
+    client: httpx.AsyncClient, db: async_sessionmaker[AsyncSession]
+) -> None:
+    drawn = await drawn_event(client, db)
+    await set_state(db, drawn.id, "archived")
     await login_as(client, *BETO)
-    response = await client.delete("/api/v1/me", headers=CSRF)
-    assert response.status_code == 409
-    assert response.json()["error"]["code"] == "ACCOUNT_IN_ACTIVE_DRAW"
+    assert (await client.delete("/api/v1/me", headers=CSRF)).status_code == 204

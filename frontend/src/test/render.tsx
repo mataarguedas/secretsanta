@@ -20,6 +20,7 @@ import type { Exclusion, ExclusionList } from '@/features/exclusions/api';
 import type { CopySource, ItemPayload, Wishlist, WishlistItem } from '@/features/wishlist/api';
 import type { InvitePreview } from '@/features/invites/api';
 import type { PushDevice } from '@/features/notifications/api';
+import type { DeletionPreview } from '@/features/profile/api';
 import i18n from '@/i18n';
 
 export function createTestQueryClient(): QueryClient {
@@ -133,6 +134,8 @@ export function mockSession({
   sendFails,
   devices = [],
   vapidKey = TEST_VAPID_KEY,
+  deletionPreview = { blocked: false, blocking_events: [], hosted_open_events: [] },
+  deleteMe,
 }: {
   me: Me | null;
   /** Make `PATCH /me` fail with this status (e.g. 500) instead of saving. */
@@ -195,6 +198,10 @@ export function mockSession({
   devices?: PushDevice[];
   /** `GET /push/vapid-public-key`; `null` = 503 PUSH_NOT_CONFIGURED. */
   vapidKey?: string | null;
+  /** `GET /me/deletion-preview`, or a Response to return instead (e.g. a 500). */
+  deletionPreview?: DeletionPreview | Response;
+  /** `DELETE /me` (default: 204, then signed out: `/me` is 401). */
+  deleteMe?: () => Response;
 }) {
   const myDevices = new Map(devices.map((d) => [d.id, d]));
   const deviceByEndpoint = new Map<string, string>();
@@ -226,6 +233,18 @@ export function mockSession({
       return Promise.resolve(
         me ? jsonResponse(200, { status: 'ok' }) : jsonResponse(401, REFRESH_INVALID),
       );
+    }
+    if (url === '/api/v1/me/deletion-preview' && me) {
+      return Promise.resolve(
+        deletionPreview instanceof Response
+          ? deletionPreview.clone()
+          : jsonResponse(200, deletionPreview),
+      );
+    }
+    if (url === '/api/v1/me' && method === 'DELETE' && me) {
+      const response = deleteMe ? deleteMe() : new Response(null, { status: 204 });
+      if (response.ok) me = null;
+      return Promise.resolve(response);
     }
     if (url === '/api/v1/me' && method === 'PATCH' && me) {
       if (patchError) {
@@ -421,6 +440,7 @@ export function mockSession({
         is_anonymous: kind === 'anonymous',
         anon_number: kind === 'anonymous' ? 7 : null,
         is_former: false,
+        is_deleted: false,
       };
       const other: MemberPublic = {
         id: `mem-${recipientId}`,
@@ -430,6 +450,7 @@ export function mockSession({
         is_anonymous: false,
         anon_number: null,
         is_former: false,
+        is_deleted: false,
       };
       const created: ConversationDetail = {
         id: `conv-new-${String(convSeq)}`,
@@ -809,6 +830,7 @@ export function member(overrides: Partial<MemberPublic> = {}): MemberPublic {
     is_anonymous: false,
     anon_number: null,
     is_former: false,
+    is_deleted: false,
     ...overrides,
   };
 }
