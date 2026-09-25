@@ -8,6 +8,7 @@ import { thisDeviceId, useDevices, useSendTestPush } from '../api';
 import { usePushSupport } from '../support';
 import { EnableNotificationsButton } from './EnableNotificationsButton';
 import { IosInstallGuide } from './IosInstallGuide';
+import { NotificationPreferences } from './NotificationPreferences';
 
 /** The dev-only test push. `import.meta.env.PROD` is statically true in production builds. */
 const TEST_PUSH_AVAILABLE = !import.meta.env.PROD;
@@ -16,6 +17,7 @@ const TEST_PUSH_AVAILABLE = !import.meta.env.PROD;
  * Profile › Notifications (FR-NTF-9, PRD §9.3.8): this device's state and the one way to
  * change it. iOS in a browser tab → the install guide; blocked → how to unblock; on and
  * registered → a confirmation (and, outside production, "Send test notification").
+ * Below, what to be notified about: account-wide, so shown whatever this device can do.
  */
 export function NotificationSettings() {
   const { t } = useTranslation();
@@ -65,8 +67,8 @@ export function NotificationSettings() {
   return (
     <>
       {body}
-      {/* TODO(prompt 25): the per-type toggles (message, wishlist_updated, exchange_reminder). */}
       {TEST_PUSH_AVAILABLE && (devices.data?.length ?? 0) > 0 && <SendTestPush />}
+      <NotificationPreferences />
     </>
   );
 }

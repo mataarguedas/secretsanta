@@ -4,14 +4,17 @@ archived events are read-only) through the shared dependencies."""
 import uuid
 from typing import cast
 
+from redis.asyncio import Redis
 from sqlalchemy import ColumnElement, delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.core.errors import AppError
+from app.core.logging import get_logger
 from app.models.event import Event, EventParticipant, EventState
 from app.models.user import User
 from app.models.wishlist import WishlistItem, WishlistPhoto
+from app.notifications.keys import WISHLIST_DEBOUNCE_SECONDS, wishlist_debounce_key
 from app.schemas.events import UserPublic
 from app.schemas.wishlists import (
     ItemCreate,
@@ -22,7 +25,9 @@ from app.schemas.wishlists import (
     WishlistOut,
 )
 from app.storage.r2 import get_storage
-from app.worker.queue import enqueue_after_commit
+from app.worker.queue import enqueue_after_commit, enqueue_committed
+
+log = get_logger(__name__)
 
 # ── Reads ────────────────────────────────────────────────────────────────────
 
@@ -96,7 +101,7 @@ async def reload_item(session: AsyncSession, item_id: uuid.UUID) -> WishlistItem
 
 
 async def create_item(
-    session: AsyncSession, event: Event, owner_id: uuid.UUID, data: ItemCreate
+    session: AsyncSession, redis: "Redis", event: Event, owner_id: uuid.UUID, data: ItemCreate
 ) -> ItemOut:
     """Appends at the end of the owner's list."""
     last = await session.scalar(
@@ -112,21 +117,23 @@ async def create_item(
     )
     session.add(item)
     await session.commit()
-    await on_wishlist_changed_if_drawn(event, owner_id)
+    await on_wishlist_changed_if_drawn(session, redis, event, owner_id)
     return item_out(await reload_item(session, item.id))
 
 
 async def update_item(
-    session: AsyncSession, event: Event, item: WishlistItem, changes: ItemUpdate
+    session: AsyncSession, redis: "Redis", event: Event, item: WishlistItem, changes: ItemUpdate
 ) -> ItemOut:
     for field, value in changes.model_dump(exclude_unset=True).items():
         setattr(item, field, value)
     await session.commit()
-    await on_wishlist_changed_if_drawn(event, item.user_id)
+    await on_wishlist_changed_if_drawn(session, redis, event, item.user_id)
     return item_out(await reload_item(session, item.id))
 
 
-async def delete_item(session: AsyncSession, event: Event, item: WishlistItem) -> None:
+async def delete_item(
+    session: AsyncSession, redis: "Redis", event: Event, item: WishlistItem
+) -> None:
     """The photos' storage objects are deleted by the worker after the commit."""
     keys = await _photo_keys(session, WishlistPhoto.item_id == item.id)
     if keys:
@@ -134,11 +141,15 @@ async def delete_item(session: AsyncSession, event: Event, item: WishlistItem) -
     owner_id = item.user_id
     await session.execute(delete(WishlistItem).where(WishlistItem.id == item.id))
     await session.commit()
-    await on_wishlist_changed_if_drawn(event, owner_id)
+    await on_wishlist_changed_if_drawn(session, redis, event, owner_id)
 
 
 async def reorder(
-    session: AsyncSession, event: Event, owner_id: uuid.UUID, item_ids: list[uuid.UUID]
+    session: AsyncSession,
+    redis: "Redis",
+    event: Event,
+    owner_id: uuid.UUID,
+    item_ids: list[uuid.UUID],
 ) -> list[ItemOut]:
     """``item_ids`` must be exactly the owner's items (FR-WSH-4)."""
     items = {
@@ -156,7 +167,7 @@ async def reorder(
     for position, item_id in enumerate(item_ids):
         items[item_id].position = position
     await session.commit()
-    await on_wishlist_changed_if_drawn(event, owner_id)
+    await on_wishlist_changed_if_drawn(session, redis, event, owner_id)
     return await list_items(session, event.id, owner_id)
 
 
@@ -186,13 +197,25 @@ async def _photo_keys(session: AsyncSession, condition: ColumnElement[bool]) -> 
 # ── Hooks ────────────────────────────────────────────────────────────────────
 
 
-async def on_wishlist_changed_if_drawn(event: Event, owner_id: uuid.UUID) -> None:
+async def on_wishlist_changed_if_drawn(
+    session: AsyncSession, redis: "Redis", event: Event, owner_id: uuid.UUID
+) -> None:
     if event.state == EventState.DRAWN:
-        await on_wishlist_changed(event.id, owner_id)
+        await on_wishlist_changed(session, redis, event.id, owner_id)
 
 
-async def on_wishlist_changed(event_id: uuid.UUID, owner_id: uuid.UUID) -> None:
-    """After a committed change to a wishlist in a DRAWN event (FR-WSH-7)."""
-    # TODO(prompt 25): enqueue the debounced `wishlist_updated` push to the owner's giver
-    #   (Redis key wl_debounce:{event}:{owner}, TTL 600 s). The push never names the owner.
-    return None
+async def on_wishlist_changed(
+    session: AsyncSession, redis: "Redis", event_id: uuid.UUID, owner_id: uuid.UUID
+) -> None:
+    """After a committed change to a wishlist in a DRAWN event (FR-WSH-7): at most one push
+    per owner per 10 minutes. The first change sets the debounce key and queues the push;
+    later ones within the window are absorbed. The worker finds the giver; the job holds
+    only the event and owner ids, and the push never names the owner (FR-NTF-4)."""
+    key = wishlist_debounce_key(event_id, owner_id)
+    try:
+        first = await redis.set(key, "1", nx=True, ex=WISHLIST_DEBOUNCE_SECONDS)
+    except Exception:  # the change is saved; a missed push is harmless, a 500 isn't
+        log.warning("wishlist_debounce_failed")
+        return
+    if first:
+        enqueue_committed(session, "send_wishlist_updated", str(event_id), str(owner_id))

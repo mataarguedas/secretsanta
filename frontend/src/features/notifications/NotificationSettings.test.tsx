@@ -21,7 +21,7 @@ function sectionTitled(name: string): HTMLElement {
 
 async function renderProfile(
   env: FakePushOptions = {},
-  session: { devices?: PushDevice[]; vapidKey?: string | null } = {},
+  session: { devices?: PushDevice[]; vapidKey?: string | null; patchError?: number } = {},
 ) {
   const push = fakePush(env);
   restore = push.restore;
@@ -220,5 +220,68 @@ describe('Profile › Devices', () => {
     const { container, devices } = await renderProfile({}, { devices: [PHONE] });
     await within(devices).findAllByRole('listitem');
     expect(await axe(container)).toHaveNoViolations();
+  });
+});
+
+describe('Profile › What to notify', () => {
+  const group = (section: HTMLElement) =>
+    within(section).getByRole('group', { name: 'Qué notificar' });
+
+  it('the draw is always on: checked, disabled, and says why', async () => {
+    const { section } = await renderProfile();
+    const reveal = within(group(section)).getByRole('switch', { name: 'Sorteo' });
+    expect(reveal).toBeChecked();
+    expect(reveal).toBeDisabled();
+    expect(reveal).toHaveAccessibleDescription(
+      'Siempre activado: todos necesitan saber cuándo se hace el sorteo.',
+    );
+  });
+
+  it('shows the three toggles from /me, even before push is enabled here', async () => {
+    const { section } = await renderProfile({ supported: false });
+    const toggles = within(group(section)).getAllByRole('switch');
+    expect(toggles.map((s) => s.getAttribute('aria-checked'))).toEqual([
+      'true',
+      'true',
+      'true',
+      'true',
+    ]);
+    expect(
+      within(group(section)).getByRole('switch', { name: 'Cambios en la lista de deseos' }),
+    ).toHaveAccessibleDescription('Cuando la persona a quien le regalas cambia su lista.');
+  });
+
+  it('a toggle is optimistic and PATCHes /me', async () => {
+    const user = userEvent.setup();
+    const { section, spy } = await renderProfile();
+    const messages = within(group(section)).getByRole('switch', { name: 'Mensajes' });
+    await user.click(messages);
+    expect(messages).not.toBeChecked(); // at once, before the response
+    await waitFor(() => {
+      const patch = spy.mock.calls.find(
+        ([url, init]) => url === '/api/v1/me' && init?.method === 'PATCH',
+      );
+      expect(JSON.parse(patch?.[1]?.body as string)).toEqual({ notify_message: false });
+    });
+    await user.click(messages);
+    await waitFor(() => {
+      expect(messages).toBeChecked();
+    });
+  });
+
+  it('a failed save rolls the switch back and says so', async () => {
+    const user = userEvent.setup();
+    const { section } = await renderProfile({}, { patchError: 500 });
+    const reminders = within(group(section)).getByRole('switch', { name: 'Recordatorios' });
+    await user.click(reminders);
+    expect(await screen.findByText(/Algo salió mal/)).toBeInTheDocument();
+    await waitFor(() => {
+      expect(reminders).toBeChecked();
+    });
+  });
+
+  it('has no axe violations', async () => {
+    const { section } = await renderProfile();
+    expect(await axe(section)).toHaveNoViolations();
   });
 });

@@ -643,6 +643,25 @@
       "action": "Send test notification",
       "sent": "Test notification sent. It should arrive in a few seconds."
     },
+    "preferences": {
+      "title": "What to notify",
+      "reveal": {
+        "label": "Draw",
+        "description": "Always on: everyone needs to know when the draw happens."
+      },
+      "messages": {
+        "label": "Messages",
+        "description": "When someone writes to you in a chat."
+      },
+      "wishlist": {
+        "label": "Wishlist updates",
+        "description": "When the person you're giving to changes their wishlist."
+      },
+      "reminders": {
+        "label": "Reminders",
+        "description": "7 days and 1 day before the exchange."
+      }
+    },
     "devices": {
       "title": "Devices",
       "loading": "Loading devices…",

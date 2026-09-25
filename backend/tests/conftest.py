@@ -50,6 +50,11 @@ os.environ.update(
     JWT_SECRET="test-jwt-secret-" + "x" * 48,
     GOOGLE_CLIENT_ID="test-client-id.apps.googleusercontent.com",
     GOOGLE_CLIENT_SECRET="test-client-secret",
+    # Never the developer's real VAPID keys from infra/.env: tests that need keys make
+    # their own, and nothing in a test may reach a real push service.
+    VAPID_PUBLIC_KEY="",
+    VAPID_PRIVATE_KEY="",
+    VAPID_SUBJECT="mailto:tests@test.local",
     # Object storage is moto's in-process S3 mock (the `s3` fixture), so tests need no
     # MinIO/R2 and run the same locally and in CI. moto intercepts this custom endpoint;
     # presigned URLs use the public one, like the browser would in dev.
@@ -68,6 +73,7 @@ from app.core.redis import create_redis  # noqa: E402
 from app.db.base import Base  # noqa: E402
 from app.db.session import create_sessionmaker  # noqa: E402
 from app.main import create_app  # noqa: E402
+from tests.push import push_spy  # noqa: E402, F401  (fixture for the notify pipeline)
 
 
 async def _prepare_database() -> None:

@@ -22,6 +22,7 @@ from app.realtime.frames import event_drawn_frame
 from app.schemas.events import AssignmentReceiver, MyAssignment
 from app.services.draw import MIN_PARTICIPANTS, DrawInfeasibleError, draw
 from app.services.exclusions import exclusion_pairs, participant_ids
+from app.worker.queue import enqueue_committed
 
 
 async def run_draw(session: AsyncSession, redis: "Redis", event_id: uuid.UUID) -> None:
@@ -74,8 +75,8 @@ async def on_event_drawn(session: AsyncSession, redis: "Redis", event_id: uuid.U
         select(EventParticipant.user_id).where(EventParticipant.event_id == event_id)
     )
     await publish_to_users(redis, participants.all(), event_drawn_frame(event_id))
-    # TODO(prompt 25): enqueue the `reveal` push for every participant (worker task).
-    return None
+    # The worker looks up the participants itself; the job carries the event id only.
+    enqueue_committed(session, "send_reveal", str(event_id))
 
 
 async def my_assignment(

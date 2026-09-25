@@ -22,6 +22,7 @@ import uuid
 from typing import Any
 
 import httpx
+from arq.connections import ArqRedis
 from fastapi import FastAPI
 from redis.asyncio import Redis
 from sqlalchemy import update
@@ -35,6 +36,7 @@ from app.realtime.frames import SERVER_FRAME_TYPES
 from tests.api.auth_helpers import CSRF, login_as
 from tests.api.event_helpers import EVENTS, add_participant, create, user_id
 from tests.conftest import TEST_REDIS_URL
+from tests.push import PushSpy, run_jobs, subscribe
 from tests.ws import WsClient, cookie_header
 
 U1 = ("beto.secreto@test.local", "Beto Secreto")  # the anonymous initiator
@@ -314,3 +316,44 @@ async def test_no_websocket_frame_or_redis_payload_names_the_initiator(
         assert_no_trace_of_u1(f"Redis {channel.split(':')[0]}", data, u1)
         if channel.startswith("conv:"):
             assert str(u1) not in channel
+
+
+async def test_the_message_push_names_only_the_alias(
+    client: httpx.AsyncClient,
+    db: async_sessionmaker[AsyncSession],
+    arq_pool: ArqRedis,
+    redis_client: Redis,
+    push_spy: PushSpy,
+) -> None:
+    event, cookies, ids = await setup_people(client, db)
+    u1, u2, u3 = ids[U1[0]], ids[U2[0]], ids[U3[0]]
+    await subscribe(db, u1, u2, u3)
+
+    started = await client.post(
+        f"{EVENTS}/{event['id']}/conversations",
+        json={"kind": "anonymous", "recipient_id": str(u2)},
+        headers={**CSRF, "cookie": cookies[U1[0]]},
+    )
+    anon = started.json()["id"]
+    pushes: list[str] = []
+    for locale, alias in (("es", "Elfo secreto #"), ("en", "Secret Elf #")):
+        async with db() as session:
+            await session.execute(update(User).where(User.id == u2).values(locale=locale))
+            await session.commit()
+        sent = await client.post(
+            f"{API_PREFIX}/conversations/{anon}/messages",
+            json={"body": "¿Qué talla usa Ana?"},
+            headers={**CSRF, "cookie": cookies[U1[0]]},
+        )
+        assert sent.status_code == 201
+        push_spy.sent.clear()
+        await run_jobs(arq_pool, db, redis_client)
+
+        (push,) = push_spy.to(u2)
+        assert push["body"].startswith(alias)
+        assert push["body"].endswith(": ¿Qué talla usa Ana?")
+        assert push_spy.recipients == [u2]  # never U3, never U1 themself
+        pushes.append(json.dumps(push, ensure_ascii=False))
+
+    for payload in pushes:
+        assert_no_trace_of_u1("U2 message push", payload, u1)

@@ -14,10 +14,10 @@ sending goes through the same service (and rate limit) as ``POST …/messages``.
 import asyncio
 import contextlib
 import json
-import uuid
 from typing import Any, Final
 from urllib.parse import urlsplit
 
+from arq.connections import ArqRedis
 from fastapi import APIRouter, WebSocket
 from pydantic import ValidationError
 from redis.asyncio import Redis
@@ -31,6 +31,7 @@ from app.core.errors import AppError
 from app.core.logging import get_logger
 from app.core.security import decode_access_token
 from app.models.user import User
+from app.realtime.channels import active_key
 from app.realtime.frames import (
     MAX_FRAME_CHARS,
     PONG,
@@ -45,6 +46,7 @@ from app.realtime.frames import (
 from app.realtime.manager import Connection, ConnectionManager
 from app.schemas.chat import MessageCreate
 from app.services import chat as chat_service
+from app.worker.queue import flush_committed_jobs
 
 log = get_logger(__name__)
 
@@ -53,11 +55,6 @@ router = APIRouter()
 UNAUTHENTICATED: Final = 4401
 FORBIDDEN_ORIGIN: Final = 4403
 ACTIVE_TTL_SECONDS: Final = 60
-
-
-def active_key(user_id: uuid.UUID) -> str:
-    """``active:{user_id}`` → the conversation open on screen, to suppress its pushes."""
-    return f"active:{user_id}"
 
 
 def _origin(url: str) -> str:
@@ -93,7 +90,9 @@ async def websocket_endpoint(websocket: WebSocket) -> None:
     connection = Connection(websocket, user.id)
     manager.add(connection)
     writer = asyncio.create_task(connection.run_writer())
-    handler = FrameHandler(connection, manager, sessionmaker, state.redis)
+    handler = FrameHandler(
+        connection, manager, sessionmaker, state.redis, getattr(state, "arq", None)
+    )
     try:
         while True:
             message = await websocket.receive()
@@ -117,11 +116,13 @@ class FrameHandler:
         manager: ConnectionManager,
         sessionmaker: async_sessionmaker[AsyncSession],
         redis: "Redis",
+        jobs: "ArqRedis | None" = None,
     ) -> None:
         self.connection = connection
         self.manager = manager
         self.sessionmaker = sessionmaker
         self.redis = redis
+        self.jobs = jobs  # arq, for the push task each message queues
 
     async def handle(self, text: str | None) -> None:
         """One frame. Nothing raised here closes the socket."""
@@ -195,7 +196,11 @@ class FrameHandler:
             access = await require_writable_member(
                 await require_member(frame.conversation_id, user, session)
             )
-            message = await chat_service.send_message(session, self.redis, access.member, data)
+            try:
+                message = await chat_service.send_message(session, self.redis, access.member, data)
+            finally:
+                # What REST's get_db does: send the jobs whose transaction committed.
+                await flush_committed_jobs(session, self.jobs)
         self.connection.send(ack_frame(frame.client_id, message.id))
 
     async def _ping(self) -> None:

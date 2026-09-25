@@ -32,6 +32,12 @@ def user_channel(user_id: uuid.UUID) -> str:
     return f"{USER_PREFIX}{user_id}"
 
 
+def active_key(user_id: uuid.UUID) -> str:
+    """``active:{user_id}`` → the conversation open on screen, to suppress its pushes.
+    Not a pub/sub channel: a plain key with a TTL, written by ``/ws`` and read by the worker."""
+    return f"active:{user_id}"
+
+
 def encode(frame: dict[str, Any]) -> str:
     return json.dumps(frame, separators=(",", ":"))
 

@@ -10,6 +10,7 @@ import asyncio
 import uuid
 from collections.abc import Iterable
 
+from redis.asyncio import Redis
 from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -54,7 +55,11 @@ async def ensure_photo_slot(session: AsyncSession, item: WishlistItem) -> None:
 
 
 async def add_photo(
-    session: AsyncSession, event: Event, item: WishlistItem, image: ProcessedImage
+    session: AsyncSession,
+    redis: "Redis",
+    event: Event,
+    item: WishlistItem,
+    image: ProcessedImage,
 ) -> ItemOut:
     """Store the objects, then, under a lock on the item row, re-check the limit and take
     the lowest free position. The DB trigger is the backstop for anything that slips by."""
@@ -99,7 +104,7 @@ async def add_photo(
         await session.rollback()
         await _discard([main, thumb])
         raise
-    await on_wishlist_changed_if_drawn(event, item.user_id)
+    await on_wishlist_changed_if_drawn(session, redis, event, item.user_id)
     return item_out(await reload_item(session, item.id))
 
 
@@ -114,7 +119,11 @@ async def _lock_editable(session: AsyncSession, event_id: uuid.UUID) -> None:
 
 
 async def delete_photo(
-    session: AsyncSession, event: Event, item: WishlistItem, photo_id: uuid.UUID
+    session: AsyncSession,
+    redis: "Redis",
+    event: Event,
+    item: WishlistItem,
+    photo_id: uuid.UUID,
 ) -> None:
     """The freed position is reused by the next upload; the objects go after the commit."""
     photo = await session.scalar(
@@ -125,7 +134,7 @@ async def delete_photo(
     enqueue_after_commit(session, "delete_objects", [photo.object_key, photo.thumb_key])
     await session.delete(photo)
     await session.commit()
-    await on_wishlist_changed_if_drawn(event, item.user_id)
+    await on_wishlist_changed_if_drawn(session, redis, event, item.user_id)
 
 
 # ── Copy from another event ──────────────────────────────────────────────────
@@ -157,7 +166,11 @@ async def copy_sources(
 
 
 async def copy_from(
-    session: AsyncSession, event: Event, owner_id: uuid.UUID, source: Event
+    session: AsyncSession,
+    redis: "Redis",
+    event: Event,
+    owner_id: uuid.UUID,
+    source: Event,
 ) -> list[ItemOut]:
     """FR-WSH-5: append a copy of every item of the owner's list in ``source``, same order,
     with each photo copied server-side to new keys under this event and the new item. The
@@ -227,7 +240,7 @@ async def copy_from(
         await _discard(copied)
         raise
     log.info("wishlist_copied", items=len(new_ids), photos=len(pending) // 2)
-    await on_wishlist_changed_if_drawn(event, owner_id)
+    await on_wishlist_changed_if_drawn(session, redis, event, owner_id)
 
     rows = await session.scalars(
         select(WishlistItem)

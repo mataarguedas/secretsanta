@@ -27,6 +27,12 @@ def enqueue_after_commit(session: AsyncSession, task: str, *args: Any) -> None:
     session.sync_session.info.setdefault(_PENDING, []).append((task, args))
 
 
+def enqueue_committed(session: AsyncSession, task: str, *args: Any) -> None:
+    """For hooks that run once their change is already committed (e.g. push tasks after a
+    message is saved and published): queued for the same ``flush_committed_jobs``."""
+    session.sync_session.info.setdefault(_COMMITTED, []).append((task, args))
+
+
 @event.listens_for(Session, "after_commit")
 def _promote(session: Session) -> None:
     pending: list[Job] = session.info.pop(_PENDING, [])
@@ -46,7 +52,7 @@ def committed_jobs(session: AsyncSession) -> list[Job]:
 
 async def flush_committed_jobs(session: AsyncSession, pool: ArqRedis | None) -> int:
     """Send committed jobs to arq. Failures are logged, never raised: at worst an orphan
-    object stays in storage, which is harmless."""
+    object stays in storage or a push is missed, both harmless."""
     jobs: list[Job] = session.sync_session.info.pop(_COMMITTED, [])
     if not jobs:
         return 0

@@ -63,6 +63,7 @@ from app.schemas.chat import (
     build_member_public,
     build_message_public,
 )
+from app.worker.queue import enqueue_committed
 
 CONVERSATION_PAGE: Final = 30
 MESSAGE_PAGE: Final = 50  # PRD FR-CHT-5
@@ -506,7 +507,8 @@ async def after_message_created(
             session, message.conversation_id, except_member=message.sender_member_id
         )
         await publish_to_users(redis, others, conversation_created_frame(message.conversation_id))
-    # TODO(prompt 25): enqueue the `message` push to the other members (worker).
+    # Persist, publish, then push (CLAUDE.md §7). The job carries the message id only.
+    enqueue_committed(session, "send_message_push", str(message.id))
 
 
 async def after_message_deleted(

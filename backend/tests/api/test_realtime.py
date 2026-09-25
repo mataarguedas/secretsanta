@@ -15,7 +15,7 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 from app.core.config import get_settings
 from app.main import create_app
 from app.realtime.bridge import RedisBridge
-from app.realtime.endpoint import active_key
+from app.realtime.channels import active_key
 from app.realtime.manager import QUEUE_SIZE, SLOW_CONSUMER_CODE, Connection, ConnectionManager
 from tests.api.auth_helpers import CSRF, login_as
 from tests.api.event_helpers import (

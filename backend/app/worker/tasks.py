@@ -4,14 +4,11 @@ import asyncio
 import uuid
 from typing import Any
 
-from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from app.core.logging import get_logger
-from app.models.push import PushSubscription
-from app.models.user import User
-from app.notifications.templates import render
-from app.notifications.webpush import send_raw
+from app.notifications import pushes
+from app.notifications.sender import notify
 from app.storage.r2 import get_storage
 
 log = get_logger(__name__)
@@ -39,19 +36,35 @@ async def delete_prefix(_ctx: dict[str, Any], prefix: str) -> int:
 async def send_test_notification(ctx: dict[str, Any], user_id: str) -> int:
     """Dev-only ``POST /push/test``: a localized "Test notification" to all of the user's
     devices, opening /profile when tapped. Returns how many were delivered."""
-    sessionmaker: async_sessionmaker[AsyncSession] = ctx["sessionmaker"]
-    async with sessionmaker() as session:
-        user = await session.get(User, uuid.UUID(user_id))
-        if user is None:
-            return 0
-        text = render("test", user.locale)
-        payload = {"title": text.title, "body": text.body, "tag": "test", "url": "/profile"}
-        subscriptions = await session.scalars(
-            select(PushSubscription).where(PushSubscription.user_id == user.id)
+    async with _sessionmaker(ctx)() as session:
+        result = await notify(
+            session, [uuid.UUID(user_id)], "test", {"url": "/profile", "tag": "test"}
         )
-        sent = 0
-        for subscription in list(subscriptions):
-            sent += await send_raw(session, subscription, payload)
-        await session.commit()
-    log.info("test_notification", delivered=sent)
-    return sent
+    return result.sent
+
+
+async def send_reveal(ctx: dict[str, Any], event_id: str) -> int:
+    """FR-NTF-2 ``reveal``: every participant; the payload names the event, never a pair."""
+    async with _sessionmaker(ctx)() as session:
+        return (await pushes.send_reveal(session, uuid.UUID(event_id))).sent
+
+
+async def send_message_push(ctx: dict[str, Any], message_id: str) -> int:
+    """FR-NTF-2 ``message``: the other members, except whoever has the thread open."""
+    async with _sessionmaker(ctx)() as session:
+        result = await pushes.send_message_push(session, ctx["app_redis"], uuid.UUID(message_id))
+    return result.sent
+
+
+async def send_wishlist_updated(ctx: dict[str, Any], event_id: str, owner_id: str) -> int:
+    """FR-WSH-7: only the owner's giver, found here in the worker; names nobody."""
+    async with _sessionmaker(ctx)() as session:
+        result = await pushes.send_wishlist_updated(
+            session, uuid.UUID(event_id), uuid.UUID(owner_id)
+        )
+    return result.sent
+
+
+def _sessionmaker(ctx: dict[str, Any]) -> async_sessionmaker[AsyncSession]:
+    sessionmaker: async_sessionmaker[AsyncSession] = ctx["sessionmaker"]
+    return sessionmaker

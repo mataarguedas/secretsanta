@@ -643,6 +643,25 @@
       "action": "Enviar notificación de prueba",
       "sent": "Notificación de prueba enviada. Debería llegar en unos segundos."
     },
+    "preferences": {
+      "title": "Qué notificar",
+      "reveal": {
+        "label": "Sorteo",
+        "description": "Siempre activado: todos necesitan saber cuándo se hace el sorteo."
+      },
+      "messages": {
+        "label": "Mensajes",
+        "description": "Cuando alguien te escribe en un chat."
+      },
+      "wishlist": {
+        "label": "Cambios en la lista de deseos",
+        "description": "Cuando la persona a quien le regalas cambia su lista."
+      },
+      "reminders": {
+        "label": "Recordatorios",
+        "description": "7 días y 1 día antes del intercambio."
+      }
+    },
     "devices": {
       "title": "Dispositivos",
       "loading": "Cargando dispositivos…",

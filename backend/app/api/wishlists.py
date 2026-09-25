@@ -7,12 +7,14 @@ Edits are allowed while OPEN or DRAWN; an ARCHIVED event is read-only (409
 import uuid
 
 from fastapi import APIRouter, Depends, File, Request, Response, UploadFile
+from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import (
     EventAccess,
     WishlistItemAccess,
     get_db,
+    get_redis,
     require_event_state,
     require_own_item,
     require_participant,
@@ -55,8 +57,9 @@ async def create_item(
     access: EventAccess = Depends(require_participant),
     _state: EventAccess = Depends(editable),
     session: AsyncSession = Depends(get_db),
+    redis: Redis = Depends(get_redis),
 ) -> ItemOut:
-    return await service.create_item(session, access.event, access.user.id, data)
+    return await service.create_item(session, redis, access.event, access.user.id, data)
 
 
 @router.patch("/wishlist/items/{item_id}", response_model=ItemOut)
@@ -65,8 +68,9 @@ async def update_item(
     owned: WishlistItemAccess = Depends(require_wishlist_owner),
     _state: EventAccess = Depends(editable),
     session: AsyncSession = Depends(get_db),
+    redis: Redis = Depends(get_redis),
 ) -> ItemOut:
-    return await service.update_item(session, owned.event, owned.item, changes)
+    return await service.update_item(session, redis, owned.event, owned.item, changes)
 
 
 @router.delete("/wishlist/items/{item_id}", status_code=204)
@@ -74,8 +78,9 @@ async def delete_item(
     owned: WishlistItemAccess = Depends(require_wishlist_owner),
     _state: EventAccess = Depends(editable),
     session: AsyncSession = Depends(get_db),
+    redis: Redis = Depends(get_redis),
 ) -> Response:
-    await service.delete_item(session, owned.event, owned.item)
+    await service.delete_item(session, redis, owned.event, owned.item)
     return Response(status_code=204)
 
 
@@ -85,8 +90,9 @@ async def reorder(
     access: EventAccess = Depends(require_participant),
     _state: EventAccess = Depends(editable),
     session: AsyncSession = Depends(get_db),
+    redis: Redis = Depends(get_redis),
 ) -> list[ItemOut]:
-    return await service.reorder(session, access.event, access.user.id, order.item_ids)
+    return await service.reorder(session, redis, access.event, access.user.id, order.item_ids)
 
 
 @router.get("/wishlist/copy-sources", response_model=list[CopySourceOut])
@@ -105,10 +111,11 @@ async def copy_from(
     _state: EventAccess = Depends(editable),
     source: Event = Depends(require_source_event),
     session: AsyncSession = Depends(get_db),
+    redis: Redis = Depends(get_redis),
 ) -> list[ItemOut]:
     """FR-WSH-5: the caller must participate in both events; the source may be in any
     state, the target must be editable. Returns the new items."""
-    return await photo_service.copy_from(session, access.event, access.user.id, source)
+    return await photo_service.copy_from(session, redis, access.event, access.user.id, source)
 
 
 # ── Photos (addressed by item id; the event comes from the item) ─────────────
@@ -121,12 +128,13 @@ async def upload_photo(
     file: UploadFile = File(...),
     owned: WishlistItemAccess = Depends(own_editable_item),
     session: AsyncSession = Depends(get_db),
+    redis: Redis = Depends(get_redis),
 ) -> ItemOut:
     """Owner, OPEN or DRAWN. At most 3 per item (409 ``PHOTO_LIMIT_REACHED``). Returns the
     item with its photos."""
     await photo_service.ensure_photo_slot(session, owned.item)
     image = await process_upload(file)
-    return await photo_service.add_photo(session, owned.event, owned.item, image)
+    return await photo_service.add_photo(session, redis, owned.event, owned.item, image)
 
 
 @photos_router.delete("/{photo_id}", status_code=204)
@@ -134,6 +142,7 @@ async def delete_photo(
     photo_id: uuid.UUID,
     owned: WishlistItemAccess = Depends(own_editable_item),
     session: AsyncSession = Depends(get_db),
+    redis: Redis = Depends(get_redis),
 ) -> Response:
-    await photo_service.delete_photo(session, owned.event, owned.item, photo_id)
+    await photo_service.delete_photo(session, redis, owned.event, owned.item, photo_id)
     return Response(status_code=204)

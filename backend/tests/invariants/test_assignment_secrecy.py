@@ -14,7 +14,9 @@ from typing import Any
 
 import httpx
 import pytest
+from arq.connections import ArqRedis
 from fastapi import FastAPI
+from redis.asyncio import Redis
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
@@ -22,6 +24,7 @@ from app.models import Assignment, Conversation, ConversationKind
 from app.realtime.frames import SERVER_FRAME_TYPES
 from tests.api.auth_helpers import CSRF, login_as
 from tests.invariants.drawn import PEOPLE, DrawnEvent, drawn_event, open_event
+from tests.push import PushSpy, run_jobs, subscribe
 from tests.ws import WsClient, cookie_header
 
 API = "/api/v1"
@@ -277,3 +280,49 @@ async def test_no_websocket_frame_exposes_a_pair(
                 json.dumps(frame), fake, ids[email], f"{email} WS {frame['type']}"
             )
     assert seen == SERVER_FRAME_TYPES, f"frame types not exercised: {SERVER_FRAME_TYPES - seen}"
+
+
+async def test_pushes_carry_no_pairs(
+    client: httpx.AsyncClient,
+    db: async_sessionmaker[AsyncSession],
+    arq_pool: ArqRedis,
+    redis_client: Redis,
+    push_spy: PushSpy,
+) -> None:
+    """The reveal push names nobody; a wishlist push goes only to that owner's giver, names
+    nobody, and points at the recipient's own receiver (which they already know)."""
+    drawn = await drawn_event(client, db)
+    people = [drawn.ids[email] for email, _name in PEOPLE]
+    words = [w for email, name in PEOPLE for w in (email, name)]
+    await subscribe(db, *people)
+
+    await run_jobs(arq_pool, db, redis_client)  # the reveal
+    assert sorted(push_spy.recipients) == sorted(people)
+    for user, payload in push_spy.sent:
+        text = json.dumps(payload, ensure_ascii=False)
+        assert not list(leaks(payload)), text
+        for uid in people:
+            assert str(uid) not in text, f"reveal push to {user} names a participant"
+        for word in words:
+            assert word not in text, f"reveal push to {user} names {word}"
+
+    push_spy.sent.clear()
+    for email, name in PEOPLE:  # everyone edits their own wishlist once
+        await login_as(client, email, name)
+        added = await client.post(
+            f"{API}/events/{drawn.id}/wishlist/items", json={"title": "Algo"}, headers=CSRF
+        )
+        assert added.status_code == 201
+    await run_jobs(arq_pool, db, redis_client)
+
+    assert sorted(push_spy.recipients) == sorted(people)  # each giver exactly once
+    for user, payload in push_spy.sent:
+        owner = uuid.UUID(payload["url"].rsplit("user=", 1)[1])
+        assert drawn.receiver_of[user] == owner, "a wishlist push reached the wrong giver"
+        for word in words:
+            assert word not in payload["title"] + payload["body"]
+        text = json.dumps(payload)
+        assert not list(leaks(payload)), text
+        for uid in people:
+            if uid != owner:
+                assert str(uid) not in text

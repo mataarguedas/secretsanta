@@ -350,7 +350,9 @@ async def test_drawn_wishlists_stay_editable_and_fire_the_hook(
 ) -> None:
     calls: list[tuple[uuid.UUID, uuid.UUID]] = []
 
-    async def spy(event_id: uuid.UUID, owner_id: uuid.UUID) -> None:
+    async def spy(
+        _session: object, _redis: object, event_id: uuid.UUID, owner_id: uuid.UUID
+    ) -> None:
         calls.append((event_id, owner_id))
 
     monkeypatch.setattr(wishlist_service, "on_wishlist_changed", spy)
