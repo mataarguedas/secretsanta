@@ -2,6 +2,7 @@ import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tansta
 
 import { useNavigate } from 'react-router';
 
+import { chatKeys } from '@/features/chat/api';
 import { apiClient } from '@/lib/apiClient';
 
 /** Backend `app/schemas/events.py`. */
@@ -164,6 +165,24 @@ export function useDeleteEvent(id: string) {
       await navigate('/', { replace: true });
       queryClient.removeQueries({ queryKey: eventKeys.detail(id), exact: true });
       await queryClient.invalidateQueries({ queryKey: eventKeys.all });
+    },
+  });
+}
+
+/**
+ * Host archives a DRAWN event after its exchange (PRD §3). Everything in it turns
+ * read-only, it moves to Past, and its chats (which carry the event state) close.
+ */
+export function useArchiveEvent(id: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: () => apiClient.post<EventDetail>(`/events/${id}/archive`),
+    onSuccess: async (event) => {
+      queryClient.setQueryData(eventKeys.detail(id), event);
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: eventKeys.all }),
+        queryClient.invalidateQueries({ queryKey: chatKeys.all }),
+      ]);
     },
   });
 }

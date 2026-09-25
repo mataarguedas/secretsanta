@@ -116,7 +116,7 @@ describe('Event › Chat tab', () => {
     await renderTab(eventDetail({ state: 'archived' }));
     expect(screen.queryByRole('button', { name: 'Nueva conversación' })).not.toBeInTheDocument();
     expect(
-      screen.getByText('Este evento está archivado: el chat es de solo lectura.'),
+      screen.getByText('Este evento está archivado: los chats son de solo lectura.'),
     ).toBeInTheDocument();
   });
 });

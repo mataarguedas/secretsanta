@@ -82,6 +82,12 @@ async def prune_refresh_tokens(ctx: dict[str, Any]) -> int:
         return await scheduled.prune_refresh_tokens(session, utcnow())
 
 
+async def auto_archive_events(ctx: dict[str, Any]) -> int:
+    """Cron, daily 03:00 CR: DRAWN events more than 7 days past the exchange."""
+    async with _sessionmaker(ctx)() as session:
+        return await scheduled.auto_archive_events(session, utcnow())
+
+
 def _timezone() -> ZoneInfo:
     return ZoneInfo(get_settings().default_timezone)
 

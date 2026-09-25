@@ -35,6 +35,8 @@ ERROR_REGISTRY: Final[dict[str, str]] = {
     "EVENT_ARCHIVED": "This event is archived and read-only.",
     "EVENT_NOT_DRAWN": "The draw hasn't happened yet.",
     "EVENT_FIELD_LOCKED": "After the draw only the description, location and date can change.",
+    # Lifecycle (Prompt 27)
+    "ARCHIVE_TOO_EARLY": "An event can be archived only after its exchange date.",
     # Invites (Prompt 12)
     "INVITE_INVALID": "This invite link is not valid.",
     "JOIN_DEADLINE_PASSED": "The deadline to join this event has passed.",

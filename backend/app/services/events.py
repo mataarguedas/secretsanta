@@ -295,6 +295,18 @@ async def update_event(session: AsyncSession, event: Event, changes: EventUpdate
     return event
 
 
+async def archive_event(session: AsyncSession, event: Event, now: datetime) -> Event:
+    """PRD §3: the host archives a DRAWN event once the exchange has passed. The caller
+    holds the row lock and has checked host and state; from here on the event is read-only.
+    """
+    if event.exchange_at > now:
+        raise AppError("ARCHIVE_TOO_EARLY", 409)
+    event.state = EventState.ARCHIVED
+    event.archived_at = now
+    await session.commit()
+    return event
+
+
 async def delete_event(session: AsyncSession, event: Event) -> None:
     """OPEN only (checked by the route). Rows cascade in the database; storage objects
     (cover, wishlist photos) are removed by the worker once the delete has committed."""

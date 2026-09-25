@@ -267,6 +267,19 @@
         "cancel": "Cancel",
         "confirm": "Yes, delete",
         "done": "Event deleted."
+      },
+      "archive": {
+        "title": "Archive event",
+        "body": "The exchange is over. Archiving makes everything in this event read-only and moves it to Past for everyone. Events are archived automatically 7 days after the exchange.",
+        "open": "Archive event",
+        "confirmTitle": "Archive “{{name}}”?",
+        "warning": "Wishlists, chats and event details become read-only. Everyone keeps seeing who they gave to. This can't be undone.",
+        "confirm": "Yes, archive",
+        "done": "Event archived."
+      },
+      "archived": {
+        "title": "This event is archived",
+        "body": "Everything here is read-only now. You can still look back at the wishlists and chats."
       }
     },
     "notFound": {
@@ -540,7 +553,7 @@
         "body": "You may no longer be in that event."
       },
       "anonymousNotice": "You are anonymous — they see you as {{alias}}.",
-      "readOnly": "This event is archived: its chat is read-only.",
+      "readOnly": "This event is archived — chats are read-only.",
       "loadOlder": "Load earlier messages",
       "reconnecting": "Reconnecting…",
       "messagesLabel": "Messages",
@@ -730,6 +743,7 @@
     "MESSAGE_NOT_FOUND": "Message not found.",
     "INVALID_FRAME": "That WebSocket frame isn't valid.",
     "PUSH_NOT_CONFIGURED": "Push notifications aren't set up on this server.",
-    "PUSH_SUBSCRIPTION_NOT_FOUND": "That device isn't registered for notifications anymore."
+    "PUSH_SUBSCRIPTION_NOT_FOUND": "That device isn't registered for notifications anymore.",
+    "ARCHIVE_TOO_EARLY": "An event can be archived only after its exchange date."
   }
 }

@@ -3,6 +3,7 @@
     uv run python -m app.scripts.run_job send_exchange_reminders
     uv run python -m app.scripts.run_job send_exchange_reminders --now 2026-12-13T09:05:00-06:00
     uv run python -m app.scripts.run_job prune_refresh_tokens
+    uv run python -m app.scripts.run_job auto_archive_events
 
 ``--now`` is refused when ``ENV=production``: faking the clock there could send real
 reminders at the wrong time. A ``--now`` without an offset is read as Costa Rica time
@@ -33,6 +34,9 @@ JOBS: dict[str, Job] = {
         session, now, tz=ZoneInfo(settings.default_timezone)
     ),
     "prune_refresh_tokens": lambda session, now, _settings: scheduled.prune_refresh_tokens(
+        session, now
+    ),
+    "auto_archive_events": lambda session, now, _settings: scheduled.auto_archive_events(
         session, now
     ),
 }

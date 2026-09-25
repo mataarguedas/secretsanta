@@ -18,6 +18,7 @@ from app.api.deps import (
 )
 from app.api.uploads import process_upload
 from app.core.rate_limit import upload_rate_limit
+from app.db.mixins import utcnow
 from app.models.event import EventState
 from app.models.user import User
 from app.schemas.events import (
@@ -154,6 +155,18 @@ async def draw_event(
     feasibility itself, all in one transaction. The response never carries a pair."""
     await reveal_service.run_draw(session, redis, access.event.id)
     return DrawResult(state="drawn")
+
+
+@router.post("/{event_id}/archive", response_model=HostEventDetail)
+async def archive_event(
+    access: EventAccess = Depends(require_host),
+    _state: EventAccess = Depends(require_event_state(EventState.DRAWN)),
+    session: AsyncSession = Depends(get_db),
+) -> EventDetail:
+    """PRD §3: host, DRAWN only (an OPEN event is deleted, not archived; 409
+    ``EVENT_NOT_DRAWN``), and only once the exchange has passed (409 ``ARCHIVE_TOO_EARLY``)."""
+    event = await service.archive_event(session, access.event, utcnow())
+    return await service.build_event_detail(session, event, access.user)
 
 
 @router.post("/{event_id}/cover", response_model=HostEventDetail)

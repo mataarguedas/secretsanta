@@ -214,7 +214,7 @@ describe('Thread page', () => {
     });
     expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
     expect(
-      screen.getByText('Este evento está archivado: el chat es de solo lectura.'),
+      screen.getByText('Este evento está archivado: los chats son de solo lectura.'),
     ).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Eliminar tu mensaje' })).not.toBeInTheDocument();
   });

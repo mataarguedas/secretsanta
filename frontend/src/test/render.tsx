@@ -120,6 +120,7 @@ export function mockSession({
   exclusions = {},
   exclusionsFeasible = () => true,
   onDraw,
+  onArchive,
   coverUpload,
   wishlists = {},
   reorderFails = false,
@@ -160,6 +161,11 @@ export function mockSession({
    * event with `state: 'drawn'`), or a Response to return instead (e.g. a 409).
    */
   onDraw?: (event: EventDetail) => EventDetail | Response;
+  /**
+   * `POST /events/{id}/archive`: the event afterwards (default: the same event with
+   * `state: 'archived'`), or a Response to return instead (e.g. a 409).
+   */
+  onArchive?: (event: EventDetail) => EventDetail | Response;
   /**
    * `POST /events/{id}/cover` (multipart, sent through the fake XMLHttpRequest): a Response
    * to return instead of the default success (which sets `cover_url`/`cover_thumb_url`).
@@ -527,6 +533,17 @@ export function mockSession({
       if (after instanceof Response) return Promise.resolve(after);
       details.set(event.id, after);
       return Promise.resolve(jsonResponse(200, { state: 'drawn' }));
+    }
+    const archiveMatch = /^\/api\/v1\/events\/([^/?]+)\/archive$/.exec(url);
+    if (archiveMatch?.[1] && method === 'POST') {
+      const event = details.get(archiveMatch[1]);
+      if (!event) return Promise.resolve(jsonResponse(404, { error: { code: 'EVENT_NOT_FOUND' } }));
+      const after = onArchive
+        ? onArchive(event)
+        : { ...event, state: 'archived' as const, archived_at: new Date().toISOString() };
+      if (after instanceof Response) return Promise.resolve(after);
+      details.set(event.id, after);
+      return Promise.resolve(jsonResponse(200, after));
     }
     const exclusionMatch = /^\/api\/v1\/events\/([^/?]+)\/exclusions(?:\/([^/?]+))?$/.exec(url);
     if (exclusionMatch?.[1]) {

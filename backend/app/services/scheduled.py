@@ -16,6 +16,10 @@ still open gets that reminder on the next run; someone who turns them on later d
 ``prune_refresh_tokens`` (daily): delete refresh tokens that expired, or were revoked,
 more than 7 days ago. The week of revoked rows is what lets ``/auth/refresh`` recognise a
 replayed old token.
+
+``auto_archive_events`` (daily, 03:00 CR): DRAWN events whose exchange was more than 7 days
+ago become ARCHIVED (PRD §3). One conditional ``UPDATE``, so it is idempotent and can't
+race a host's manual archive into archiving twice.
 """
 
 import uuid
@@ -24,7 +28,7 @@ from datetime import date, datetime, time, timedelta
 from typing import Final
 from zoneinfo import ZoneInfo
 
-from sqlalchemy import delete, or_, select
+from sqlalchemy import delete, or_, select, update
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -42,6 +46,7 @@ REMINDER_OFFSETS: Final[dict[str, int]] = {"reminder_7d": 7, "reminder_1d": 1}  
 REMINDER_AT: Final = time(9, 0)
 REMINDER_WINDOW: Final = timedelta(hours=6)
 TOKEN_RETENTION: Final = timedelta(days=7)
+AUTO_ARCHIVE_AFTER: Final = timedelta(days=7)
 
 
 def reminder_target(exchange_at: datetime, days_before: int, tz: ZoneInfo) -> datetime:
@@ -156,4 +161,19 @@ async def prune_refresh_tokens(session: AsyncSession, now: datetime) -> int:
     await session.commit()
     count = int(getattr(result, "rowcount", 0) or 0)
     log.info("prune_refresh_tokens", deleted=count)
+    return count
+
+
+async def auto_archive_events(session: AsyncSession, now: datetime) -> int:
+    if now.tzinfo is None:
+        raise ValueError("now must be timezone-aware")
+    result = await session.execute(
+        update(Event)
+        .where(Event.state == EventState.DRAWN, Event.exchange_at < now - AUTO_ARCHIVE_AFTER)
+        .values(state=EventState.ARCHIVED, archived_at=now)
+        .execution_options(synchronize_session=False)
+    )
+    await session.commit()
+    count = int(getattr(result, "rowcount", 0) or 0)
+    log.info("auto_archive_events", archived=count)
     return count

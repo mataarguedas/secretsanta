@@ -267,6 +267,19 @@
         "cancel": "Cancelar",
         "confirm": "Sí, eliminar",
         "done": "Evento eliminado."
+      },
+      "archive": {
+        "title": "Archivar evento",
+        "body": "El intercambio ya pasó. Al archivar, todo en este evento queda de solo lectura y pasa a Pasados para todos. Los eventos se archivan solos 7 días después del intercambio.",
+        "open": "Archivar evento",
+        "confirmTitle": "¿Archivar “{{name}}”?",
+        "warning": "Las listas de deseos, los chats y los datos del evento quedan de solo lectura. Cada quien sigue viendo a quién le regaló. No se puede deshacer.",
+        "confirm": "Sí, archivar",
+        "done": "Evento archivado."
+      },
+      "archived": {
+        "title": "Este evento está archivado",
+        "body": "Todo aquí es de solo lectura. Aún puedes ver las listas de deseos y los chats."
       }
     },
     "notFound": {
@@ -540,7 +553,7 @@
         "body": "Puede que ya no participes en ese evento."
       },
       "anonymousNotice": "Eres anónimo: te ven como {{alias}}.",
-      "readOnly": "Este evento está archivado: el chat es de solo lectura.",
+      "readOnly": "Este evento está archivado: los chats son de solo lectura.",
       "loadOlder": "Cargar mensajes anteriores",
       "reconnecting": "Reconectando…",
       "messagesLabel": "Mensajes",
@@ -730,6 +743,7 @@
     "MESSAGE_NOT_FOUND": "No encontramos este mensaje.",
     "INVALID_FRAME": "Ese mensaje del WebSocket no es válido.",
     "PUSH_NOT_CONFIGURED": "Las notificaciones no están configuradas en este servidor.",
-    "PUSH_SUBSCRIPTION_NOT_FOUND": "Ese dispositivo ya no está registrado para notificaciones."
+    "PUSH_SUBSCRIPTION_NOT_FOUND": "Ese dispositivo ya no está registrado para notificaciones.",
+    "ARCHIVE_TOO_EARLY": "Un evento solo se puede archivar después de la fecha del intercambio."
   }
 }
