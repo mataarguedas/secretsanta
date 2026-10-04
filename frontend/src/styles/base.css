@@ -19,6 +19,24 @@
   }
 }
 
+/*
+ * Safari chat thread (useSafariViewportLock): the page never scrolls, and the shell is
+ * pinned to the visual viewport so the keyboard can't push the thread off screen.
+ */
+html[data-safari-viewport='locked'],
+html[data-safari-viewport='locked'] body {
+  height: 100%;
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+
+html[data-safari-viewport='locked'] [data-safari-shell] {
+  position: fixed;
+  inset-inline: 0;
+  top: var(--safari-vv-top, 0px);
+  height: var(--safari-vv-height, 100dvh);
+}
+
 /* PRD §9.4: respect prefers-reduced-motion. */
 @media (prefers-reduced-motion: reduce) {
   *,

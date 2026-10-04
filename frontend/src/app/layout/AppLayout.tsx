@@ -6,6 +6,7 @@ import { useSyncLocale } from '@/features/auth/useSyncLocale';
 import { useUnreadTotal } from '@/features/chat/api';
 import { RealtimeProvider } from '@/features/chat/RealtimeProvider';
 import { cn } from '@/lib/cn';
+import { useSafariViewportLock } from '@/lib/useSafariViewportLock';
 import { useVisualViewportHeight } from '@/lib/useVisualViewportHeight';
 
 import { BottomTabBar } from './BottomTabBar';
@@ -21,7 +22,7 @@ import { Wordmark } from './Wordmark';
  *
  * A chat thread (`/chats/:id`) is full height instead: on mobile it drops the wordmark bar
  * and the tab bar, and it follows the visual viewport so the composer stays above the
- * keyboard. While signed in, the app's WebSocket runs (RealtimeProvider).
+ * keyboard (on Safari it's also pinned, see useSafariViewportLock). While signed in, the app's WebSocket runs (RealtimeProvider).
  */
 export function AppLayout() {
   const session = useMe();
@@ -56,9 +57,11 @@ function Shell({ me }: { me: Me | null }) {
   const thread = signedIn && /^\/chats\/[^/]+\/?$/.test(pathname);
   const unread = useUnreadTotal(signedIn);
   useVisualViewportHeight(thread);
+  useSafariViewportLock(thread);
 
   return (
     <div
+      data-safari-shell={thread ? '' : undefined}
       className={cn(
         'flex flex-col',
         thread ? 'h-[var(--app-height,100dvh)] overflow-hidden' : 'min-h-dvh',

@@ -317,6 +317,19 @@ function MessageList({
     previousHeight.current = el.scrollHeight;
   }, [lastKey]);
 
+  // The list shrinks when the keyboard opens: keep the newest messages in view.
+  useEffect(() => {
+    const el = scroller.current;
+    if (!el || typeof ResizeObserver === 'undefined') return undefined;
+    const observer = new ResizeObserver(() => {
+      if (stick.current) el.scrollTop = el.scrollHeight;
+    });
+    observer.observe(el);
+    return () => {
+      observer.disconnect();
+    };
+  }, []);
+
   // Load older on scroll-up (the pill below does the same for keyboards).
   useEffect(() => {
     const sentinel = topSentinel.current;
