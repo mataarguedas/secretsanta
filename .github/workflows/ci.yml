@@ -204,11 +204,55 @@ jobs:
         working-directory: frontend
         run: pnpm exec playwright install --with-deps chromium
 
+      # CI starts the API and the app itself and points Playwright at them (E2E_BASE_URL), so
+      # Playwright has no web servers to stop. Its teardown SIGKILLs a server's process group
+      # and then waits, with no timeout, for the server's output pipes to close: a process
+      # under `uv run` / `pnpm exec` outside that group kept them open and the job hung after
+      # the tests had passed. The runner discards these background processes at job end.
+      - name: Start e2e API
+        working-directory: backend
+        env:
+          ENV: test
+          LOG_LEVEL: WARNING
+          E2E_API_PORT: "8001"
+          APP_BASE_URL: http://localhost:4174
+        run: |
+          nohup uv run --no-sync python -m tests.e2e_server > "$RUNNER_TEMP/e2e-api.log" 2>&1 &
+          for i in $(seq 1 120); do
+            curl -fsS http://127.0.0.1:8001/api/v1/health > /dev/null && exit 0
+            sleep 1
+          done
+          cat "$RUNNER_TEMP/e2e-api.log"
+          exit 1
+
+      - name: Build and serve the app
+        working-directory: frontend
+        env:
+          API_TARGET: http://127.0.0.1:8001
+        run: |
+          pnpm exec vite build
+          nohup pnpm exec vite preview --port 4174 --strictPort > "$RUNNER_TEMP/e2e-web.log" 2>&1 &
+          for i in $(seq 1 60); do
+            curl -fsS http://localhost:4174 > /dev/null && exit 0
+            sleep 1
+          done
+          cat "$RUNNER_TEMP/e2e-web.log"
+          exit 1
+
       - name: Playwright (es/en × mobile/desktop)
         working-directory: frontend
+        # The suite takes ~1 min; never let a hang eat the job's 30 minutes again.
+        timeout-minutes: 10
+        env:
+          E2E_BASE_URL: http://localhost:4174
         run: pnpm e2e
 
-      - name: Report
+      - name: Collect server logs
+        if: failure()
+        run: |
+          cp "$RUNNER_TEMP"/e2e-*.log frontend/ 2>/dev/null || true
+
+      - name: Upload report
         if: failure()
         uses: actions/upload-artifact@v4
         with:
@@ -216,4 +260,5 @@ jobs:
           path: |
             frontend/playwright-report
             frontend/test-results
+            frontend/e2e-*.log
           retention-days: 7
