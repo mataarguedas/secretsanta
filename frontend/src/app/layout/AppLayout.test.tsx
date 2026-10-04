@@ -70,10 +70,13 @@ describe('AppLayout (signed in)', () => {
     );
   });
 
-  it('a chat thread is full height: no tab bar and no mobile wordmark bar', async () => {
+  it('a chat thread: no tab bar, and it scrolls with the page (iOS keyboard, see ThreadPage)', async () => {
     await renderSignedIn('/chats/abc');
     expect(screen.queryByRole('navigation', { name: 'Navegación' })).not.toBeInTheDocument();
-    expect(screen.getByRole('main').parentElement).toHaveClass('overflow-hidden');
+    const main = screen.getByRole('main');
+    expect(main.parentElement).toHaveClass('min-h-dvh');
+    expect(main.parentElement?.className).not.toMatch(/overflow-hidden|h-\[var/);
+    expect(main.className).not.toContain('pb-[calc(96px');
   });
 
   it('pads the content so nothing hides behind the tab bar', async () => {

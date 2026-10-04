@@ -1,6 +1,6 @@
 import { act, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { axe } from 'vitest-axe';
 
 import type { ConversationDetail, MessagePublic } from '@/features/chat/api';
@@ -117,6 +117,42 @@ describe('Thread page', () => {
       });
     });
     expect(screen.getAllByText('¿Qué talla usás?')).toHaveLength(1);
+  });
+
+  it('the page is the scroller (no inner scroll box) and it opens at the newest message', async () => {
+    const scrollTo = vi.fn();
+    vi.stubGlobal('scrollTo', scrollTo);
+    await renderThread();
+    let el: HTMLElement | null = screen.getByRole('list', { name: 'Mensajes' });
+    while (el) {
+      expect(el.className).not.toMatch(/overflow-(y-)?(auto|scroll|hidden)/);
+      el = el.parentElement;
+    }
+    expect(scrollTo).toHaveBeenCalled();
+  });
+
+  it('while typing (iOS keyboard up), a new message scrolls only by what it added', async () => {
+    const scrollTo = vi.fn();
+    const scrollBy = vi.fn();
+    vi.stubGlobal('scrollTo', scrollTo);
+    vi.stubGlobal('scrollBy', scrollBy);
+    const { ws } = await renderThread();
+    const user = userEvent.setup();
+    await user.click(screen.getByRole('textbox', { name: 'Escribir un mensaje' }));
+    scrollTo.mockClear();
+    scrollBy.mockClear();
+
+    act(() => {
+      ws.receive({
+        type: 'message',
+        conversation_id: 'conv-1',
+        message: message({ id: 'm9', body: 'Nuevo' }),
+      });
+    });
+    expect(await screen.findByText('Nuevo')).toBeInTheDocument();
+    // Relative scroll keeps the composer where Safari put it; an absolute one could hide it.
+    expect(scrollBy).toHaveBeenCalled();
+    expect(scrollTo).not.toHaveBeenCalled();
   });
 
   it('a refused send is marked failed with Retry, and Retry sends it again', async () => {

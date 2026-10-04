@@ -8,9 +8,7 @@ import { useSyncLocale } from '@/features/auth/useSyncLocale';
 import { useUnreadTotal } from '@/features/chat/api';
 import { RealtimeProvider } from '@/features/chat/RealtimeProvider';
 import { cn } from '@/lib/cn';
-import { useSafariViewportLock } from '@/lib/useSafariViewportLock';
 import { viewportDebugEnabled } from '@/lib/viewportDebug';
-import { useVisualViewportHeight } from '@/lib/useVisualViewportHeight';
 
 import { BottomTabBar } from './BottomTabBar';
 import { DesktopHeader } from './DesktopHeader';
@@ -23,9 +21,9 @@ import { Wordmark } from './Wordmark';
  * - signed out: only the centered wordmark bar.
  * Content is `max-w-[1200px] mx-auto` with 32px / 64px section gaps (CLAUDE.md §6.2).
  *
- * A chat thread (`/chats/:id`) is full height instead: on mobile it drops the wordmark bar
- * and the tab bar, and it follows the visual viewport so the composer stays above the
- * keyboard (on Safari it's also placed on the visible area, see useSafariViewportLock).
+ * A chat thread (`/chats/:id`) drops the wordmark bar and the tab bar on mobile. It scrolls
+ * with the page like any other screen, so Safari's own keyboard handling (scroll the focused
+ * composer above the keys) leaves the messages right above it; see ThreadPage.
  * `?vvdebug=1` overlays the viewport numbers for debugging that on a device.
  * While signed in, the app's WebSocket runs (RealtimeProvider).
  */
@@ -61,18 +59,10 @@ function Shell({ me }: { me: Me | null }) {
   const signedIn = me !== null;
   const thread = signedIn && /^\/chats\/[^/]+\/?$/.test(pathname);
   const unread = useUnreadTotal(signedIn);
-  useVisualViewportHeight(thread);
-  useSafariViewportLock(thread);
   const [debugViewport] = useState(() => viewportDebugEnabled());
 
   return (
-    <div
-      data-safari-shell={thread ? '' : undefined}
-      className={cn(
-        'relative flex flex-col',
-        thread ? 'h-[var(--app-height,100dvh)] overflow-hidden' : 'min-h-dvh',
-      )}
-    >
+    <div className="relative flex min-h-dvh flex-col">
       <a
         href="#main"
         className="sr-only z-50 min-h-11 items-center rounded-full-2 border border-ink-black bg-pure-white px-19 py-6 text-sm focus:not-sr-only focus:fixed focus:top-8 focus:left-8 focus:inline-flex"
@@ -104,7 +94,7 @@ function Shell({ me }: { me: Me | null }) {
         className={cn(
           'mx-auto flex w-full max-w-[1200px] flex-1 flex-col outline-none',
           thread
-            ? 'min-h-0 md:px-20 md:pb-20'
+            ? 'md:px-20 md:pb-20'
             : cn(
                 'gap-32 px-16 pt-24 md:gap-[64px] md:px-20 md:pt-40 md:pb-[64px]',
                 // Room for the fixed tab bar (signed in, mobile) so nothing hides behind it.

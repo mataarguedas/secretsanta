@@ -24,7 +24,16 @@ import { conversationTitle, memberName } from '../members';
 import { useOutbox, useSendMessage, type OutboxItem } from '../outbox';
 import { useRealtime } from '../realtimeContext';
 
-/** `/chats/:conversationId`: a full-height thread (the layout drops the tab bar here). */
+/**
+ * `/chats/:conversationId` (the layout drops the tab bar here).
+ *
+ * The thread scrolls with the *page*, not an inner box: header sticky on top, messages in the
+ * document, the composer last. On iOS the keyboard doesn't shrink the page; Safari scrolls the
+ * page to bring the focused composer above the keys. With this layout what sits right above
+ * the composer in the document is the newest messages, so they stay readable while typing,
+ * and no viewport math is needed. (A full-height box sized to the viewport is what broke:
+ * Safari's scroll pushed the whole box, header and messages, off the top of the screen.)
+ */
 export function ThreadPage() {
   const { t } = useTranslation();
   const { conversationId = '' } = useParams<{ conversationId: string }>();
@@ -125,7 +134,7 @@ function Thread({ conversation }: { conversation: ConversationDetail }) {
   return (
     <section
       aria-labelledby="thread-title"
-      className="flex h-full min-h-0 flex-col md:border md:border-mist md:bg-pure-white"
+      className="flex flex-1 flex-col md:border md:border-mist md:bg-pure-white"
     >
       <ThreadHeader
         conversation={conversation}
@@ -164,7 +173,8 @@ function Thread({ conversation }: { conversation: ConversationDetail }) {
           {t('chat.thread.readOnly')}
         </p>
       ) : (
-        <div className="md:px-20 md:pb-20">
+        // In the page flow on mobile (see above); pinned to the bottom on desktop.
+        <div className="md:sticky md:bottom-0 md:bg-pure-white md:px-20 md:pb-20">
           <Composer onSend={send} />
         </div>
       )}
@@ -221,7 +231,7 @@ function ThreadHeader({
   const { t } = useTranslation();
   const anonymousOther = conversation.title_member?.is_anonymous === true;
   return (
-    <header className="flex items-center gap-12 border-b border-ink-black px-16 pt-[calc(10px+env(safe-area-inset-top))] pb-10 md:px-20 md:pt-15 md:pb-15">
+    <header className="sticky top-0 z-10 flex items-center gap-12 border-b border-ink-black bg-cream-linen px-16 pt-[calc(10px+env(safe-area-inset-top))] pb-10 md:bg-pure-white md:px-20 md:pt-15 md:pb-15">
       <Button variant="nav" iconOnly aria-label={t('chat.thread.back')} asChild>
         <Link to="/chats">
           <svg aria-hidden="true" viewBox="0 0 20 20" className="size-20" fill="none">
@@ -286,49 +296,54 @@ function MessageList({
   onDelete: (message: MessagePublic) => void;
 }) {
   const { t, i18n } = useTranslation();
-  const scroller = useRef<HTMLDivElement>(null);
   const topSentinel = useRef<HTMLDivElement>(null);
   const stick = useRef(true);
   const previousHeight = useRef(0);
   const firstId = messages[0]?.id;
   const lastKey = `${messages.at(-1)?.id ?? ''}:${String(outbox.length)}`;
 
+  // The page is the scroller. Track whether the reader is at the bottom (the visible bottom
+  // edge is the visual viewport's, so it's right with the iOS keyboard up too).
+  useEffect(() => {
+    const update = () => {
+      const viewport = window.visualViewport;
+      const visibleBottom =
+        window.scrollY + (viewport ? viewport.offsetTop + viewport.height : window.innerHeight);
+      stick.current = pageHeight() - visibleBottom < 80;
+    };
+    window.addEventListener('scroll', update, { passive: true });
+    window.visualViewport?.addEventListener('scroll', update);
+    return () => {
+      window.removeEventListener('scroll', update);
+      window.visualViewport?.removeEventListener('scroll', update);
+      // Other screens start at the top.
+      window.scrollTo(0, 0);
+    };
+  }, []);
+
   // Older messages are prepended: keep what the user was reading in place.
   const prependedFrom = useRef<string | undefined>(firstId);
   useLayoutEffect(() => {
-    const el = scroller.current;
-    if (!el) return;
-    if (
-      prependedFrom.current !== undefined &&
-      prependedFrom.current !== firstId &&
-      !stick.current
-    ) {
-      el.scrollTop += el.scrollHeight - previousHeight.current;
+    if (prependedFrom.current !== undefined && prependedFrom.current !== firstId) {
+      window.scrollBy(0, pageHeight() - previousHeight.current);
     }
     prependedFrom.current = firstId;
-    previousHeight.current = el.scrollHeight;
+    previousHeight.current = pageHeight();
   }, [firstId]);
 
-  // New messages at the bottom: follow them if the user is already at the bottom.
+  // New messages at the bottom: follow them if the user is already at the bottom. While
+  // typing (iOS keyboard up) only scroll by what was added, never to an absolute position:
+  // that keeps the composer exactly where Safari put it, above the keys.
   useLayoutEffect(() => {
-    const el = scroller.current;
-    if (!el) return;
-    if (stick.current) el.scrollTop = el.scrollHeight;
-    previousHeight.current = el.scrollHeight;
+    if (stick.current) {
+      if (document.activeElement instanceof HTMLTextAreaElement) {
+        window.scrollBy(0, pageHeight() - previousHeight.current);
+      } else {
+        window.scrollTo(0, pageHeight());
+      }
+    }
+    previousHeight.current = pageHeight();
   }, [lastKey]);
-
-  // The list shrinks when the keyboard opens: keep the newest messages in view.
-  useEffect(() => {
-    const el = scroller.current;
-    if (!el || typeof ResizeObserver === 'undefined') return undefined;
-    const observer = new ResizeObserver(() => {
-      if (stick.current) el.scrollTop = el.scrollHeight;
-    });
-    observer.observe(el);
-    return () => {
-      observer.disconnect();
-    };
-  }, []);
 
   // Load older on scroll-up (the pill below does the same for keyboards).
   useEffect(() => {
@@ -344,14 +359,8 @@ function MessageList({
   }, [hasOlder, loadingOlder, onLoadOlder]);
 
   return (
-    <div
-      ref={scroller}
-      onScroll={(e) => {
-        const el = e.currentTarget;
-        stick.current = el.scrollHeight - el.scrollTop - el.clientHeight < 80;
-      }}
-      className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-16 py-15 md:px-20"
-    >
+    // Bottom-aligned: with few messages they still sit right above the composer.
+    <div className="flex flex-1 flex-col justify-end px-16 py-15 md:px-20">
       <div ref={topSentinel} />
       {hasOlder && (
         <div className="mb-15 flex justify-center">
@@ -435,6 +444,10 @@ function MessageList({
       </ol>
     </div>
   );
+}
+
+function pageHeight(): number {
+  return document.documentElement.scrollHeight;
 }
 
 function MessageBubble({

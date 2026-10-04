@@ -21,6 +21,9 @@ beforeEach(async () => {
   // The app opens its realtime socket when signed in; tests drive it by hand.
   FakeWebSocket.reset();
   vi.stubGlobal('WebSocket', FakeWebSocket);
+  // jsdom doesn't implement page scrolling; the chat thread scrolls the page.
+  vi.stubGlobal('scrollTo', vi.fn());
+  vi.stubGlobal('scrollBy', vi.fn());
 });
 
 afterEach(() => {

@@ -28,7 +28,7 @@ export function ViewportDebug() {
       />
       <pre
         aria-hidden="true"
-        className="pointer-events-none absolute inset-x-0 top-0 z-50 m-0 bg-ink-black/80 px-8 py-6 font-mono text-caption whitespace-pre-wrap text-pure-white"
+        className="pointer-events-none fixed inset-x-0 top-0 z-50 m-0 bg-ink-black/80 px-8 py-6 font-mono text-caption whitespace-pre-wrap text-pure-white"
       >
         {text}
       </pre>
