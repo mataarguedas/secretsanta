@@ -75,6 +75,7 @@ jobs:
           push: true
           build-args: |
             VITE_SENTRY_DSN=${{ vars.VITE_SENTRY_DSN }}
+            APP_VERSION=${{ steps.meta.outputs.sha }}
           tags: |
             ghcr.io/${{ steps.meta.outputs.owner }}/santa-web:${{ steps.meta.outputs.sha }}
             ghcr.io/${{ steps.meta.outputs.owner }}/santa-web:latest
@@ -148,9 +149,38 @@ jobs:
           set -euo pipefail
           cd /opt/santa
           trap 'docker logout ghcr.io >/dev/null' EXIT
-          docker compose pull
+
+          # Settings the stack can't run without. Without APP_DOMAIN, Caddy only serves
+          # "localhost" and HTTPS breaks for everyone; APP_BASE_URL drives sign-in.
+          for key in APP_DOMAIN APP_BASE_URL; do
+            if ! grep -Eq "^${key}=.+" .env; then
+              echo "::error::/opt/santa/.env has no ${key}"
+              exit 1
+            fi
+          done
+
+          # This commit's images, pulled explicitly so a failed pull fails the deploy.
+          # (`docker compose pull` only warns for services that also have a build: section,
+          # and `up -d` then keeps the old containers: the deploy "succeeds" without updating.)
+          api="ghcr.io/${GHCR_OWNER}/santa-api:${IMAGE_TAG}"
+          web="ghcr.io/${GHCR_OWNER}/santa-web:${IMAGE_TAG}"
+          docker pull "$api"
+          docker pull "$web"
+          docker compose pull postgres redis
+
           docker compose run --rm api alembic upgrade head
-          docker compose up -d --remove-orphans
+          docker compose up -d --no-build --remove-orphans
+
+          # Every app container must now run this commit's image.
+          for service in caddy api worker; do
+            running="$(docker inspect --format '{{.Config.Image}}' "$(docker compose ps -q "$service")")"
+            if [ "$service" = caddy ]; then want="$web"; else want="$api"; fi
+            if [ "$running" != "$want" ]; then
+              echo "::error::$service runs $running, expected $want"
+              exit 1
+            fi
+          done
+
           docker image prune -f
           docker compose ps
           EOF
@@ -159,3 +189,18 @@ jobs:
         run: |
           curl -fsS --retry 20 --retry-delay 6 --retry-all-errors --max-time 10 \
             "https://$APP_DOMAIN/api/v1/health"
+
+      # The live site must serve this commit's build (frontend/Dockerfile writes version.txt).
+      - name: The site serves this commit
+        run: |
+          live=""
+          for attempt in $(seq 1 20); do
+            live="$(curl -fsS --max-time 10 "https://$APP_DOMAIN/version.txt" || true)"
+            if [ "$live" = "$IMAGE_TAG" ]; then
+              echo "https://$APP_DOMAIN serves $IMAGE_TAG"
+              exit 0
+            fi
+            sleep 6
+          done
+          echo "::error::https://$APP_DOMAIN serves '${live:-nothing}', expected $IMAGE_TAG"
+          exit 1

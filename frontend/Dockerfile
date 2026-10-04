@@ -15,6 +15,9 @@ COPY frontend/ ./
 ARG VITE_SENTRY_DSN=""
 ENV VITE_SENTRY_DSN=${VITE_SENTRY_DSN}
 RUN pnpm build
+# The commit this image was built from; the deploy checks the live site serves it.
+ARG APP_VERSION=dev
+RUN echo "$APP_VERSION" > dist/version.txt
 
 # ── Runtime: Caddy ──────────────────────────────────────────────────────────────
 FROM caddy:2

@@ -112,8 +112,11 @@ One VPS (Hetzner CX22, Ubuntu 24.04) runs `infra/docker-compose.yml`:
 Every push to `main` runs CI. When CI passes, `.github/workflows/deploy.yml`:
 1. builds both images and pushes them to GHCR, tagged with the commit SHA and `latest`
 2. copies `docker-compose.yml` and `backup.sh` to `/opt/santa`
-3. runs `docker compose pull`, `alembic upgrade head` and `docker compose up -d`
-4. checks `https://$APP_DOMAIN/api/v1/health`
+3. checks that `/opt/santa/.env` sets `APP_DOMAIN` and `APP_BASE_URL`
+4. pulls that commit's images by SHA (a failed pull fails the deploy), runs `alembic upgrade head` and `docker compose up -d`, then checks that `caddy`, `api` and `worker` run the new images
+5. checks `https://$APP_DOMAIN/api/v1/health`, and that `https://$APP_DOMAIN/version.txt` returns the commit SHA
+
+A deploy only succeeds once the live site serves the new commit. CI plus the deploy take about 10 minutes after a push; `https://$APP_DOMAIN/version.txt` shows which commit is live.
 
 ### Production `.env`
 
