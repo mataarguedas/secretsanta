@@ -33,15 +33,25 @@ function readEnvironment(): BrowserEnvironment {
 /** Marks <html> while locked; `styles/base.css` pins `[data-safari-shell]` to these vars. */
 export const SAFARI_LOCK_ATTRIBUTE = 'data-safari-viewport';
 
+/** Frames with unchanged viewport values before the follow loop stops. */
+const STABLE_FRAMES = 10;
+/** Hard cap on one follow loop (~2 s at 60 fps): the keyboard animation is well within it. */
+const MAX_FRAMES = 120;
+
 /**
  * Safari only, while `enabled`: pins the chat shell to the *visual* viewport.
  *
- * When the keyboard opens, iOS Safari shrinks only the visual viewport and then scrolls the
- * whole page to reveal the focused input. A shell sized to the visual viewport is pushed up
- * off screen by that scroll: the header and the messages disappear and the composer sticks
- * to the top with a blank gap above the keyboard. Here the page itself can't scroll, the
- * shell is `position: fixed` at the visual viewport's offset and height, and any page scroll
- * Safari still makes is undone.
+ * When the keyboard opens, iOS Safari shrinks the visual viewport and pans it down over the
+ * layout viewport to reveal the focused input. A `position: fixed` shell stays on the layout
+ * viewport, so that pan pushes the header and the messages off the top of the screen and
+ * leaves the composer stuck there with a blank gap above the keyboard.
+ *
+ * The shell follows the pan instead (`top` = `visualViewport.offsetTop`, `height` =
+ * `visualViewport.height`). It never scrolls the page back: on iOS scrolling is async, so a
+ * `scrollTo` makes the next read stale and Safari pans again, and the two fight. Safari also
+ * doesn't fire viewport events reliably through the keyboard animation, so every trigger
+ * (focus in/out, viewport resize/scroll, page scroll) starts a per-frame loop that re-reads
+ * the viewport until it has settled.
  */
 export function useSafariViewportLock(
   enabled: boolean,
@@ -52,31 +62,48 @@ export function useSafariViewportLock(
     if (!enabled || !viewport || !isSafari(environment())) return undefined;
     const root = document.documentElement;
     let frame = 0;
+    let remaining = 0;
+    let stable = 0;
+    let height = -1;
+    let top = -1;
 
-    const update = () => {
-      frame = 0;
-      // Undo the page scroll Safari makes to "reveal" the input; the shell handles it.
-      if (window.scrollY !== 0) window.scrollTo(0, 0);
-      root.style.setProperty('--safari-vv-height', `${String(Math.round(viewport.height))}px`);
-      root.style.setProperty(
-        '--safari-vv-top',
-        `${String(Math.max(0, Math.round(viewport.offsetTop)))}px`,
-      );
+    /** Writes the current viewport box; false when nothing changed. */
+    const apply = (): boolean => {
+      const nextHeight = Math.round(viewport.height);
+      const nextTop = Math.max(0, Math.round(viewport.offsetTop));
+      if (nextHeight === height && nextTop === top) return false;
+      height = nextHeight;
+      top = nextTop;
+      root.style.setProperty('--safari-vv-height', `${String(height)}px`);
+      root.style.setProperty('--safari-vv-top', `${String(top)}px`);
+      return true;
     };
-    const schedule = () => {
-      if (frame === 0) frame = window.requestAnimationFrame(update);
+    const tick = () => {
+      frame = 0;
+      stable = apply() ? 0 : stable + 1;
+      remaining -= 1;
+      if (stable < STABLE_FRAMES && remaining > 0) frame = window.requestAnimationFrame(tick);
+    };
+    const follow = () => {
+      stable = 0;
+      remaining = MAX_FRAMES;
+      if (frame === 0) frame = window.requestAnimationFrame(tick);
     };
 
     root.setAttribute(SAFARI_LOCK_ATTRIBUTE, 'locked');
-    update();
-    viewport.addEventListener('resize', schedule);
-    viewport.addEventListener('scroll', schedule);
-    window.addEventListener('scroll', schedule, { passive: true });
+    apply();
+    viewport.addEventListener('resize', follow);
+    viewport.addEventListener('scroll', follow);
+    window.addEventListener('scroll', follow, { passive: true });
+    document.addEventListener('focusin', follow);
+    document.addEventListener('focusout', follow);
     return () => {
       if (frame !== 0) window.cancelAnimationFrame(frame);
-      viewport.removeEventListener('resize', schedule);
-      viewport.removeEventListener('scroll', schedule);
-      window.removeEventListener('scroll', schedule);
+      viewport.removeEventListener('resize', follow);
+      viewport.removeEventListener('scroll', follow);
+      window.removeEventListener('scroll', follow);
+      document.removeEventListener('focusin', follow);
+      document.removeEventListener('focusout', follow);
       root.removeAttribute(SAFARI_LOCK_ATTRIBUTE);
       root.style.removeProperty('--safari-vv-height');
       root.style.removeProperty('--safari-vv-top');

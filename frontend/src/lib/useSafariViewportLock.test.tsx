@@ -45,13 +45,28 @@ describe('isSafari', () => {
 describe('useSafariViewportLock', () => {
   const root = document.documentElement;
   let viewport: EventTarget & { height: number; offsetTop: number };
+  let frames: FrameRequestCallback[];
+
+  /** Runs queued animation frames, letting `between` move the viewport before each one. */
+  const runFrames = (count: number, between?: (frame: number) => void) => {
+    for (let i = 0; i < count && frames.length > 0; i += 1) {
+      between?.(i);
+      const queued = frames;
+      frames = [];
+      for (const cb of queued) cb(0);
+    }
+  };
 
   beforeEach(() => {
+    frames = [];
     viewport = Object.assign(new EventTarget(), { height: 400, offsetTop: 0 });
     vi.stubGlobal('visualViewport', viewport);
     vi.stubGlobal('requestAnimationFrame', (cb: FrameRequestCallback) => {
-      cb(0);
-      return 0;
+      frames.push(cb);
+      return frames.length;
+    });
+    vi.stubGlobal('cancelAnimationFrame', () => {
+      frames = [];
     });
   });
 
@@ -71,6 +86,7 @@ describe('useSafariViewportLock', () => {
     viewport.height = 300;
     viewport.offsetTop = 120;
     viewport.dispatchEvent(new Event('resize'));
+    runFrames(1);
     expect(root.style.getPropertyValue('--safari-vv-height')).toBe('300px');
     expect(root.style.getPropertyValue('--safari-vv-top')).toBe('120px');
 
@@ -78,6 +94,42 @@ describe('useSafariViewportLock', () => {
     expect(root.hasAttribute('data-safari-viewport')).toBe(false);
     expect(root.style.getPropertyValue('--safari-vv-height')).toBe('');
     expect(root.style.getPropertyValue('--safari-vv-top')).toBe('');
+  });
+
+  it('keeps following the keyboard animation after focus, without viewport events', () => {
+    renderHook(() => {
+      useSafariViewportLock(true, () => IPHONE_SAFARI);
+    });
+    const input = document.createElement('input');
+    document.body.append(input);
+    input.focus();
+
+    // Safari shrinks and pans the viewport over several frames and fires nothing.
+    runFrames(5, (frame) => {
+      viewport.height = 400 - frame * 25;
+      viewport.offsetTop = frame * 40;
+    });
+    expect(root.style.getPropertyValue('--safari-vv-height')).toBe('300px');
+    expect(root.style.getPropertyValue('--safari-vv-top')).toBe('160px');
+
+    // Once the values hold steady the loop stops.
+    runFrames(50);
+    expect(frames).toHaveLength(0);
+    input.remove();
+  });
+
+  it('never scrolls the page back (that fights Safari on iOS)', () => {
+    const scrollTo = vi.fn();
+    vi.stubGlobal('scrollTo', scrollTo);
+    renderHook(() => {
+      useSafariViewportLock(true, () => IPHONE_SAFARI);
+    });
+    viewport.offsetTop = 200;
+    window.dispatchEvent(new Event('scroll'));
+    viewport.dispatchEvent(new Event('scroll'));
+    runFrames(20);
+    expect(scrollTo).not.toHaveBeenCalled();
+    expect(root.style.getPropertyValue('--safari-vv-top')).toBe('200px');
   });
 
   it('does nothing on other browsers or while disabled', () => {

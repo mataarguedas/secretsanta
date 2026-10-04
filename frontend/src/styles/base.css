@@ -20,8 +20,9 @@
 }
 
 /*
- * Safari chat thread (useSafariViewportLock): the page never scrolls, and the shell is
- * pinned to the visual viewport so the keyboard can't push the thread off screen.
+ * Safari chat thread (useSafariViewportLock): the page has nothing to scroll, and the shell
+ * follows the visual viewport (its pan and height) so the keyboard can't push the thread
+ * off screen.
  */
 html[data-safari-viewport='locked'],
 html[data-safari-viewport='locked'] body {
