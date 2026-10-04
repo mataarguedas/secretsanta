@@ -5,6 +5,7 @@ import { Button } from '@/components/ui';
 import { cn } from '@/lib/cn';
 
 import { MESSAGE_MAX } from '../api';
+import { useComposerAboveKeyboard } from '../useComposerAboveKeyboard';
 
 /** Enter sends where there's a physical keyboard; on touch screens it's a new line. */
 function enterSends(): boolean {
@@ -22,6 +23,8 @@ export function Composer({ onSend }: { onSend: (body: string) => void }) {
   const { t } = useTranslation();
   const [value, setValue] = useState('');
   const input = useRef<HTMLTextAreaElement>(null);
+  const form = useRef<HTMLFormElement>(null);
+  useComposerAboveKeyboard(form);
   const counterId = useId();
   const trimmed = value.trim();
   const tooLong = value.length > MESSAGE_MAX;
@@ -43,6 +46,7 @@ export function Composer({ onSend }: { onSend: (body: string) => void }) {
 
   return (
     <form
+      ref={form}
       noValidate
       aria-label={t('chat.composer.label')}
       onSubmit={(e) => {

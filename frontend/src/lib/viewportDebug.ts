@@ -31,6 +31,7 @@ export function readViewportSnapshot(probe: HTMLElement | null): string {
     `scrollY ${px(window.scrollY)}  innerH ${px(window.innerHeight)}  clientH ${px(root.clientHeight)}`,
     `vv.h ${px(vv?.height)}  vv.offTop ${px(vv?.offsetTop)}  vv.pageTop ${px(vv?.pageTop)}  vv.scale ${vv ? vv.scale.toFixed(2) : '-'}`,
     `main top ${px(shell?.top)} h ${px(shell?.height)}  composer bottom ${px(composer?.bottom)}`,
+    `gap (composer bottom - visible bottom) ${composer && vv ? px(composer.bottom - (vv.offsetTop + vv.height)) : '-'}`,
     `docH ${px(root.scrollHeight)}  focus ${active ? active.tagName.toLowerCase() : '-'}`,
     `safe top ${probeStyle?.paddingTop ?? '-'} bottom ${probeStyle?.paddingBottom ?? '-'}`,
   ].join('\n');
