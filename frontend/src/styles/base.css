@@ -19,6 +19,15 @@
   }
 }
 
+/*
+ * Chat thread open (usePinnedToVisibleArea): the document never scrolls; the messages scroll
+ * inside the thread box, so iOS has no page scroll to fight over while typing.
+ */
+html[data-chat-thread] {
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+
 /* PRD §9.4: respect prefers-reduced-motion. */
 @media (prefers-reduced-motion: reduce) {
   *,

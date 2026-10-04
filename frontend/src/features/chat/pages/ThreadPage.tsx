@@ -23,16 +23,15 @@ import { ConversationAvatar, MemberAvatar } from '../components/MemberAvatar';
 import { conversationTitle, memberName } from '../members';
 import { useOutbox, useSendMessage, type OutboxItem } from '../outbox';
 import { useRealtime } from '../realtimeContext';
+import { usePinnedToVisibleArea } from '../usePinnedToVisibleArea';
 
 /**
  * `/chats/:conversationId` (the layout drops the tab bar here).
  *
- * The thread scrolls with the *page*, not an inner box: header sticky on top, messages in the
- * document, the composer last. On iOS the keyboard doesn't shrink the page; Safari scrolls the
- * page to bring the focused composer above the keys. With this layout what sits right above
- * the composer in the document is the newest messages, so they stay readable while typing,
- * and no viewport math is needed. (A full-height box sized to the viewport is what broke:
- * Safari's scroll pushed the whole box, header and messages, off the top of the screen.)
+ * The thread is one box: header, messages (the only thing that scrolls), composer. The
+ * document never scrolls while it's open. On mobile the box is fixed and pinned to the visible
+ * area by `usePinnedToVisibleArea`, so with the keyboard up it ends right above the keys,
+ * whatever Safari does to the page on focus. On desktop it fills the space under the header.
  */
 export function ThreadPage() {
   const { t } = useTranslation();
@@ -80,6 +79,8 @@ function Thread({ conversation }: { conversation: ConversationDetail }) {
   const archived = conversation.event.state === 'archived';
   const title = conversationTitle(t, conversation);
   useDocumentTitle(title);
+  const box = useRef<HTMLElement>(null);
+  usePinnedToVisibleArea(box);
 
   const members = useMemo(
     () => new Map(conversation.members.map((m) => [m.id, m])),
@@ -133,8 +134,9 @@ function Thread({ conversation }: { conversation: ConversationDetail }) {
 
   return (
     <section
+      ref={box}
       aria-labelledby="thread-title"
-      className="flex flex-1 flex-col md:border md:border-mist md:bg-pure-white"
+      className="fixed inset-x-0 top-0 z-20 flex h-[var(--chat-box-height,100dvh)] translate-y-[var(--chat-box-shift,0px)] flex-col overflow-hidden bg-cream-linen md:static md:z-auto md:h-auto md:min-h-0 md:flex-1 md:translate-y-0 md:border md:border-mist md:bg-pure-white"
     >
       <ThreadHeader
         conversation={conversation}
@@ -142,7 +144,7 @@ function Thread({ conversation }: { conversation: ConversationDetail }) {
         reconnecting={status === 'reconnecting'}
       />
       {conversation.my_member.is_anonymous && conversation.my_member.anon_number !== null && (
-        <p className="border-b border-mist bg-bone px-16 py-10 text-sm text-charcoal md:px-20">
+        <p className="shrink-0 border-b border-mist bg-bone px-16 py-10 text-sm text-charcoal md:px-20">
           {t('chat.thread.anonymousNotice', {
             alias: t('chat.member.anonymous', { n: conversation.my_member.anon_number }),
           })}
@@ -169,12 +171,11 @@ function Thread({ conversation }: { conversation: ConversationDetail }) {
       </p>
 
       {archived ? (
-        <p className="border-t border-mist px-16 py-15 pb-[calc(15px+env(safe-area-inset-bottom))] text-body text-charcoal md:px-20 md:pb-15">
+        <p className="shrink-0 border-t border-mist px-16 py-15 pb-[calc(15px+env(safe-area-inset-bottom))] text-body text-charcoal md:px-20 md:pb-15">
           {t('chat.thread.readOnly')}
         </p>
       ) : (
-        // In the page flow on mobile (see above); pinned to the bottom on desktop.
-        <div className="md:sticky md:bottom-0 md:bg-pure-white md:px-20 md:pb-20">
+        <div className="shrink-0 md:px-20 md:pb-20">
           <Composer onSend={send} />
         </div>
       )}
@@ -231,7 +232,7 @@ function ThreadHeader({
   const { t } = useTranslation();
   const anonymousOther = conversation.title_member?.is_anonymous === true;
   return (
-    <header className="sticky top-0 z-10 flex items-center gap-12 border-b border-ink-black bg-cream-linen px-16 pt-[calc(10px+env(safe-area-inset-top))] pb-10 md:bg-pure-white md:px-20 md:pt-15 md:pb-15">
+    <header className="flex shrink-0 items-center gap-12 border-b border-ink-black bg-cream-linen px-16 pt-[calc(10px+env(safe-area-inset-top))] pb-10 md:bg-pure-white md:px-20 md:pt-15 md:pb-15">
       <Button variant="nav" iconOnly aria-label={t('chat.thread.back')} asChild>
         <Link to="/chats">
           <svg aria-hidden="true" viewBox="0 0 20 20" className="size-20" fill="none">
@@ -296,62 +297,65 @@ function MessageList({
   onDelete: (message: MessagePublic) => void;
 }) {
   const { t, i18n } = useTranslation();
+  const scroller = useRef<HTMLDivElement>(null);
   const topSentinel = useRef<HTMLDivElement>(null);
   const stick = useRef(true);
   const previousHeight = useRef(0);
   const firstId = messages[0]?.id;
   const lastKey = `${messages.at(-1)?.id ?? ''}:${String(outbox.length)}`;
 
-  // The page is the scroller. Track whether the reader is at the bottom (the visible bottom
-  // edge is the visual viewport's, so it's right with the iOS keyboard up too).
+  // Whether the reader is at the bottom; and when the box gets shorter (the keyboard opens)
+  // or the composer grows, a reader at the bottom stays at the bottom.
   useEffect(() => {
+    const el = scroller.current;
+    if (!el) return undefined;
     const update = () => {
-      const viewport = window.visualViewport;
-      const visibleBottom =
-        window.scrollY + (viewport ? viewport.offsetTop + viewport.height : window.innerHeight);
-      stick.current = pageHeight() - visibleBottom < 80;
+      stick.current = el.scrollHeight - el.scrollTop - el.clientHeight < 80;
     };
-    window.addEventListener('scroll', update, { passive: true });
-    window.visualViewport?.addEventListener('scroll', update);
+    el.addEventListener('scroll', update, { passive: true });
+    const observer =
+      typeof ResizeObserver === 'undefined'
+        ? null
+        : new ResizeObserver(() => {
+            if (stick.current) el.scrollTop = el.scrollHeight;
+          });
+    observer?.observe(el);
     return () => {
-      window.removeEventListener('scroll', update);
-      window.visualViewport?.removeEventListener('scroll', update);
-      // Other screens start at the top.
-      window.scrollTo(0, 0);
+      el.removeEventListener('scroll', update);
+      observer?.disconnect();
     };
   }, []);
 
   // Older messages are prepended: keep what the user was reading in place.
   const prependedFrom = useRef<string | undefined>(firstId);
   useLayoutEffect(() => {
+    const el = scroller.current;
+    if (!el) return;
     if (prependedFrom.current !== undefined && prependedFrom.current !== firstId) {
-      window.scrollBy(0, pageHeight() - previousHeight.current);
+      el.scrollTop += el.scrollHeight - previousHeight.current;
     }
     prependedFrom.current = firstId;
-    previousHeight.current = pageHeight();
+    previousHeight.current = el.scrollHeight;
   }, [firstId]);
 
-  // New messages at the bottom: follow them if the user is already at the bottom. While
-  // typing (iOS keyboard up) only scroll by what was added, never to an absolute position:
-  // that keeps the composer exactly where Safari put it, above the keys.
+  // New messages at the bottom: follow them if the user is already at the bottom.
   useLayoutEffect(() => {
-    if (stick.current) {
-      if (document.activeElement instanceof HTMLTextAreaElement) {
-        window.scrollBy(0, pageHeight() - previousHeight.current);
-      } else {
-        window.scrollTo(0, pageHeight());
-      }
-    }
-    previousHeight.current = pageHeight();
+    const el = scroller.current;
+    if (!el) return;
+    if (stick.current) el.scrollTop = el.scrollHeight;
+    previousHeight.current = el.scrollHeight;
   }, [lastKey]);
 
   // Load older on scroll-up (the pill below does the same for keyboards).
   useEffect(() => {
     const sentinel = topSentinel.current;
     if (!sentinel || !hasOlder || typeof IntersectionObserver === 'undefined') return undefined;
-    const observer = new IntersectionObserver((entries) => {
-      if (entries.some((e) => e.isIntersecting) && !loadingOlder) onLoadOlder();
-    });
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((e) => e.isIntersecting) && !loadingOlder) onLoadOlder();
+      },
+      { root: scroller.current },
+    );
     observer.observe(sentinel);
     return () => {
       observer.disconnect();
@@ -359,95 +363,94 @@ function MessageList({
   }, [hasOlder, loadingOlder, onLoadOlder]);
 
   return (
-    // Bottom-aligned: with few messages they still sit right above the composer.
-    <div className="flex flex-1 flex-col justify-end px-16 py-15 md:px-20">
-      <div ref={topSentinel} />
-      {hasOlder && (
-        <div className="mb-15 flex justify-center">
-          <Button variant="nav" loading={loadingOlder} onClick={onLoadOlder}>
-            {t('chat.thread.loadOlder')}
-          </Button>
-        </div>
-      )}
-      {loading && (
-        <p role="status" className="text-body text-stone">
-          {t('chat.thread.loading')}
-        </p>
-      )}
-      {error && <p className="text-body text-error">{error}</p>}
-      <ol aria-label={t('chat.thread.messagesLabel')} className="flex flex-col gap-12">
-        {messages.map((message) => {
-          const sender = members.get(message.sender_member_id);
-          const mine = message.sender_member_id === me.id;
-          return (
+    // The only scroller in the thread. Bottom-aligned: with few messages they still sit right
+    // above the composer.
+    <div ref={scroller} className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
+      <div className="flex min-h-full flex-col justify-end px-16 py-15 md:px-20">
+        <div ref={topSentinel} />
+        {hasOlder && (
+          <div className="mb-15 flex justify-center">
+            <Button variant="nav" loading={loadingOlder} onClick={onLoadOlder}>
+              {t('chat.thread.loadOlder')}
+            </Button>
+          </div>
+        )}
+        {loading && (
+          <p role="status" className="text-body text-stone">
+            {t('chat.thread.loading')}
+          </p>
+        )}
+        {error && <p className="text-body text-error">{error}</p>}
+        <ol aria-label={t('chat.thread.messagesLabel')} className="flex flex-col gap-12">
+          {messages.map((message) => {
+            const sender = members.get(message.sender_member_id);
+            const mine = message.sender_member_id === me.id;
+            return (
+              <MessageBubble
+                key={message.id}
+                mine={mine}
+                senderName={sender ? memberName(t, sender) : t('chat.member.former')}
+                sender={group && !mine ? sender : undefined}
+                time={formatDateTime(message.created_at, i18n.language, { timeStyle: 'short' })}
+                dateTime={message.created_at}
+                body={
+                  message.deleted ? (
+                    <span className="text-stone">{t('chat.message.deleted')}</span>
+                  ) : (
+                    message.body
+                  )
+                }
+                actions={
+                  mine &&
+                  !message.deleted &&
+                  !archived && (
+                    <Button
+                      variant="ghost"
+                      aria-label={t('chat.message.deleteLabel')}
+                      onClick={() => {
+                        onDelete(message);
+                      }}
+                    >
+                      {t('chat.message.delete')}
+                    </Button>
+                  )
+                }
+              />
+            );
+          })}
+          {outbox.map((item) => (
             <MessageBubble
-              key={message.id}
-              mine={mine}
-              senderName={sender ? memberName(t, sender) : t('chat.member.former')}
-              sender={group && !mine ? sender : undefined}
-              time={formatDateTime(message.created_at, i18n.language, { timeStyle: 'short' })}
-              dateTime={message.created_at}
-              body={
-                message.deleted ? (
-                  <span className="text-stone">{t('chat.message.deleted')}</span>
-                ) : (
-                  message.body
-                )
+              key={item.client_id}
+              mine
+              senderName={t('chat.member.you')}
+              time={
+                item.status === 'pending'
+                  ? t('chat.message.pending')
+                  : t('chat.message.failed', {
+                      reason: codeMessage(t, item.error ?? 'UNKNOWN_ERROR'),
+                    })
               }
+              failed={item.status === 'failed'}
+              status={item.status}
+              body={item.body}
               actions={
-                mine &&
-                !message.deleted &&
-                !archived && (
+                item.status === 'failed' && (
                   <Button
-                    variant="ghost"
-                    aria-label={t('chat.message.deleteLabel')}
+                    variant="nav"
                     onClick={() => {
-                      onDelete(message);
+                      onRetry(item.client_id);
                     }}
                   >
-                    {t('chat.message.delete')}
+                    {t('chat.message.retry')}
                   </Button>
                 )
               }
             />
-          );
-        })}
-        {outbox.map((item) => (
-          <MessageBubble
-            key={item.client_id}
-            mine
-            senderName={t('chat.member.you')}
-            time={
-              item.status === 'pending'
-                ? t('chat.message.pending')
-                : t('chat.message.failed', {
-                    reason: codeMessage(t, item.error ?? 'UNKNOWN_ERROR'),
-                  })
-            }
-            failed={item.status === 'failed'}
-            status={item.status}
-            body={item.body}
-            actions={
-              item.status === 'failed' && (
-                <Button
-                  variant="nav"
-                  onClick={() => {
-                    onRetry(item.client_id);
-                  }}
-                >
-                  {t('chat.message.retry')}
-                </Button>
-              )
-            }
-          />
-        ))}
-      </ol>
+          ))}
+        </ol>
+      </div>
     </div>
   );
-}
-
-function pageHeight(): number {
-  return document.documentElement.scrollHeight;
 }
 
 function MessageBubble({

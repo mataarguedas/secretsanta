@@ -21,9 +21,9 @@ import { Wordmark } from './Wordmark';
  * - signed out: only the centered wordmark bar.
  * Content is `max-w-[1200px] mx-auto` with 32px / 64px section gaps (CLAUDE.md §6.2).
  *
- * A chat thread (`/chats/:id`) drops the wordmark bar and the tab bar on mobile. It scrolls
- * with the page like any other screen, so Safari's own keyboard handling (scroll the focused
- * composer above the keys) leaves the messages right above it; see ThreadPage.
+ * A chat thread (`/chats/:id`) drops the wordmark bar and the tab bar on mobile, and the shell
+ * is exactly one screen tall: the document doesn't scroll, only the messages inside the
+ * thread do (on mobile the thread is a box pinned to the visible area; see ThreadPage).
  * `?vvdebug=1` overlays the viewport numbers for debugging that on a device.
  * While signed in, the app's WebSocket runs (RealtimeProvider).
  */
@@ -62,7 +62,7 @@ function Shell({ me }: { me: Me | null }) {
   const [debugViewport] = useState(() => viewportDebugEnabled());
 
   return (
-    <div className="relative flex min-h-dvh flex-col">
+    <div className={cn('relative flex flex-col', thread ? 'h-dvh' : 'min-h-dvh')}>
       <a
         href="#main"
         className="sr-only z-50 min-h-11 items-center rounded-full-2 border border-ink-black bg-pure-white px-19 py-6 text-sm focus:not-sr-only focus:fixed focus:top-8 focus:left-8 focus:inline-flex"
@@ -94,7 +94,7 @@ function Shell({ me }: { me: Me | null }) {
         className={cn(
           'mx-auto flex w-full max-w-[1200px] flex-1 flex-col outline-none',
           thread
-            ? 'md:px-20 md:pb-20'
+            ? 'min-h-0 md:px-20 md:pb-20'
             : cn(
                 'gap-32 px-16 pt-24 md:gap-[64px] md:px-20 md:pt-40 md:pb-[64px]',
                 // Room for the fixed tab bar (signed in, mobile) so nothing hides behind it.

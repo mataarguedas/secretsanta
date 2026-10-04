@@ -70,12 +70,13 @@ describe('AppLayout (signed in)', () => {
     );
   });
 
-  it('a chat thread: no tab bar, and it scrolls with the page (iOS keyboard, see ThreadPage)', async () => {
+  it('a chat thread: no tab bar, and the shell is one screen tall (only messages scroll)', async () => {
     await renderSignedIn('/chats/abc');
     expect(screen.queryByRole('navigation', { name: 'Navegación' })).not.toBeInTheDocument();
     const main = screen.getByRole('main');
-    expect(main.parentElement).toHaveClass('min-h-dvh');
-    expect(main.parentElement?.className).not.toMatch(/overflow-hidden|h-\[var/);
+    expect(main.parentElement).toHaveClass('h-dvh');
+    expect(main.parentElement).not.toHaveClass('min-h-dvh');
+    expect(main).toHaveClass('min-h-0');
     expect(main.className).not.toContain('pb-[calc(96px');
   });
 
