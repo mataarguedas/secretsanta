@@ -4,15 +4,20 @@ import './i18n';
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { RouterProvider } from 'react-router/dom';
+import { registerSW } from 'virtual:pwa-register';
 
 import { AppProviders } from './app/providers';
 import { router } from './app/router';
 import { listenForInstallPrompt } from './features/notifications/installPrompt';
 import { listenForNotificationNavigation } from './features/notifications/notificationNavigation';
 import { initSentry } from './lib/sentry';
+import { startServiceWorkerUpdates } from './lib/serviceWorkerUpdates';
 
 // A no-op unless the build set VITE_SENTRY_DSN.
 void initSentry();
+
+// The installed PWA follows new deploys (checks on launch and resume, then reloads).
+startServiceWorkerUpdates(registerSW);
 
 // Both events can arrive before any component mounts.
 listenForInstallPrompt();

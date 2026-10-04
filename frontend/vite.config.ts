@@ -44,7 +44,9 @@ const pwa = VitePWA({
   srcDir: 'src',
   filename: 'sw.ts',
   registerType: 'autoUpdate',
-  injectRegister: 'script-defer',
+  // main.tsx registers the worker itself (lib/serviceWorkerUpdates.ts): update checks on
+  // resume and a reload onto the new version, which the injected script doesn't do.
+  injectRegister: false,
   manifest,
   injectManifest: {
     globPatterns: ['**/*.{js,css,html,woff2,png,svg,webmanifest}'],

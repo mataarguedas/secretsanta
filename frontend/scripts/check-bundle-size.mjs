@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // PRD §10: initial JS < 250 KB gzipped. Runs after `vite build` (part of `pnpm build`).
 // "Initial" = the scripts dist/index.html loads up front: module entry points, their
-// modulepreloads, and classic scripts (registerSW.js). Lazy chunks don't count.
+// modulepreloads, and any classic scripts. Lazy chunks don't count.
 
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
