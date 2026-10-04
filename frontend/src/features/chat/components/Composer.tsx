@@ -15,7 +15,8 @@ function enterSends(): boolean {
 
 /**
  * The thread composer: 1–2000 characters (trimmed) with a counter, and the coral Send, the
- * only primary in the viewport. Shift+Enter always makes a new line.
+ * only primary in the viewport. Shift+Enter always makes a new line. The home-indicator
+ * padding is dropped while the iOS keyboard is up (it would leave a gap above the keys).
  */
 export function Composer({ onSend }: { onSend: (body: string) => void }) {
   const { t } = useTranslation();
@@ -48,7 +49,7 @@ export function Composer({ onSend }: { onSend: (body: string) => void }) {
         e.preventDefault();
         submit();
       }}
-      className="flex flex-col gap-6 border-t border-ink-black bg-cream-linen px-16 pt-12 pb-[calc(12px+env(safe-area-inset-bottom))] md:px-0 md:pb-0"
+      className="flex flex-col gap-6 border-t border-ink-black bg-cream-linen px-16 pt-12 pb-[calc(12px+env(safe-area-inset-bottom))] md:px-0 md:pb-0 [html[data-safari-keyboard=open]_&]:pb-12"
     >
       <div className="flex items-end gap-10">
         <label className="sr-only" htmlFor={`${counterId}-input`}>

@@ -44,7 +44,7 @@ describe('isSafari', () => {
 
 describe('useSafariViewportLock', () => {
   const root = document.documentElement;
-  let viewport: EventTarget & { height: number; offsetTop: number };
+  let viewport: EventTarget & { height: number; width: number; offsetTop: number };
   let frames: FrameRequestCallback[];
 
   /** Runs queued animation frames, letting `between` move the viewport before each one. */
@@ -59,7 +59,8 @@ describe('useSafariViewportLock', () => {
 
   beforeEach(() => {
     frames = [];
-    viewport = Object.assign(new EventTarget(), { height: 400, offsetTop: 0 });
+    viewport = Object.assign(new EventTarget(), { height: 600, width: 400, offsetTop: 0 });
+    vi.stubGlobal('scrollY', 0);
     vi.stubGlobal('visualViewport', viewport);
     vi.stubGlobal('requestAnimationFrame', (cb: FrameRequestCallback) => {
       frames.push(cb);
@@ -79,8 +80,9 @@ describe('useSafariViewportLock', () => {
       useSafariViewportLock(true, () => IPHONE_SAFARI);
     });
     expect(root.getAttribute('data-safari-viewport')).toBe('locked');
-    expect(root.style.getPropertyValue('--safari-vv-height')).toBe('400px');
+    expect(root.style.getPropertyValue('--safari-vv-height')).toBe('600px');
     expect(root.style.getPropertyValue('--safari-vv-top')).toBe('0px');
+    expect(root.hasAttribute('data-safari-keyboard')).toBe(false);
 
     // The keyboard opens and Safari pans the visual viewport.
     viewport.height = 300;
@@ -89,9 +91,11 @@ describe('useSafariViewportLock', () => {
     runFrames(1);
     expect(root.style.getPropertyValue('--safari-vv-height')).toBe('300px');
     expect(root.style.getPropertyValue('--safari-vv-top')).toBe('120px');
+    expect(root.getAttribute('data-safari-keyboard')).toBe('open');
 
     unmount();
     expect(root.hasAttribute('data-safari-viewport')).toBe(false);
+    expect(root.hasAttribute('data-safari-keyboard')).toBe(false);
     expect(root.style.getPropertyValue('--safari-vv-height')).toBe('');
     expect(root.style.getPropertyValue('--safari-vv-top')).toBe('');
   });
@@ -109,6 +113,7 @@ describe('useSafariViewportLock', () => {
       viewport.height = 400 - frame * 25;
       viewport.offsetTop = frame * 40;
     });
+    // (600 → 300: keyboard up.)
     expect(root.style.getPropertyValue('--safari-vv-height')).toBe('300px');
     expect(root.style.getPropertyValue('--safari-vv-top')).toBe('160px');
 
@@ -116,6 +121,28 @@ describe('useSafariViewportLock', () => {
     runFrames(50);
     expect(frames).toHaveLength(0);
     input.remove();
+  });
+
+  it('follows the page scroll Safari makes to reveal the composer (offsetTop stays 0)', () => {
+    renderHook(() => {
+      useSafariViewportLock(true, () => IPHONE_SAFARI);
+    });
+    // What iOS actually does: the page scrolls, the visual viewport doesn't report a pan.
+    viewport.height = 280;
+    vi.stubGlobal('scrollY', 330);
+    window.dispatchEvent(new Event('scroll'));
+    runFrames(20);
+    expect(root.style.getPropertyValue('--safari-vv-top')).toBe('330px');
+    expect(root.style.getPropertyValue('--safari-vv-height')).toBe('280px');
+    expect(root.getAttribute('data-safari-keyboard')).toBe('open');
+
+    // Keyboard closes; the page may stay scrolled, the shell stays on the visible area.
+    viewport.height = 600;
+    viewport.dispatchEvent(new Event('resize'));
+    runFrames(20);
+    expect(root.style.getPropertyValue('--safari-vv-top')).toBe('330px');
+    expect(root.style.getPropertyValue('--safari-vv-height')).toBe('600px');
+    expect(root.hasAttribute('data-safari-keyboard')).toBe(false);
   });
 
   it('never scrolls the page back (that fights Safari on iOS)', () => {

@@ -20,19 +20,17 @@
 }
 
 /*
- * Safari chat thread (useSafariViewportLock): the page has nothing to scroll, and the shell
- * follows the visual viewport (its pan and height) so the keyboard can't push the thread
- * off screen.
+ * Safari chat thread (useSafariViewportLock): the page has nothing of its own to scroll, and
+ * the shell sits on the visible area in *document* coordinates (absolute, not fixed: with the
+ * iOS keyboard up, fixed elements ride the page scroll Safari makes to reveal the composer).
  */
-html[data-safari-viewport='locked'],
-html[data-safari-viewport='locked'] body {
-  height: 100%;
+html[data-safari-viewport='locked'] {
   overflow: hidden;
   overscroll-behavior: none;
 }
 
 html[data-safari-viewport='locked'] [data-safari-shell] {
-  position: fixed;
+  position: absolute;
   inset-inline: 0;
   top: var(--safari-vv-top, 0px);
   height: var(--safari-vv-height, 100dvh);

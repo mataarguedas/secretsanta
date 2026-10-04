@@ -1,12 +1,15 @@
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Outlet, useLocation } from 'react-router';
 
+import { ViewportDebug } from '@/app/dev/ViewportDebug';
 import { useMe, type Me } from '@/features/auth/api';
 import { useSyncLocale } from '@/features/auth/useSyncLocale';
 import { useUnreadTotal } from '@/features/chat/api';
 import { RealtimeProvider } from '@/features/chat/RealtimeProvider';
 import { cn } from '@/lib/cn';
 import { useSafariViewportLock } from '@/lib/useSafariViewportLock';
+import { viewportDebugEnabled } from '@/lib/viewportDebug';
 import { useVisualViewportHeight } from '@/lib/useVisualViewportHeight';
 
 import { BottomTabBar } from './BottomTabBar';
@@ -22,7 +25,9 @@ import { Wordmark } from './Wordmark';
  *
  * A chat thread (`/chats/:id`) is full height instead: on mobile it drops the wordmark bar
  * and the tab bar, and it follows the visual viewport so the composer stays above the
- * keyboard (on Safari it's also pinned, see useSafariViewportLock). While signed in, the app's WebSocket runs (RealtimeProvider).
+ * keyboard (on Safari it's also placed on the visible area, see useSafariViewportLock).
+ * `?vvdebug=1` overlays the viewport numbers for debugging that on a device.
+ * While signed in, the app's WebSocket runs (RealtimeProvider).
  */
 export function AppLayout() {
   const session = useMe();
@@ -58,12 +63,13 @@ function Shell({ me }: { me: Me | null }) {
   const unread = useUnreadTotal(signedIn);
   useVisualViewportHeight(thread);
   useSafariViewportLock(thread);
+  const [debugViewport] = useState(() => viewportDebugEnabled());
 
   return (
     <div
       data-safari-shell={thread ? '' : undefined}
       className={cn(
-        'flex flex-col',
+        'relative flex flex-col',
         thread ? 'h-[var(--app-height,100dvh)] overflow-hidden' : 'min-h-dvh',
       )}
     >
@@ -110,6 +116,7 @@ function Shell({ me }: { me: Me | null }) {
       </main>
 
       {signedIn && !thread && <BottomTabBar unread={unread} className="md:hidden" />}
+      {debugViewport && <ViewportDebug />}
     </div>
   );
 }
