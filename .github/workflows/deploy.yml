@@ -111,6 +111,19 @@ jobs:
           [ -n "$APP_DOMAIN" ] || missing="$missing variable:APP_DOMAIN"
           if [ -n "$missing" ]; then echo "::error::Missing:$missing"; exit 1; fi
 
+      # The server we deploy to must be the one the domain points at; otherwise the deploy
+      # "succeeds" on one machine while visitors keep getting the old site from another.
+      - name: VPS_HOST is the server behind APP_DOMAIN
+        run: |
+          host_ips="$(getent ahostsv4 "$VPS_HOST" | awk '{print $1}' | sort -u | paste -sd ' ')"
+          domain_ips="$(getent ahostsv4 "$APP_DOMAIN" | awk '{print $1}' | sort -u | paste -sd ' ')"
+          echo "VPS_HOST ($VPS_HOST) -> ${host_ips:-nothing}"
+          echo "APP_DOMAIN ($APP_DOMAIN) -> ${domain_ips:-nothing}"
+          if [ -z "$host_ips" ] || [ "$host_ips" != "$domain_ips" ]; then
+            echo "::error::VPS_HOST resolves to '${host_ips}', but $APP_DOMAIN resolves to '${domain_ips}'. Set the VPS_HOST secret to $APP_DOMAIN (or its IP)."
+            exit 1
+          fi
+
       - name: SSH key
         env:
           VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
@@ -180,6 +193,22 @@ jobs:
               exit 1
             fi
           done
+
+          # This machine itself must now serve this commit (bypassing DNS): if it doesn't,
+          # something other than this compose project answers on 80/443 here.
+          echo "Deployed on $(hostname): $(hostname -I)"
+          domain="$(grep -E '^APP_DOMAIN=' .env | tail -n 1 | cut -d= -f2- | tr -d "\"' \r")"
+          served=""
+          for attempt in $(seq 1 15); do
+            served="$(curl -sk --max-time 5 --resolve "$domain:443:127.0.0.1" "https://$domain/version.txt" || true)"
+            [ "$served" = "$IMAGE_TAG" ] && break
+            sleep 2
+          done
+          if [ "$served" != "$IMAGE_TAG" ]; then
+            echo "::error::$(hostname) serves '$(printf '%.60s' "$served")' locally, expected $IMAGE_TAG"
+            docker ps --format 'table {{.Names}}\t{{.Image}}\t{{.Ports}}'
+            exit 1
+          fi
 
           docker image prune -f
           docker compose ps
