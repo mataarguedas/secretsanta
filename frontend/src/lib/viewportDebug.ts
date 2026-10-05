@@ -23,14 +23,17 @@ const px = (value: number | undefined) => (value === undefined ? '-' : String(Ma
 export function readViewportSnapshot(probe: HTMLElement | null): string {
   const vv = window.visualViewport;
   const root = document.documentElement;
-  const shell = document.querySelector('#main')?.getBoundingClientRect();
+  // The chat thread box when one is open (it's fixed; #main is empty then), else #main.
+  const shell = (
+    document.querySelector('#main > section') ?? document.querySelector('#main')
+  )?.getBoundingClientRect();
   const composer = document.querySelector('#main form')?.getBoundingClientRect();
   const probeStyle = probe ? getComputedStyle(probe) : null;
   const active = document.activeElement;
   return [
     `scrollY ${px(window.scrollY)}  innerH ${px(window.innerHeight)}  clientH ${px(root.clientHeight)}`,
     `vv.h ${px(vv?.height)}  vv.offTop ${px(vv?.offsetTop)}  vv.pageTop ${px(vv?.pageTop)}  vv.scale ${vv ? vv.scale.toFixed(2) : '-'}`,
-    `main top ${px(shell?.top)} h ${px(shell?.height)}  composer bottom ${px(composer?.bottom)}`,
+    `box top ${px(shell?.top)} h ${px(shell?.height)}  composer bottom ${px(composer?.bottom)}`,
     `gap (composer bottom - visible bottom) ${composer && vv ? px(composer.bottom - (vv.offsetTop + vv.height)) : '-'}`,
     `docH ${px(root.scrollHeight)}  focus ${active ? active.tagName.toLowerCase() : '-'}`,
     `safe top ${probeStyle?.paddingTop ?? '-'} bottom ${probeStyle?.paddingBottom ?? '-'}`,

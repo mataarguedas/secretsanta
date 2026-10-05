@@ -23,15 +23,15 @@ import { ConversationAvatar, MemberAvatar } from '../components/MemberAvatar';
 import { conversationTitle, memberName } from '../members';
 import { useOutbox, useSendMessage, type OutboxItem } from '../outbox';
 import { useRealtime } from '../realtimeContext';
-import { usePinnedToVisibleArea } from '../usePinnedToVisibleArea';
+import { useThreadViewport } from '../useThreadViewport';
 
 /**
  * `/chats/:conversationId` (the layout drops the tab bar here).
  *
  * The thread is one box: header, messages (the only thing that scrolls), composer. The
- * document never scrolls while it's open. On mobile the box is fixed and pinned to the visible
- * area by `usePinnedToVisibleArea`, so with the keyboard up it ends right above the keys,
- * whatever Safari does to the page on focus. On desktop it fills the space under the header.
+ * document never scrolls while it's open. On mobile the box is fixed at the top and exactly as
+ * tall as the visible area (`useThreadViewport`), so with the keyboard up it ends right above
+ * the keys. On desktop it fills the space under the header.
  */
 export function ThreadPage() {
   const { t } = useTranslation();
@@ -79,8 +79,7 @@ function Thread({ conversation }: { conversation: ConversationDetail }) {
   const archived = conversation.event.state === 'archived';
   const title = conversationTitle(t, conversation);
   useDocumentTitle(title);
-  const box = useRef<HTMLElement>(null);
-  usePinnedToVisibleArea(box);
+  useThreadViewport();
 
   const members = useMemo(
     () => new Map(conversation.members.map((m) => [m.id, m])),
@@ -134,9 +133,8 @@ function Thread({ conversation }: { conversation: ConversationDetail }) {
 
   return (
     <section
-      ref={box}
       aria-labelledby="thread-title"
-      className="fixed inset-x-0 top-0 z-20 flex h-[var(--chat-box-height,100dvh)] translate-y-[var(--chat-box-shift,0px)] flex-col overflow-hidden bg-cream-linen md:static md:z-auto md:h-auto md:min-h-0 md:flex-1 md:translate-y-0 md:border md:border-mist md:bg-pure-white"
+      className="fixed inset-x-0 top-0 z-20 flex h-[var(--chat-box-height,100dvh)] flex-col overflow-hidden bg-cream-linen md:static md:z-auto md:h-auto md:min-h-0 md:flex-1 md:border md:border-mist md:bg-pure-white"
     >
       <ThreadHeader
         conversation={conversation}
