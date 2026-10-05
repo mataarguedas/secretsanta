@@ -9,7 +9,7 @@ members only through ``app.schemas.chat.build_member_public``.
 import uuid
 from datetime import datetime
 from enum import StrEnum
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from sqlalchemy import (
     Boolean,
@@ -24,6 +24,7 @@ from sqlalchemy import (
     false,
     text,
 )
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
@@ -139,6 +140,9 @@ class Message(UUIDPrimaryKeyMixin, TimestampMixin, Base):
             text("created_at DESC"),
         ),
         CheckConstraint("(body IS NULL) = (deleted_at IS NOT NULL)", name="body_iff_not_deleted"),
+        CheckConstraint(
+            "link_preview IS NULL OR deleted_at IS NULL", name="link_preview_only_if_not_deleted"
+        ),
     )
 
     conversation_id: Mapped[uuid.UUID] = mapped_column(
@@ -152,6 +156,12 @@ class Message(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     )
     body: Mapped[str | None] = mapped_column(Text, nullable=True)  # NULL when deleted
     deleted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    # Preview of the body's first link, set by the worker (``services/link_preview.py``):
+    # url, title, description, site_name, is_video and, if there's a picture, image_key /
+    # image_width / image_height. Part of the body: cleared with it.
+    link_preview: Mapped[dict[str, Any] | None] = mapped_column(
+        JSONB(none_as_null=True), nullable=True
+    )
 
     def __repr__(self) -> str:  # never the body
         return f"<Message {self.id} conversation={self.conversation_id}>"

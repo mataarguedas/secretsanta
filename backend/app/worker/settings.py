@@ -25,6 +25,7 @@ from app.worker.tasks import (
     send_reveal,
     send_test_notification,
     send_wishlist_updated,
+    unfurl_message,
 )
 
 _settings = get_settings()
@@ -62,6 +63,7 @@ class WorkerSettings:
         send_reveal,
         send_message_push,
         send_wishlist_updated,
+        unfurl_message,
     ]
     redis_settings = RedisSettings.from_dsn(_settings.redis_url)
     on_startup = startup

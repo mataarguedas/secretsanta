@@ -106,3 +106,16 @@ def test_sentry_scrubber_removes_sensitive_data() -> None:
     assert out["request"]["headers"]["User-Agent"] == "ua"
     assert out["extra"]["event_id"] == "e"
     assert scrub_breadcrumb({"data": {"body": "hi"}}, None) == {"data": {"body": REDACTED}}
+
+
+def test_outgoing_request_urls_are_never_logged_or_kept() -> None:
+    """Link previews fetch URLs taken from message bodies (CLAUDE.md §7 Logging)."""
+    configure_logging("DEBUG")
+    for name in ("httpx", "httpcore"):
+        assert not logging.getLogger(name).isEnabledFor(logging.INFO)
+    crumb = {
+        "category": "httpx",
+        "type": "http",
+        "data": {"url": "https://tienda.cr/regalo-secreto", "method": "GET"},
+    }
+    assert scrub_breadcrumb(crumb, None) is None

@@ -52,13 +52,31 @@ client_frame: TypeAdapter[ClientFrame] = TypeAdapter(ClientFrame)
 # ── Server → client ──────────────────────────────────────────────────────────
 
 SERVER_FRAME_TYPES: Final = frozenset(
-    {"message", "message_deleted", "event_drawn", "conversation_created", "ack", "error", "pong"}
+    {
+        "message",
+        "message_updated",
+        "message_deleted",
+        "event_drawn",
+        "conversation_created",
+        "ack",
+        "error",
+        "pong",
+    }
 )
 
 
 def message_frame(message: MessagePublic) -> dict[str, Any]:
     return {
         "type": "message",
+        "conversation_id": str(message.conversation_id),
+        "message": message.model_dump(mode="json"),
+    }
+
+
+def message_updated_frame(message: MessagePublic) -> dict[str, Any]:
+    """The same message, changed by the server since (its link preview arrived)."""
+    return {
+        "type": "message_updated",
         "conversation_id": str(message.conversation_id),
         "message": message.model_dump(mode="json"),
     }

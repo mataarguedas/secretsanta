@@ -73,6 +73,7 @@ from app.core.redis import create_redis  # noqa: E402
 from app.db.base import Base  # noqa: E402
 from app.db.session import create_sessionmaker  # noqa: E402
 from app.main import create_app  # noqa: E402
+from tests.links import block_link_fetches, fake_links  # noqa: E402, F401  (no real web)
 from tests.push import push_spy  # noqa: E402, F401  (fixture for the notify pipeline)
 
 

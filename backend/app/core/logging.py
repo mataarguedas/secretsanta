@@ -131,6 +131,10 @@ def configure_logging(level: str = "INFO") -> None:
     # draw). Pin it off whatever LOG_LEVEL says (CLAUDE.md §7 Logging).
     for name in ("sqlalchemy", "sqlalchemy.engine", "sqlalchemy.pool"):
         logging.getLogger(name).setLevel(logging.WARNING)
+    # httpx logs every request URL at INFO; the worker fetches link previews, whose URLs
+    # come from message bodies.
+    for name in ("httpx", "httpcore"):
+        logging.getLogger(name).setLevel(logging.WARNING)
 
 
 def get_logger(name: str | None = None) -> structlog.stdlib.BoundLogger:

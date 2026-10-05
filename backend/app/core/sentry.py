@@ -18,7 +18,13 @@ def scrub_event(event: Any, _hint: Any) -> Any:
     return redact(event)
 
 
+# Outgoing-request breadcrumbs carry the full URL: for link previews, part of a message body.
+_DROPPED_BREADCRUMBS = frozenset({"httpx"})
+
+
 def scrub_breadcrumb(crumb: Any, _hint: Any) -> Any:
+    if isinstance(crumb, dict) and crumb.get("category") in _DROPPED_BREADCRUMBS:
+        return None
     return redact(crumb)
 
 

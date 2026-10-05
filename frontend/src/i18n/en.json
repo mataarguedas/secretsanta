@@ -575,6 +575,10 @@
         "cancel": "Cancel"
       }
     },
+    "preview": {
+      "label": "{{title}}, {{site}} (opens in a new tab)",
+      "videoLabel": "Video: {{title}}, {{site}} (opens in a new tab)"
+    },
     "composer": {
       "label": "Write a message",
       "placeholder": "Write a message",

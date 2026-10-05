@@ -134,6 +134,46 @@ describe('Thread page', () => {
     expect(link.closest('p')).toHaveTextContent('. ¿Te gusta?');
   });
 
+  it('a link preview arrives after the message and is gone once it is deleted', async () => {
+    const url = 'https://www.youtube.com/watch?v=9h30Bx4Klxg&list=RD9h30Bx4Klxg&start_radio=1';
+    const sent = message({ id: 'yt', body: `Escuchá esto ${url}` });
+    const { ws } = await renderThread({ history: [sent] });
+    await screen.findByText(/Escuchá esto/);
+    expect(screen.queryByTestId('link-preview')).not.toBeInTheDocument();
+
+    act(() => {
+      ws.receive({
+        type: 'message_updated',
+        conversation_id: 'conv-1',
+        message: {
+          ...sent,
+          link_preview: {
+            url,
+            title: 'La canción',
+            description: 'El canal',
+            site_name: 'YouTube',
+            is_video: true,
+            image_url: 'http://localhost:9000/secret-santa/p.webp?X-Amz=1',
+            image_width: 800,
+            image_height: 450,
+          },
+        },
+      });
+    });
+    const card = await screen.findByRole('link', {
+      name: 'Video: La canción, YouTube (se abre en una pestaña nueva)',
+    });
+    expect(card).toHaveAttribute('href', url);
+    expect(card.closest('li')).toHaveTextContent('Escuchá esto');
+
+    act(() => {
+      ws.receive({ type: 'message_deleted', conversation_id: 'conv-1', message_id: 'yt' });
+    });
+    await waitFor(() => {
+      expect(screen.queryByTestId('link-preview')).not.toBeInTheDocument();
+    });
+  });
+
   it('only the messages scroll (inside the thread box), and the document is locked', async () => {
     await renderThread();
     const list = screen.getByRole('list', { name: 'Mensajes' });

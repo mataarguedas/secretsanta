@@ -279,6 +279,7 @@ async def test_send_read_and_unread(
         "body",
         "deleted",
         "created_at",
+        "link_preview",
     }
     await send(client, direct["id"], "otra")
     mine = by_kind(await conversations(client), "direct")[0]
@@ -359,6 +360,7 @@ async def test_only_the_sender_can_delete_and_it_leaves_a_placeholder(
         "body": None,
         "deleted": True,
         "created_at": None,
+        "link_preview": None,
     }
     async with db() as session:
         row = await session.get(Message, uuid.UUID(message["id"]))

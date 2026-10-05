@@ -11,12 +11,13 @@
 
 import uuid
 from datetime import datetime
-from typing import Annotated, Final, Literal
+from typing import Annotated, Any, Final, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, StringConstraints
 
 from app.models.chat import ConversationMember, Message
 from app.models.user import User
+from app.storage.r2 import get_storage
 
 BODY_MAX: Final = 2000
 CLIENT_ID_MAX: Final = 64
@@ -89,6 +90,20 @@ def build_member_public(member: ConversationMember, viewer: User) -> MemberPubli
     )
 
 
+class LinkPreviewPublic(BaseModel):
+    """What the worker found at the message's first link. The picture is our own copy in
+    R2 (presigned, 1 h): the browser never contacts the linked site."""
+
+    url: str
+    title: str | None
+    description: str | None
+    site_name: str | None
+    is_video: bool
+    image_url: str | None
+    image_width: int | None
+    image_height: int | None
+
+
 class MessagePublic(BaseModel):
     id: uuid.UUID
     conversation_id: uuid.UUID
@@ -96,6 +111,24 @@ class MessagePublic(BaseModel):
     body: str | None  # None once deleted
     deleted: bool
     created_at: datetime
+    link_preview: LinkPreviewPublic | None = None  # None once deleted, or until unfurled
+
+
+def _link_preview_public(stored: dict[str, Any] | None) -> LinkPreviewPublic | None:
+    if not stored or not isinstance(stored.get("url"), str):
+        return None
+    key = stored.get("image_key")
+    has_image = isinstance(key, str) and bool(key)
+    return LinkPreviewPublic(
+        url=stored["url"],
+        title=stored.get("title"),
+        description=stored.get("description"),
+        site_name=stored.get("site_name"),
+        is_video=bool(stored.get("is_video")),
+        image_url=get_storage().presign_get(key) if isinstance(key, str) and key else None,
+        image_width=stored.get("image_width") if has_image else None,
+        image_height=stored.get("image_height") if has_image else None,
+    )
 
 
 def build_message_public(message: Message) -> MessagePublic:
@@ -107,6 +140,7 @@ def build_message_public(message: Message) -> MessagePublic:
         body=None if deleted else message.body,
         deleted=deleted,
         created_at=message.created_at,
+        link_preview=None if deleted else _link_preview_public(message.link_preview),
     )
 
 

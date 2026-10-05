@@ -80,6 +80,47 @@ describe('applyFrame', () => {
     expect(list()[0]?.last_message).toMatchObject({ body: null, deleted: true });
   });
 
+  it('message_updated: the preview arrives, without reordering or counting unread', () => {
+    const { queryClient, list, thread } = seeded();
+    const sent = message({ id: 'new', conversation_id: 'c1', body: 'https://tienda.cr/lego' });
+    applyFrame(queryClient, { type: 'message', message: sent }, null);
+    applyFrame(
+      queryClient,
+      { type: 'message', message: message({ id: 'x', conversation_id: 'c2' }) },
+      null,
+    );
+    const before = list().map((c) => [c.id, c.unread_count]);
+
+    const preview = {
+      url: 'https://tienda.cr/lego',
+      title: 'Lego',
+      description: null,
+      site_name: null,
+      is_video: false,
+      image_url: null,
+      image_width: null,
+      image_height: null,
+    };
+    const updated = { ...sent, link_preview: preview };
+    applyFrame(queryClient, { type: 'message_updated', message: updated }, null);
+    expect(list().map((c) => [c.id, c.unread_count])).toEqual(before);
+    expect(list().find((c) => c.id === 'c1')?.last_message?.link_preview).toEqual(preview);
+
+    // A late copy of the message without it (the ack) keeps the preview.
+    queryClient.setQueryData(chatKeys.messages('c1'), page([updated]));
+    applyFrame(queryClient, { type: 'message', message: sent }, 'c1');
+    expect(thread('c1')[0]?.link_preview).toEqual(preview);
+
+    // Deleted: the preview goes with the body, and a stale update can't bring it back.
+    applyFrame(
+      queryClient,
+      { type: 'message_deleted', conversation_id: 'c1', message_id: 'new' },
+      null,
+    );
+    applyFrame(queryClient, { type: 'message_updated', message: updated }, null);
+    expect(thread('c1')[0]).toMatchObject({ deleted: true, link_preview: null });
+  });
+
   it('conversation_created refetches the lists; event_drawn the event', () => {
     const { queryClient } = seeded();
     const spy = vi.spyOn(queryClient, 'invalidateQueries');

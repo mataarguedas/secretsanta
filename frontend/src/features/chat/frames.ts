@@ -5,6 +5,7 @@ import type { ServerFrame } from '@/lib/ws';
 
 import {
   applyIncomingMessage,
+  applyMessageUpdate,
   invalidateConversationLists,
   markDeleted,
   type MessagePublic,
@@ -25,6 +26,9 @@ export function applyFrame(
       if (!known) void invalidateConversationLists(queryClient);
       break;
     }
+    case 'message_updated':
+      applyMessageUpdate(queryClient, frame.message as MessagePublic);
+      break;
     case 'message_deleted':
       markDeleted(queryClient, String(frame.conversation_id), String(frame.message_id));
       break;

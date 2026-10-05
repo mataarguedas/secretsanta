@@ -26,6 +26,21 @@ export interface MemberPublic {
   is_deleted: boolean;
 }
 
+/**
+ * What the server found at the message's first link. `image_url` is the server's own copy
+ * (presigned R2, 1 h): the browser never contacts the linked site.
+ */
+export interface LinkPreview {
+  url: string;
+  title: string | null;
+  description: string | null;
+  site_name: string | null;
+  is_video: boolean;
+  image_url: string | null;
+  image_width: number | null;
+  image_height: number | null;
+}
+
 export interface MessagePublic {
   id: string;
   conversation_id: string;
@@ -33,6 +48,8 @@ export interface MessagePublic {
   body: string | null;
   deleted: boolean;
   created_at: string;
+  /** Arrives a moment after the message, in a `message_updated` frame. */
+  link_preview: LinkPreview | null;
 }
 
 export type ConversationKind = 'direct' | 'anonymous' | 'group';
@@ -251,7 +268,12 @@ export function applyIncomingMessage(
         ...data,
         pages: data.pages.map((page) => ({
           ...page,
-          items: page.items.map((m) => (m.id === message.id ? message : m)),
+          // A late local copy (the ack) must not drop a preview that already arrived.
+          items: page.items.map((m) =>
+            m.id === message.id
+              ? { ...message, link_preview: message.link_preview ?? m.link_preview }
+              : m,
+          ),
         })),
       };
     }
@@ -288,13 +310,30 @@ export function applyIncomingMessage(
   return known;
 }
 
+/**
+ * The server changed a message it already sent (its link preview arrived): replace it in
+ * the thread and the list preview. Not new, so no reordering and no unread count.
+ */
+export function applyMessageUpdate(queryClient: QueryClient, message: MessagePublic): void {
+  const replace = (m: MessagePublic): MessagePublic =>
+    m.id === message.id && !m.deleted ? message : m;
+  queryClient.setQueryData<MessagesData>(chatKeys.messages(message.conversation_id), (data) =>
+    data
+      ? { ...data, pages: data.pages.map((page) => ({ ...page, items: page.items.map(replace) })) }
+      : data,
+  );
+  updateConversation(queryClient, message.conversation_id, (c) =>
+    c.last_message ? { ...c, last_message: replace(c.last_message) } : c,
+  );
+}
+
 export function markDeleted(
   queryClient: QueryClient,
   conversationId: string,
   messageId: string,
 ): void {
   const erase = (m: MessagePublic): MessagePublic =>
-    m.id === messageId ? { ...m, body: null, deleted: true } : m;
+    m.id === messageId ? { ...m, body: null, deleted: true, link_preview: null } : m;
   queryClient.setQueryData<MessagesData>(chatKeys.messages(conversationId), (data) =>
     data
       ? { ...data, pages: data.pages.map((page) => ({ ...page, items: page.items.map(erase) })) }

@@ -15,11 +15,13 @@ import {
   useMarkRead,
   useMessages,
   type ConversationDetail,
+  type LinkPreview,
   type MemberPublic,
   type MessagePublic,
 } from '../api';
 import { Composer } from '../components/Composer';
 import { ConversationAvatar, MemberAvatar } from '../components/MemberAvatar';
+import { LinkPreviewCard } from '../components/LinkPreviewCard';
 import { MessageText } from '../components/MessageText';
 import { conversationTitle, memberName } from '../members';
 import { useOutbox, useSendMessage, type OutboxItem } from '../outbox';
@@ -399,6 +401,7 @@ function MessageList({
                     <MessageText text={message.body ?? ''} />
                   )
                 }
+                preview={message.deleted ? null : message.link_preview}
                 actions={
                   mine &&
                   !message.deleted &&
@@ -461,6 +464,7 @@ function MessageBubble({
   failed = false,
   status,
   body,
+  preview = null,
   actions,
 }: {
   mine: boolean;
@@ -471,6 +475,7 @@ function MessageBubble({
   failed?: boolean;
   status?: OutboxItem['status'];
   body: ReactNode;
+  preview?: LinkPreview | null;
   actions?: ReactNode;
 }) {
   return (
@@ -493,6 +498,7 @@ function MessageBubble({
         )}
         <span className="sr-only">{senderName}: </span>
         <p className="text-body break-words whitespace-pre-wrap">{body}</p>
+        {preview && <LinkPreviewCard preview={preview} />}
         <div className="flex flex-wrap items-center justify-end gap-8">
           {dateTime ? (
             <time dateTime={dateTime} className="mr-auto text-caption text-stone">

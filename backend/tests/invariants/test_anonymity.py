@@ -33,9 +33,11 @@ from app.api.paths import API_PREFIX
 from app.models import User
 from app.realtime.channels import PATTERNS
 from app.realtime.frames import SERVER_FRAME_TYPES
+from app.storage.r2 import ObjectStorage
 from tests.api.auth_helpers import CSRF, login_as
 from tests.api.event_helpers import EVENTS, add_participant, create, user_id
 from tests.conftest import TEST_REDIS_URL
+from tests.links import FakeLinks, og_page
 from tests.push import PushSpy, run_jobs, subscribe
 from tests.ws import WsClient, cookie_header
 
@@ -227,7 +229,13 @@ async def setup_people(
 
 
 async def test_no_websocket_frame_or_redis_payload_names_the_initiator(
-    client: httpx.AsyncClient, db: async_sessionmaker[AsyncSession], app: FastAPI
+    client: httpx.AsyncClient,
+    db: async_sessionmaker[AsyncSession],
+    app: FastAPI,
+    arq_pool: ArqRedis,
+    redis_client: Redis,
+    fake_links: FakeLinks,
+    s3: ObjectStorage,
 ) -> None:
     event, cookies, ids = await setup_people(client, db)
     u1 = ids[U1[0]]
@@ -271,6 +279,16 @@ async def test_no_websocket_frame_or_redis_payload_names_the_initiator(
             headers={**CSRF, "cookie": cookies[U1[0]]},
         )
         await u2.receive_until("message")
+        # A link: its preview comes as message_updated, still naming only the member.
+        fake_links.html("https://tienda.test/lego", og_page("Lego", "https://tienda.test/l.png"))
+        fake_links.image("https://tienda.test/l.png")
+        await client.post(
+            f"{API_PREFIX}/conversations/{anon}/messages",
+            json={"body": "¿Este? https://tienda.test/lego"},
+            headers={**CSRF, "cookie": cookies[U1[0]]},
+        )
+        await run_jobs(arq_pool, db, redis_client, "unfurl_message")
+        await u2.receive_until("message_updated")
         await client.delete(
             f"{API_PREFIX}/messages/{rest.json()['id']}",
             headers={**CSRF, "cookie": cookies[U1[0]]},
@@ -302,7 +320,14 @@ async def test_no_websocket_frame_or_redis_payload_names_the_initiator(
         await listener.aclose()
 
     u2_types = {frame["type"] for frame in u2.frames}
-    assert u2_types >= {"conversation_created", "message", "message_deleted", "ack", "error"}
+    assert u2_types >= {
+        "conversation_created",
+        "message",
+        "message_updated",
+        "message_deleted",
+        "ack",
+        "error",
+    }
     assert u2_types <= SERVER_FRAME_TYPES
     assert {frame["type"] for frame in u3.frames} == {"pong"}  # nothing from the thread
     assert published, "expected the Redis payloads to be captured"

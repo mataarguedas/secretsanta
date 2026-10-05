@@ -24,6 +24,7 @@ from app.models import Assignment, Conversation, ConversationKind
 from app.realtime.frames import SERVER_FRAME_TYPES
 from tests.api.auth_helpers import CSRF, login_as
 from tests.invariants.drawn import PEOPLE, DrawnEvent, drawn_event, open_event
+from tests.links import FakeLinks, og_page
 from tests.push import PushSpy, run_jobs, subscribe
 from tests.ws import WsClient, cookie_header
 
@@ -192,7 +193,12 @@ def objects(value: Any) -> Iterator[dict[str, Any]]:
 
 
 async def test_no_websocket_frame_exposes_a_pair(
-    client: httpx.AsyncClient, db: async_sessionmaker[AsyncSession], app: FastAPI
+    client: httpx.AsyncClient,
+    db: async_sessionmaker[AsyncSession],
+    app: FastAPI,
+    arq_pool: ArqRedis,
+    redis_client: Redis,
+    fake_links: FakeLinks,
 ) -> None:
     """Everyone is connected when the draw happens and while the chat is used afterwards;
     every frame type the server can send is produced, and no frame ties anyone else's
@@ -225,16 +231,21 @@ async def test_no_websocket_frame_exposes_a_pair(
                 "event_id": event["id"],
             }
 
+        fake_links.html("https://tienda.test/lego", og_page("Lego"))
         for n, (email, _name) in enumerate(PEOPLE):
             await sockets[email].send_json(
                 {
                     "type": "send",
                     "conversation_id": str(group),
-                    "body": f"hola {n}",
+                    "body": f"hola {n} https://tienda.test/lego",
                     "client_id": f"c{n}",
                 }
             )
             await sockets[email].receive_until("ack")
+        # Their link previews arrive as message_updated frames.
+        await run_jobs(arq_pool, db, redis_client, "unfurl_message")
+        for ws in sockets.values():
+            await ws.receive_until("message_updated")
         sent = await client.post(
             f"{API}/conversations/{group}/messages",
             json={"body": "borrar"},

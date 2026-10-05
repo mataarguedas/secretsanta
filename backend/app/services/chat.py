@@ -63,7 +63,8 @@ from app.schemas.chat import (
     build_member_public,
     build_message_public,
 )
-from app.worker.queue import enqueue_committed
+from app.services.link_preview import first_url, image_key_of, preview_folder
+from app.worker.queue import enqueue_after_commit, enqueue_committed
 
 CONVERSATION_PAGE: Final = 30
 MESSAGE_PAGE: Final = 50  # PRD FR-CHT-5
@@ -104,6 +105,7 @@ async def sync_group_flag(session: AsyncSession, event: Event) -> None:
         await create_group(session, event)
     elif not event.group_chat_enabled and group is not None:
         await session.execute(delete(Conversation).where(Conversation.id == group.id))
+        enqueue_after_commit(session, "delete_prefix", preview_folder(event.id, group.id))
 
 
 async def add_group_member(session: AsyncSession, event_id: uuid.UUID, user_id: uuid.UUID) -> None:
@@ -478,7 +480,10 @@ async def delete_message(session: AsyncSession, redis: "Redis", message: Message
     """Soft delete: the body is gone for good, a "Message deleted" placeholder stays."""
     if message.deleted_at is not None:
         return
+    if key := image_key_of(message):
+        enqueue_after_commit(session, "delete_objects", [key])
     message.body = None
+    message.link_preview = None
     message.deleted_at = utcnow()
     await session.commit()
     await after_message_deleted(redis, message.conversation_id, message.id)
@@ -507,8 +512,10 @@ async def after_message_created(
             session, message.conversation_id, except_member=message.sender_member_id
         )
         await publish_to_users(redis, others, conversation_created_frame(message.conversation_id))
-    # Persist, publish, then push (CLAUDE.md §7). The job carries the message id only.
+    # Persist, publish, then push (CLAUDE.md §7). The jobs carry the message id only.
     enqueue_committed(session, "send_message_push", str(message.id))
+    if message.body is not None and first_url(message.body) is not None:
+        enqueue_committed(session, "unfurl_message", str(message.id))
 
 
 async def after_message_deleted(

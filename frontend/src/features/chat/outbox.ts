@@ -108,6 +108,7 @@ export function useSendMessage(conversationId: string, myMemberId: string) {
               body: item.body,
               deleted: false,
               created_at: item.created_at,
+              link_preview: null,
             },
             { viewing: true },
           );

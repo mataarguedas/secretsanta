@@ -12,7 +12,7 @@ from app.core.logging import get_logger
 from app.db.mixins import utcnow
 from app.notifications import pushes
 from app.notifications.sender import notify
-from app.services import backup, scheduled
+from app.services import backup, link_preview, scheduled
 from app.storage.r2 import get_storage
 
 log = get_logger(__name__)
@@ -58,6 +58,16 @@ async def send_message_push(ctx: dict[str, Any], message_id: str) -> int:
     async with _sessionmaker(ctx)() as session:
         result = await pushes.send_message_push(session, ctx["app_redis"], uuid.UUID(message_id))
     return result.sent
+
+
+async def unfurl_message(ctx: dict[str, Any], message_id: str) -> bool:
+    """Attach the preview of a new message's first link (enqueued at send time, so the
+    linked site learns nothing about when anyone reads it)."""
+    fetcher = ctx.get("link_fetcher") or link_preview.default_fetcher()
+    async with _sessionmaker(ctx)() as session:
+        return await link_preview.unfurl_message(
+            session, ctx["app_redis"], uuid.UUID(message_id), fetcher
+        )
 
 
 async def send_wishlist_updated(ctx: dict[str, Any], event_id: str, owner_id: str) -> int:

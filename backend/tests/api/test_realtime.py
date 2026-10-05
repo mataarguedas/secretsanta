@@ -176,6 +176,7 @@ async def test_send_acks_and_reaches_the_other_members_socket(
                 "body": "hola",
                 "deleted": False,
                 "created_at": got["message"]["created_at"],
+                "link_preview": None,
             },
         }
         # Carla isn't in the thread: her subscription was dropped silently.

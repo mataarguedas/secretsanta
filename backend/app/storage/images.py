@@ -21,6 +21,7 @@ MAX_BYTES: Final = 10 * 1024 * 1024
 MAX_PIXELS: Final = 50_000_000
 LONG_EDGE: Final = 1600
 THUMB_EDGE: Final = 400
+PREVIEW_EDGE: Final = 800  # chat link previews
 WEBP_QUALITY: Final = 82
 ALLOWED_FORMATS: Final = ("JPEG", "PNG", "WEBP", "HEIF")
 
@@ -72,6 +73,16 @@ def process_image(data: bytes) -> ProcessedImage:
     thumb = clean.copy()
     thumb.thumbnail((THUMB_EDGE, THUMB_EDGE), Image.Resampling.LANCZOS)
     return ProcessedImage(main=_webp(main), thumb=_webp(thumb))
+
+
+def process_preview_image(data: bytes) -> Rendition:
+    """A link preview's picture (fetched from the web, so just as untrusted as an upload):
+    the same checks and stripping, one WebP rendition of at most ``PREVIEW_EDGE``."""
+    if len(data) > MAX_BYTES:
+        raise ImageRejectedError("FILE_TOO_LARGE")
+    image = _strip(_to_srgb(ImageOps.exif_transpose(_open(data))))
+    image.thumbnail((PREVIEW_EDGE, PREVIEW_EDGE), Image.Resampling.LANCZOS)
+    return _webp(image)
 
 
 def _open(data: bytes) -> Image.Image:

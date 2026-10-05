@@ -12,9 +12,10 @@
 - ARCHIVED events stay for everyone else: their wishlist items go, assignments that
   involve them go, and an event they host keeps ``host_id`` NULL ("Deleted user") with
   its invite link cleared;
-- every message they sent keeps its row but loses its body (the "Message deleted"
-  placeholder), and their member rows lose the user (``account_deleted``): named members
-  read "Deleted user", anonymous ones stay "Secret Elf #N". Their threads' ``pair_key``
+- every message they sent keeps its row but loses its body and link preview (the
+  "Message deleted" placeholder), and their member rows lose the user
+  (``account_deleted``): named members read "Deleted user", anonymous ones stay
+  "Secret Elf #N". Their threads' ``pair_key``
   (which holds user ids) becomes a tombstone;
 - push subscriptions, refresh tokens and the user row go last.
 
@@ -129,10 +130,20 @@ async def delete_account(session: AsyncSession, user: User) -> None:
     # Messages and member rows first, while the member rows still carry the user id.
     now = utcnow()
     mine = select(ConversationMember.id).where(ConversationMember.user_id == user_id)
+    preview_images = (
+        await session.scalars(
+            select(Message.link_preview["image_key"].astext).where(
+                Message.sender_member_id.in_(mine),
+                Message.link_preview["image_key"].astext.is_not(None),
+            )
+        )
+    ).all()
+    if preview_images:
+        enqueue_after_commit(session, "delete_objects", list(preview_images))
     await session.execute(
         update(Message)
         .where(Message.sender_member_id.in_(mine), Message.deleted_at.is_(None))
-        .values(body=None, deleted_at=now)
+        .values(body=None, link_preview=None, deleted_at=now)
         .execution_options(synchronize_session=False)
     )
     await session.execute(

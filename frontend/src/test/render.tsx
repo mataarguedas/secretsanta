@@ -391,6 +391,7 @@ export function mockSession({
           body,
           deleted: false,
           created_at: new Date().toISOString(),
+          link_preview: null,
         };
         history.set(conv.id, [message, ...(history.get(conv.id) ?? [])]);
         convs.set(conv.id, { ...conv, last_message: message, last_message_at: message.created_at });
@@ -867,6 +868,7 @@ export function message(overrides: Partial<MessagePublic> = {}): MessagePublic {
     body: 'Hola',
     deleted: false,
     created_at: '2026-09-24T12:00:00Z',
+    link_preview: null,
     ...overrides,
   };
 }
