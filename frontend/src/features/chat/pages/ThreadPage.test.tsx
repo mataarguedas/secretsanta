@@ -119,6 +119,21 @@ describe('Thread page', () => {
     expect(screen.getAllByText('¿Qué talla usás?')).toHaveLength(1);
   });
 
+  it('renders URLs in messages as links that open in a new tab', async () => {
+    await renderThread({
+      history: [message({ id: 'l1', body: 'Este: https://tienda.cr/libro. ¿Te gusta?' })],
+    });
+    const link = await screen.findByRole('link', { name: /https:\/\/tienda\.cr\/libro/ });
+    expect(link).toHaveAttribute('href', 'https://tienda.cr/libro');
+    expect(link).toHaveAttribute('target', '_blank');
+    expect(link).toHaveAttribute('rel', 'noopener noreferrer nofollow ugc');
+    expect(link).toHaveAccessibleName(
+      /^https:\/\/tienda\.cr\/libro\s*\(se abre en una pestaña nueva\)$/,
+    );
+    expect(link.closest('p')).toHaveTextContent('Este: https://tienda.cr/libro');
+    expect(link.closest('p')).toHaveTextContent('. ¿Te gusta?');
+  });
+
   it('only the messages scroll (inside the thread box), and the document is locked', async () => {
     await renderThread();
     const list = screen.getByRole('list', { name: 'Mensajes' });

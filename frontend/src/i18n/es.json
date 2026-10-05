@@ -562,6 +562,7 @@
     },
     "message": {
       "deleted": "Mensaje eliminado",
+      "linkNewTab": "(se abre en una pestaña nueva)",
       "pending": "Enviando…",
       "failed": "No se envió. {{reason}}",
       "retry": "Reintentar",

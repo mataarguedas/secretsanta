@@ -20,6 +20,7 @@ import {
 } from '../api';
 import { Composer } from '../components/Composer';
 import { ConversationAvatar, MemberAvatar } from '../components/MemberAvatar';
+import { MessageText } from '../components/MessageText';
 import { conversationTitle, memberName } from '../members';
 import { useOutbox, useSendMessage, type OutboxItem } from '../outbox';
 import { useRealtime } from '../realtimeContext';
@@ -395,7 +396,7 @@ function MessageList({
                   message.deleted ? (
                     <span className="text-stone">{t('chat.message.deleted')}</span>
                   ) : (
-                    message.body
+                    <MessageText text={message.body ?? ''} />
                   )
                 }
                 actions={
@@ -430,7 +431,7 @@ function MessageList({
               }
               failed={item.status === 'failed'}
               status={item.status}
-              body={item.body}
+              body={<MessageText text={item.body} />}
               actions={
                 item.status === 'failed' && (
                   <Button
