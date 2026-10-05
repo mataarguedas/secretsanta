@@ -158,7 +158,8 @@ jobs:
 
       - name: Pull, migrate, start
         run: |
-          ssh vps "IMAGE_TAG=$IMAGE_TAG GHCR_OWNER=$GHCR_OWNER bash -s" <<'EOF'
+          set -o pipefail
+          ssh vps "IMAGE_TAG=$IMAGE_TAG GHCR_OWNER=$GHCR_OWNER bash -s" <<'EOF' | tee "$RUNNER_TEMP/deploy.log"
           set -euo pipefail
           cd /opt/santa
           trap 'docker logout ghcr.io >/dev/null' EXIT
@@ -181,8 +182,11 @@ jobs:
           docker pull "$web"
           docker compose pull postgres redis
 
-          docker compose run --rm api alembic upgrade head
-          docker compose up -d --no-build --remove-orphans
+          # -T and </dev/null: this script itself arrives on stdin (`bash -s`). Without them,
+          # `compose run` hands that stdin to the container, which swallows the rest of the
+          # script: bash then exits 0 right after the migration and nothing below ever runs.
+          docker compose run --rm -T api alembic upgrade head </dev/null
+          docker compose up -d --no-build --remove-orphans </dev/null
 
           # Every app container must now run this commit's image.
           for service in caddy api worker; do
@@ -212,7 +216,14 @@ jobs:
 
           docker image prune -f
           docker compose ps
+          echo "DEPLOY_SCRIPT_COMPLETE $IMAGE_TAG"
           EOF
+          # A script cut short (stdin swallowed, connection dropped) can still exit 0: only
+          # trust a run that reached its last line.
+          if ! grep -qx "DEPLOY_SCRIPT_COMPLETE $IMAGE_TAG" "$RUNNER_TEMP/deploy.log"; then
+            echo "::error::The deploy script on the server stopped before its end; see the log above."
+            exit 1
+          fi
 
       - name: Health check
         run: |
