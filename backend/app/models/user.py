@@ -2,7 +2,7 @@
 
 from typing import Final
 
-from sqlalchemy import Boolean, CheckConstraint, Text, true
+from sqlalchemy import Boolean, CheckConstraint, Text, false, true
 from sqlalchemy.dialects.postgresql import CITEXT
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -20,6 +20,11 @@ class User(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     google_sub: Mapped[str] = mapped_column(Text, unique=True, nullable=False)
     email: Mapped[str] = mapped_column(CITEXT, unique=True, nullable=False)
     name: Mapped[str] = mapped_column(Text, nullable=False)
+    # Set once the user picks their own name (Profile): sign-in then stops overwriting it
+    # with the Google name, e.g. a parent's account used for their baby.
+    name_customized: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=False, server_default=false()
+    )
     avatar_url: Mapped[str | None] = mapped_column(Text, nullable=True)
     locale: Mapped[str] = mapped_column(
         Text, nullable=False, default=DEFAULT_LOCALE, server_default=DEFAULT_LOCALE

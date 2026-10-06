@@ -10,12 +10,13 @@ import { useDocumentTitle } from '@/lib/useDocumentTitle';
 import { DeleteAccountSection } from '../components/DeleteAccountSection';
 import { LanguageSetting } from '../components/LanguageSetting';
 import { LegalLinks } from '../components/LegalLinks';
+import { NameSetting } from '../components/NameSetting';
 import { ProfileSection } from '../components/ProfileSection';
 
 /**
- * `/profile` (PRD §9.3.8, FR-ACC-1/2). Identity comes from Google and is read-only.
- * Settings are `ProfileSection`s, added in order as their prompts land:
- * Language → Notifications (the install guide on iOS) → Devices → Legal links, then Sign
+ * `/profile` (PRD §9.3.8, FR-ACC-1/2). Photo and email come from Google and are read-only;
+ * the name starts as the Google one and can be changed. Settings are `ProfileSection`s:
+ * Name → Language → Notifications (the install guide on iOS) → Devices → Legal links, then Sign
  * out, and Delete account last (a secondary pill, never coral).
  */
 export function ProfilePage() {
@@ -41,6 +42,9 @@ export function ProfilePage() {
       </section>
 
       <div className="flex flex-col gap-20">
+        <ProfileSection title={t('profile.name.title')}>
+          <NameSetting name={me.name} />
+        </ProfileSection>
         <ProfileSection title={t('profile.language.title')}>
           <LanguageSetting locale={me.locale} />
         </ProfileSection>

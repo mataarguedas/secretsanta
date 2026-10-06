@@ -213,7 +213,10 @@ A role is per event: the same user can be host of event A and a plain participan
 - **FR-NTF-10** A user may have multiple subscriptions (one per device/browser).
 
 ### 4.9 Profile & Account (FR-ACC)
-- **FR-ACC-1** Profile shows avatar, name and email (from Google; not editable in v1).
+- **FR-ACC-1** Profile shows avatar, name and email. Avatar and email come from Google and are read-only.
+  - The name starts as the Google name, and the user can change it (1–60 characters, spaces collapsed, no control or invisible characters). This covers a Google account used by someone else, e.g. a parent's account for their baby.
+  - Once changed, signing in again keeps the chosen name instead of the Google one (`users.name_customized`).
+  - Names that could pass someone off as an anonymous member or a gone one are refused: anything containing "Secret Elf" / "Elfo secreto", and "Deleted user" / "Former participant" and their Spanish forms (case- and accent-insensitive).
 - **FR-ACC-2** Settings:
   - Language (Español / English)
   - Notification toggles
@@ -293,7 +296,8 @@ All tables have `id UUID PK` (UUIDv7 generated in the app), `created_at timestam
 users
   google_sub TEXT UNIQUE NOT NULL
   email CITEXT UNIQUE NOT NULL
-  name TEXT NOT NULL
+  name TEXT NOT NULL                          -- Google name until the user changes it
+  name_customized BOOL DEFAULT false          -- true: sign-in no longer overwrites name
   avatar_url TEXT
   locale TEXT NOT NULL DEFAULT 'es'          -- 'es' | 'en'
   notify_message BOOL DEFAULT true
@@ -412,7 +416,7 @@ Conventions:
 | `GET /auth/google/callback` | public | Finish OAuth, set cookies, redirect |
 | `POST /auth/refresh` | cookie | Rotate tokens |
 | `POST /auth/logout` | user | Revoke |
-| `GET /me` · `PATCH /me` · `DELETE /me` | user | Profile, locale, notification toggles, delete account |
+| `GET /me` · `PATCH /me` · `DELETE /me` | user | Profile, name, locale, notification toggles, delete account |
 | `GET /events?section=hosting\|participating\|past` | user | Dashboard lists |
 | `POST /events` | user | Create |
 | `GET /events/{id}` | participant | Details, including `my_role` and `my_assignment` (if drawn) |
@@ -497,7 +501,7 @@ Conventions:
 5. **Manage (host):** invite link card (copy / share / regenerate / disable), exclusions editor (pairs + group helper, feasibility banner), and the Reveal button with a confirmation modal.
 6. **Wishlist:** item cards with a photo carousel (arrow buttons per DESIGN.md "Carousel Arrow Button"), priority chip and price. Owner view has an edit mode and a 3-slot photo uploader with progress.
 7. **Chats:** conversation list grouped by event, and a thread view. Anonymous threads show a clear "You are anonymous — they see you as Secret Elf #3" banner to the initiator. The "New conversation" sheet has a *Named* / *Anonymous* segmented pill.
-8. **Profile:** language, notification toggles, devices, install guide, links to privacy/terms, delete account.
+8. **Profile:** name, language, notification toggles, devices, install guide, links to privacy/terms, delete account.
 9. **Join screen:** `/join/{token}`.
 10. **iOS install guide:** a modal with steps for Share › Add to Home Screen.
 

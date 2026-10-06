@@ -34,6 +34,22 @@ export function useUpdateMe() {
   });
 }
 
+/**
+ * `PATCH /me {name}` (FR-ACC-1). Not optimistic: the server may still refuse the name.
+ * The name shows up in rosters, wishlists, invites and chats, so those caches refetch.
+ */
+export function useUpdateName() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    scope: { id: 'me' },
+    mutationFn: (name: string) => apiClient.patch<Me>('/me', { name }),
+    onSuccess: async (me) => {
+      queryClient.setQueryData(ME_QUERY_KEY, me);
+      await queryClient.invalidateQueries({ predicate: ({ queryKey }) => queryKey[0] !== 'me' });
+    },
+  });
+}
+
 /** `GET /me/deletion-preview` (backend `DeletionPreviewOut`). */
 export interface DeletionPreview {
   /** In a DRAWN event: deletion is refused until those events are archived. */

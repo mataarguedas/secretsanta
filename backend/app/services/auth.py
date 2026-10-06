@@ -43,8 +43,9 @@ class RefreshOutcome:
 
 async def upsert_google_user(session: AsyncSession, profile: GoogleProfile) -> User:
     """Find the user by Google ``sub`` (or, failing that, by verified email) and refresh the
-    profile fields; create it on first sign-in. New accounts always start in Spanish,
-    whatever the browser's language; only the user changes it (Profile, Language)."""
+    profile fields, except a name the user chose in Profile; create it on first sign-in.
+    New accounts always start in Spanish, whatever the browser's language; only the user
+    changes it (Profile, Language)."""
     user = await session.scalar(select(User).where(User.google_sub == profile.sub))
     if user is None:
         # Same verified address, new sub (e.g. a test-login user): link instead of failing
@@ -63,7 +64,8 @@ async def upsert_google_user(session: AsyncSession, profile: GoogleProfile) -> U
     else:
         user.google_sub = profile.sub
         user.email = profile.email
-        user.name = profile.name
+        if not user.name_customized:
+            user.name = profile.name
         user.avatar_url = profile.picture
     await session.flush()
     return user

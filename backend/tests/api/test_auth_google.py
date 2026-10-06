@@ -14,7 +14,7 @@ from app.core.config import get_settings
 from app.core.security import hash_token, verify_oauth_state
 from app.models import RefreshToken, User
 from app.services.google_oauth import GoogleOAuthClient, GoogleOAuthError, GoogleProfile
-from tests.api.auth_helpers import cookie_attrs, cookie_value, set_cookies
+from tests.api.auth_helpers import CSRF, cookie_attrs, cookie_value, set_cookies
 
 BASE = "http://localhost:5173"
 LOGIN = "/api/v1/auth/google/login"
@@ -169,6 +169,25 @@ async def test_returning_user_keeps_locale_and_gets_fresh_profile(
         assert users[0].locale == "es"
         assert users[0].name == "Ana R."
         assert users[0].avatar_url is None
+
+
+async def test_sign_in_keeps_a_name_chosen_in_profile(
+    client: httpx.AsyncClient, google: FakeGoogle, db: async_sessionmaker[AsyncSession]
+) -> None:
+    state = await start_login(client)
+    await client.get(CALLBACK, params={"code": "c", "state": state})
+    response = await client.patch("/api/v1/me", json={"name": "Noah"}, headers=CSRF)
+    assert response.status_code == 200
+    google.profile = GoogleProfile(
+        sub=PROFILE.sub, email=PROFILE.email, email_verified=True, name="Ana R.", picture=None
+    )
+    state = await start_login(client)
+    await client.get(CALLBACK, params={"code": "c", "state": state})
+    async with db() as session:
+        user = await session.scalar(select(User))
+        assert user is not None
+        assert user.name == "Noah"
+        assert user.avatar_url is None  # the rest of the profile still follows Google
 
 
 @pytest.mark.parametrize(

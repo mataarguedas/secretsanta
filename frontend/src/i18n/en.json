@@ -610,7 +610,21 @@
   },
   "profile": {
     "title": "Profile",
-    "identityNote": "Your name, photo and email come from your Google account.",
+    "identityNote": "Your photo and email come from your Google account. Your name starts as your Google name, and you can change it.",
+    "name": {
+      "title": "Name",
+      "label": "Name others see",
+      "help": "Use the name of whoever is really taking part, e.g. your child's name if they're joining with your Google account.",
+      "save": "Save name",
+      "saved": "Name updated.",
+      "errors": {
+        "required": "Enter a name.",
+        "length": "60 characters at most.",
+        "invalid": "The name has characters that aren't allowed.",
+        "reserved": "That name is reserved. Pick another one.",
+        "server": "Check this name."
+      }
+    },
     "language": {
       "title": "Language",
       "options": {

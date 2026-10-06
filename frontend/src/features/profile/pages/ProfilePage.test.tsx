@@ -17,7 +17,7 @@ async function renderProfile(options: { patchError?: number } = {}) {
 const languageGroup = (name = 'Idioma') => screen.getByRole('group', { name });
 
 describe('ProfilePage', () => {
-  it('shows the Google identity: large avatar, serif name, read-only email', async () => {
+  it('shows the identity: large avatar, serif name, read-only email', async () => {
     await renderProfile();
     const main = screen.getByRole('main');
     expect(screen.getByRole('heading', { level: 1 })).toHaveClass('font-serif');
@@ -26,9 +26,15 @@ describe('ProfilePage', () => {
       TEST_USER.avatar_url,
     );
     expect(within(main).getByText(TEST_USER.email)).toBeInTheDocument();
-    expect(within(main).queryByRole('textbox')).not.toBeInTheDocument();
+    // The email is plain text; the only text field is the name.
+    expect(within(main).getAllByRole('textbox')).toHaveLength(1);
+    expect(within(main).getByRole('textbox', { name: 'Nombre que ven los demás' })).toHaveValue(
+      TEST_USER.name,
+    );
     expect(
-      within(main).getByText('Tu nombre, foto y correo vienen de tu cuenta de Google.'),
+      within(main).getByText(
+        'Tu foto y correo vienen de tu cuenta de Google. Tu nombre empieza siendo el de Google y puedes cambiarlo.',
+      ),
     ).toBeInTheDocument();
     expect(document.title).toBe('Secret Santa · Perfil');
   });
@@ -37,6 +43,7 @@ describe('ProfilePage', () => {
     await renderProfile();
     const headings = within(screen.getByRole('main')).getAllByRole('heading', { level: 2 });
     expect(headings.map((h) => h.textContent)).toEqual([
+      'Nombre',
       'Idioma',
       'Notificaciones',
       'Dispositivos',
@@ -114,6 +121,59 @@ describe('ProfilePage', () => {
       'true',
     );
     expect(queryClient.getQueryData(ME_QUERY_KEY)).toMatchObject({ locale: 'es' });
+  });
+
+  describe('name', () => {
+    const nameField = () => screen.getByRole('textbox', { name: 'Nombre que ven los demás' });
+    const save = () => screen.getByRole('button', { name: 'Guardar nombre' });
+
+    it('saves a trimmed name with PATCH /me and shows it in the header', async () => {
+      const user = userEvent.setup();
+      const { spy, queryClient } = await renderProfile();
+      expect(save()).toBeDisabled();
+      expect(save()).not.toHaveClass('bg-coral-pop');
+
+      await user.clear(nameField());
+      await user.type(nameField(), '  Noah   Mata ');
+      await user.click(save());
+
+      expect(await screen.findByText('Nombre actualizado.')).toBeInTheDocument();
+      const call = spy.mock.calls.find(([, init]) => init?.method === 'PATCH');
+      expect(call?.[0]).toBe('/api/v1/me');
+      expect(call?.[1]?.body).toBe('{"name":"Noah Mata"}');
+      expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Noah Mata');
+      expect(nameField()).toHaveValue('Noah Mata');
+      expect(queryClient.getQueryData(ME_QUERY_KEY)).toMatchObject({ name: 'Noah Mata' });
+    });
+
+    it.each([
+      ['   ', 'Escribe un nombre.'],
+      ['Secret Elf #3', 'Ese nombre está reservado. Elige otro.'],
+      ['elfo  SECRETO', 'Ese nombre está reservado. Elige otro.'],
+      ['Usuario eliminado', 'Ese nombre está reservado. Elige otro.'],
+    ])('rejects %j without calling the server', async (value, error) => {
+      const user = userEvent.setup();
+      const { spy } = await renderProfile();
+      await user.clear(nameField());
+      await user.type(nameField(), value);
+      await user.click(save());
+
+      expect(await screen.findByText(error)).toBeInTheDocument();
+      expect(nameField()).toHaveAttribute('aria-invalid', 'true');
+      expect(spy.mock.calls.some(([, init]) => init?.method === 'PATCH')).toBe(false);
+    });
+
+    it('a failed save keeps the old name and says so', async () => {
+      const user = userEvent.setup();
+      const { queryClient } = await renderProfile({ patchError: 500 });
+      await user.clear(nameField());
+      await user.type(nameField(), 'Noah');
+      await user.click(save());
+
+      expect(await screen.findByText('Algo salió mal. Inténtalo de nuevo.')).toBeInTheDocument();
+      expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(TEST_USER.name);
+      expect(queryClient.getQueryData(ME_QUERY_KEY)).toMatchObject({ name: TEST_USER.name });
+    });
   });
 
   it('sign out: a nav pill that logs out and lands on the Landing page', async () => {

@@ -5,13 +5,14 @@ from typing import Any
 
 import httpx
 import pytest
-from sqlalchemy import delete
+from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from app.core.config import get_settings
 from app.core.security import create_access_token
 from app.models import User
 from tests.api.auth_helpers import CSRF, login_as
+from tests.api.event_helpers import create as create_event
 
 ME = "/api/v1/me"
 FIELDS = {
@@ -100,8 +101,21 @@ async def test_patch_me_with_empty_body_is_a_no_op(client: httpx.AsyncClient) ->
         {"notify_message": "yes"},
         {"notify_wishlist": 1},
         {"email": "new@example.com"},  # not editable (FR-ACC-1)
-        {"name": "New name"},
         {"google_sub": "x"},
+        {"name_customized": True},
+        {"name": None},
+        {"name": ""},
+        {"name": "   "},
+        {"name": 42},
+        {"name": "x" * 61},
+        {"name": "Noah\u0000"},
+        {"name": "No\u200bah"},  # invisible formatting character
+        {"name": "Secret Elf #3"},
+        {"name": "secret   ELF"},
+        {"name": "Elfo Secreto #7"},
+        {"name": "Élfo secreto"},
+        {"name": "Usuario eliminado"},
+        {"name": "Deleted user"},
     ],
 )
 async def test_patch_me_validation(client: httpx.AsyncClient, payload: dict[str, Any]) -> None:
@@ -109,6 +123,43 @@ async def test_patch_me_validation(client: httpx.AsyncClient, payload: dict[str,
     response = await client.patch(ME, json=payload, headers=CSRF)
     assert response.status_code == 422
     assert response.json()["error"]["code"] == "VALIDATION_ERROR"
+
+
+async def test_patch_me_sets_a_custom_name(client: httpx.AsyncClient) -> None:
+    await login_as(client, "bryan@test.local", "Bryan Mata")
+    response = await client.patch(ME, json={"name": "  Noah    Mata  "}, headers=CSRF)
+    assert response.status_code == 200
+    assert response.json()["name"] == "Noah Mata"
+    assert set(response.json()) == FIELDS
+    assert (await client.get(ME)).json()["name"] == "Noah Mata"
+
+
+@pytest.mark.parametrize("name", ["N", "x" * 60, "José Ñandú", "Noah 👶", "The Elf"])
+async def test_patch_me_accepts_names(client: httpx.AsyncClient, name: str) -> None:
+    await login_as(client)
+    response = await client.patch(ME, json={"name": name}, headers=CSRF)
+    assert response.status_code == 200
+    assert response.json()["name"] == name
+
+
+async def test_patch_me_name_marks_it_customized(
+    client: httpx.AsyncClient, db: async_sessionmaker[AsyncSession]
+) -> None:
+    await login_as(client)
+    await client.patch(ME, json={"locale": "en"}, headers=CSRF)
+    async with db() as session:
+        assert await session.scalar(select(User.name_customized)) is False
+    await client.patch(ME, json={"name": "Noah"}, headers=CSRF)
+    async with db() as session:
+        assert await session.scalar(select(User.name_customized)) is True
+
+
+async def test_custom_name_shows_to_other_participants(client: httpx.AsyncClient) -> None:
+    await login_as(client, "bryan@test.local", "Bryan Mata")
+    await client.patch(ME, json={"name": "Noah"}, headers=CSRF)
+    event = await create_event(client)
+    response = await client.get(f"/api/v1/events/{event['id']}/participants")
+    assert [p["name"] for p in response.json()] == ["Noah"]
 
 
 async def test_patch_me_requires_session_and_csrf_header(client: httpx.AsyncClient) -> None:
