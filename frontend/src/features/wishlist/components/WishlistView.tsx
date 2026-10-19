@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from 'react';
+import { useRef, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { ArrowDownIcon, ArrowUpIcon } from '@/components/icons';
@@ -13,6 +13,7 @@ import {
   useDeleteItem,
   useReorderItems,
   useUpdateItem,
+  useUploadPhoto,
   type Wishlist,
   type WishlistItem,
 } from '../api';
@@ -20,7 +21,7 @@ import { itemToFormValues } from '../schemas';
 import { CopyFromSheet } from './CopyFromSheet';
 import { ItemFormSheet } from './ItemFormSheet';
 import { ItemPhotos } from './ItemPhotos';
-import { PhotoUploader } from './PhotoUploader';
+import { MAX_PHOTOS, PhotoUploader, StagedPhotoPicker, type StagedPhoto } from './PhotoUploader';
 
 type Editing = { mode: 'add' } | { mode: 'edit'; item: WishlistItem } | null;
 
@@ -55,6 +56,35 @@ export function WishlistView({
   const editedItem =
     editing?.mode === 'edit' ? (items.find((i) => i.id === editing.item.id) ?? null) : null;
   const ids = items.map((item) => item.id);
+  // Photos picked in the "Add item" sheet; they upload once the item exists.
+  const upload = useUploadPhoto(eventId, ownerId);
+  const [staged, setStaged] = useState<StagedPhoto[]>([]);
+  const stagedKey = useRef(0);
+
+  /**
+   * Upload the staged photos to the new item one at a time (keeps their order). A failed
+   * photo never loses the item: the count and first error are returned for the toast.
+   */
+  const uploadStaged = async (
+    itemId: string,
+  ): Promise<{ count: number; error: unknown } | null> => {
+    let failed = 0;
+    let firstError: unknown = null;
+    for (const photo of staged) {
+      const setProgress = (progress: number | null) => {
+        setStaged((current) => current.map((p) => (p.key === photo.key ? { ...p, progress } : p)));
+      };
+      setProgress(0);
+      try {
+        await upload.mutateAsync({ itemId, file: photo.file, onProgress: setProgress });
+      } catch (error) {
+        setProgress(null);
+        if (failed === 0) firstError = error;
+        failed += 1;
+      }
+    }
+    return failed === 0 ? null : { count: failed, error: firstError };
+  };
 
   const move = (id: string, to: number) => {
     const next = moveId(ids, id, to);
@@ -168,14 +198,21 @@ export function WishlistView({
           {...(editing?.mode === 'edit' ? { defaultValues: itemToFormValues(editing.item) } : {})}
           onClose={() => {
             setEditing(null);
+            setStaged([]);
           }}
           onSubmit={async (payload) => {
             if (editing?.mode === 'edit') {
               await update.mutateAsync({ id: editing.item.id, payload });
               toast.success(t('wishlist.toast.saved'));
             } else {
-              await create.mutateAsync(payload);
-              toast.success(t('wishlist.toast.added'));
+              const created = await create.mutateAsync(payload);
+              const failure = await uploadStaged(created.id);
+              if (failure === null) toast.success(t('wishlist.toast.added'));
+              else {
+                toast.error(
+                  `${t('wishlist.photos.createFailed', { count: failure.count })} ${errorMessage(t, failure.error)}`,
+                );
+              }
             }
           }}
         >
@@ -183,7 +220,22 @@ export function WishlistView({
             <PhotoUploader eventId={eventId} ownerId={ownerId} item={editedItem} />
           ) : (
             editing?.mode === 'add' && (
-              <p className="text-sm text-stone">{t('wishlist.photos.saveFirst')}</p>
+              <StagedPhotoPicker
+                photos={staged}
+                busy={create.isPending || upload.isPending}
+                onAdd={(file) => {
+                  stagedKey.current += 1;
+                  const key = stagedKey.current;
+                  setStaged((current) =>
+                    current.length >= MAX_PHOTOS
+                      ? current
+                      : [...current, { key, file, progress: null }],
+                  );
+                }}
+                onRemove={(key) => {
+                  setStaged((current) => current.filter((p) => p.key !== key));
+                }}
+              />
             )
           )}
         </ItemFormSheet>

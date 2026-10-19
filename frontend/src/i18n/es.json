@@ -497,7 +497,9 @@
       "slotLabel": "Espacio para la foto {{n}}",
       "alt": "{{title}}: foto {{n}} de {{total}}",
       "carouselLabel": "Fotos de {{title}}",
-      "saveFirst": "Guarda el artículo y luego edítalo para agregarle fotos.",
+      "stagedAlt": "Foto {{n}} elegida",
+      "createFailed_one": "El artículo se guardó, pero {{count}} foto no se pudo subir; puedes agregarla al editarlo.",
+      "createFailed_other": "El artículo se guardó, pero {{count}} fotos no se pudieron subir; puedes agregarlas al editarlo.",
       "enlarge": "Ver en grande",
       "enlargeLabel": "Ver las fotos de {{title}} en grande"
     },

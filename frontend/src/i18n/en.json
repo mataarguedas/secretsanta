@@ -497,7 +497,9 @@
       "slotLabel": "Slot for photo {{n}}",
       "alt": "{{title}}: photo {{n}} of {{total}}",
       "carouselLabel": "Photos of {{title}}",
-      "saveFirst": "Save the item, then edit it to add photos.",
+      "stagedAlt": "Chosen photo {{n}}",
+      "createFailed_one": "The item was saved, but {{count}} photo couldn't be uploaded; you can add it by editing the item.",
+      "createFailed_other": "The item was saved, but {{count}} photos couldn't be uploaded; you can add them by editing the item.",
       "enlarge": "View larger",
       "enlargeLabel": "View the photos of {{title}} larger"
     },

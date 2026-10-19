@@ -1,7 +1,7 @@
 import { QueryClientProvider } from '@tanstack/react-query';
 import { renderHook, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { axe } from 'vitest-axe';
 
 import type { EventDetail } from '@/features/events/api';
@@ -212,15 +212,130 @@ describe('Photo uploader (owner edit sheet)', () => {
     expect(within(sheet).getAllByRole('button', { name: /^Agregar foto/ })).toHaveLength(2);
   });
 
-  it('a new item gets photos after it is saved', async () => {
-    const user = userEvent.setup();
-    await renderTab();
-    await user.click(await screen.findByRole('button', { name: 'Agregar artículo' }));
-    const sheet = screen.getByRole('dialog', { name: 'Agregar artículo' });
-    expect(
-      within(sheet).getByText('Guarda el artículo y luego edítalo para agregarle fotos.'),
-    ).toBeInTheDocument();
-    expect(within(sheet).queryByRole('group', { name: 'Fotos' })).not.toBeInTheDocument();
+  describe('in the "Add item" sheet', () => {
+    beforeEach(() => {
+      // jsdom has no object URLs.
+      URL.createObjectURL = vi.fn(() => 'blob:preview');
+      URL.revokeObjectURL = vi.fn();
+    });
+
+    async function openAdd() {
+      const user = userEvent.setup();
+      await user.click(await screen.findByRole('button', { name: 'Agregar artículo' }));
+      const sheet = screen.getByRole('dialog', { name: 'Agregar artículo' });
+      return { user, sheet, group: within(sheet).getByRole('group', { name: 'Fotos' }) };
+    }
+
+    it('previews picked photos locally and uploads nothing before the item exists', async () => {
+      const { spy } = await renderTab();
+      const { user, group } = await openAdd();
+      expect(within(group).getAllByRole('button', { name: /^Agregar foto/ })).toHaveLength(3);
+
+      await user.upload(photoInput(), file('a.jpg'));
+      await user.upload(photoInput(), file('b.jpg'));
+      expect(
+        within(group)
+          .getAllByRole('img')
+          .map((img) => img.getAttribute('alt')),
+      ).toEqual(['Foto 1 elegida', 'Foto 2 elegida']);
+      expect(within(group).getByRole('img', { name: 'Foto 1 elegida' })).toHaveAttribute(
+        'src',
+        'blob:preview',
+      );
+      expect(within(group).getAllByRole('button', { name: /^Agregar foto/ })).toHaveLength(1);
+
+      await user.click(within(group).getByRole('button', { name: 'Quitar la foto 1' }));
+      expect(within(group).getAllByRole('img')).toHaveLength(1);
+      expect(calls(spy, 'POST', '/photos')).toEqual([]);
+    });
+
+    it('creates the item, then uploads its photos in order', async () => {
+      const { spy } = await renderTab();
+      const { user, sheet } = await openAdd();
+      await user.upload(photoInput(), file('a.jpg'));
+      await user.upload(photoInput(), file('b.jpg'));
+      await user.type(within(sheet).getByLabelText('¿Qué es?'), 'Termo');
+      await user.click(within(sheet).getByRole('button', { name: 'Agregar' }));
+
+      expect(await screen.findByText('Artículo agregado.')).toBeInTheDocument();
+      const uploads = calls(spy, 'POST', '/photos');
+      expect(uploads.map((c) => c.url)).toEqual([
+        '/api/v1/wishlist/items/item-1/photos',
+        '/api/v1/wishlist/items/item-1/photos',
+      ]);
+      expect(uploads.map((c) => ((c.init?.body as FormData).get('file') as File).name)).toEqual([
+        'a.jpg',
+        'b.jpg',
+      ]);
+      await waitFor(() => {
+        expect(screen.queryByRole('dialog', { name: 'Agregar artículo' })).not.toBeInTheDocument();
+      });
+      const card = within(await screen.findByRole('article', { name: 'Termo' }));
+      await waitFor(() => {
+        expect(card.getAllByRole('img', { hidden: true })).toHaveLength(2);
+      });
+    });
+
+    it('shows upload progress while saving and locks the slots', async () => {
+      let finish: (response: Response) => void = () => undefined;
+      await renderTab({
+        photoUpload: () =>
+          new Promise<Response>((resolve) => {
+            finish = resolve;
+          }),
+      });
+      const { user, sheet, group } = await openAdd();
+      await user.upload(photoInput(), file());
+      await user.type(within(sheet).getByLabelText('¿Qué es?'), 'Termo');
+      await user.click(within(sheet).getByRole('button', { name: 'Agregar' }));
+
+      expect(
+        await within(group).findByRole('progressbar', { name: 'Progreso de la foto 1' }),
+      ).toHaveAttribute('aria-valuenow', '50');
+      within(group)
+        .getAllByRole('button', { name: /^Agregar foto/ })
+        .forEach((button) => {
+          expect(button).toBeDisabled();
+        });
+
+      finish(jsonResponse(201, item('item-1', 'Termo', { photos: [photo(7)] })));
+      expect(await screen.findByText('Artículo agregado.')).toBeInTheDocument();
+    });
+
+    it('a failed photo keeps the item and says how to add it later', async () => {
+      const { spy } = await renderTab({
+        photoUpload: () => jsonResponse(415, { error: { code: 'UNSUPPORTED_IMAGE', message: '' } }),
+      });
+      const { user, sheet } = await openAdd();
+      await user.upload(photoInput(), file());
+      await user.type(within(sheet).getByLabelText('¿Qué es?'), 'Termo');
+      await user.click(within(sheet).getByRole('button', { name: 'Agregar' }));
+
+      expect(
+        await screen.findByText(/^El artículo se guardó, pero 1 foto no se pudo subir/),
+      ).toBeInTheDocument();
+      expect(screen.queryByText('Artículo agregado.')).not.toBeInTheDocument();
+      expect(
+        calls(spy, 'POST', '/wishlist/items').filter((c) => !c.url.includes('/photos')),
+      ).toHaveLength(1);
+      expect(await screen.findByRole('article', { name: 'Termo' })).toBeInTheDocument();
+    });
+
+    it('cancelling drops the picked photos', async () => {
+      await renderTab();
+      const { user, sheet } = await openAdd();
+      await user.upload(photoInput(), file());
+      await user.click(within(sheet).getByRole('button', { name: 'Cancelar' }));
+      const reopened = await openAdd();
+      expect(within(reopened.group).queryAllByRole('img')).toHaveLength(0);
+    });
+
+    it('has no axe violations with a picked photo', async () => {
+      await renderTab();
+      const { user, sheet } = await openAdd();
+      await user.upload(photoInput(), file());
+      expect(await axe(sheet)).toHaveNoViolations();
+    });
   });
 
   it('the edit sheet with photos has no axe violations', async () => {
