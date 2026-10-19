@@ -1,10 +1,19 @@
-import { useRef, useState, type KeyboardEvent, type PointerEvent, type ReactNode } from 'react';
+import {
+  useRef,
+  useState,
+  type KeyboardEvent,
+  type MouseEvent,
+  type PointerEvent,
+  type ReactNode,
+} from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { cn } from '@/lib/cn';
 
 /** Horizontal distance (px) a swipe must travel to change slides. */
 const SWIPE_THRESHOLD = 40;
+/** A press that moves further than this (px) is a drag, not a tap on the slide. */
+const TAP_SLOP = 6;
 
 export interface CarouselProps {
   /** One node per slide (usually an <img>). */
@@ -18,6 +27,12 @@ export interface CarouselProps {
   initialIndex?: number;
   /** Called with the new index whenever the slide changes. */
   onIndexChange?: (index: number) => void;
+  /**
+   * Called with the current index when the slide itself is tapped/clicked (not an arrow,
+   * not the end of a swipe), e.g. to open a lightbox. A pointer shortcut only: keep a
+   * visible button that does the same for keyboard and screen-reader users.
+   */
+  onSlideClick?: (index: number) => void;
 }
 
 function Arrow({
@@ -69,6 +84,7 @@ export function Carousel({
   aspectClassName = 'aspect-square',
   initialIndex = 0,
   onIndexChange,
+  onSlideClick,
 }: CarouselProps) {
   const { t } = useTranslation();
   const [index, setIndex] = useState(() =>
@@ -76,6 +92,8 @@ export function Carousel({
   );
   const [dragX, setDragX] = useState(0);
   const dragStart = useRef<number | null>(null);
+  // Set when a press ended as a drag, so the click that follows it doesn't count as a tap.
+  const dragged = useRef(false);
   const count = slides.length;
   const multiple = count > 1;
 
@@ -97,6 +115,7 @@ export function Carousel({
   };
 
   const onPointerDown = (event: PointerEvent<HTMLDivElement>) => {
+    dragged.current = false;
     if (!multiple || (event.pointerType === 'mouse' && event.button !== 0)) return;
     // Capturing a press that started on an arrow would retarget its click away from it.
     if (event.target instanceof Element && event.target.closest('button')) return;
@@ -116,8 +135,19 @@ export function Carousel({
     const dx = event.clientX - dragStart.current;
     dragStart.current = null;
     setDragX(0);
+    dragged.current = Math.abs(dx) > TAP_SLOP;
     if (dx <= -SWIPE_THRESHOLD) go(index + 1);
     else if (dx >= SWIPE_THRESHOLD) go(index - 1);
+  };
+
+  const onViewportClick = (event: MouseEvent<HTMLDivElement>) => {
+    if (!onSlideClick) return;
+    if (dragged.current) {
+      dragged.current = false;
+      return;
+    }
+    if (event.target instanceof Element && event.target.closest('button')) return;
+    onSlideClick(index);
   };
 
   const dragging = dragX !== 0;
@@ -134,8 +164,10 @@ export function Carousel({
         data-testid="carousel-viewport"
         className={cn(
           'relative w-full touch-pan-y overflow-hidden border border-mist bg-pure-white select-none',
+          onSlideClick && 'cursor-zoom-in',
           aspectClassName,
         )}
+        onClick={onSlideClick ? onViewportClick : undefined}
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={endDrag}

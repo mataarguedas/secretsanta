@@ -376,6 +376,22 @@ describe('Item photos (card carousel)', () => {
     expect(await axe(lightbox)).toHaveNoViolations();
   });
 
+  it('tapping the photo opens the lightbox on that photo', async () => {
+    const user = userEvent.setup();
+    await renderTab({ query: '?user=u-beto' });
+    const card = within(await screen.findByRole('article', { name: 'Bufanda' }));
+    await user.click(card.getByRole('button', { name: 'Foto siguiente' }));
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    await user.click(card.getByTestId('carousel-viewport'));
+
+    const lightbox = screen.getByRole('dialog', { name: 'Bufanda' });
+    expect(within(lightbox).getByText('2 / 2')).toBeInTheDocument();
+    expect(within(lightbox).getByRole('img', { name: 'Bufanda: foto 2 de 2' })).toHaveAttribute(
+      'src',
+      'https://storage.test/full-2.webp',
+    );
+  });
+
   it('items without photos show no carousel', async () => {
     await renderTab();
     const card = within(await screen.findByRole('article', { name: 'Audífonos' }));

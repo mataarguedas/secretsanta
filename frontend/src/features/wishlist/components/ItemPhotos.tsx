@@ -8,7 +8,7 @@ import type { WishlistItem } from '../api';
 /**
  * An item's photos on its card: a carousel of the 400px thumbnails, lazily loaded, and a
  * "View larger" pill that opens a lightbox with the full-size (1600px) images on the same
- * photo.
+ * photo. Tapping the photo itself opens it too; the pill stays for keyboard users.
  */
 export function ItemPhotos({ item }: { item: WishlistItem }) {
   const { t } = useTranslation();
@@ -27,6 +27,10 @@ export function ItemPhotos({ item }: { item: WishlistItem }) {
         className="w-full"
         aspectClassName="aspect-[4/3] md:aspect-square"
         onIndexChange={setIndex}
+        onSlideClick={(i) => {
+          setIndex(i);
+          setOpen(true);
+        }}
         slides={item.photos.map((photo, i) => (
           <img
             key={photo.id}

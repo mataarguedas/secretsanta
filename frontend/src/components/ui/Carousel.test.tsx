@@ -1,6 +1,6 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { axe } from 'vitest-axe';
 
 import { Carousel } from './Carousel';
@@ -116,5 +116,33 @@ describe('Carousel', () => {
     unmount();
     render(<Carousel label="Fotos" slides={slides} initialIndex={9} />);
     expect(screen.getByText('3 / 3')).toBeInTheDocument();
+  });
+
+  it('reports a tap on the slide, but not an arrow click or the end of a swipe', async () => {
+    const user = userEvent.setup();
+    const onSlideClick = vi.fn();
+    render(<Carousel label="Fotos" slides={slides} onSlideClick={onSlideClick} />);
+    const viewport = screen.getByTestId('carousel-viewport');
+    expect(viewport).toHaveClass('cursor-zoom-in');
+
+    await user.click(screen.getByRole('button', { name: 'Foto siguiente' }));
+    expect(onSlideClick).not.toHaveBeenCalled();
+
+    fireEvent.pointerDown(viewport, { clientX: 200, pointerId: 1, pointerType: 'touch' });
+    fireEvent.pointerMove(viewport, { clientX: 100, pointerId: 1, pointerType: 'touch' });
+    fireEvent.pointerUp(viewport, { clientX: 100, pointerId: 1, pointerType: 'touch' });
+    fireEvent.click(viewport);
+    expect(screen.getByText('3 / 3')).toBeInTheDocument();
+    expect(onSlideClick).not.toHaveBeenCalled();
+
+    fireEvent.pointerDown(viewport, { clientX: 100, pointerId: 1, pointerType: 'touch' });
+    fireEvent.pointerUp(viewport, { clientX: 102, pointerId: 1, pointerType: 'touch' });
+    fireEvent.click(viewport);
+    expect(onSlideClick).toHaveBeenCalledExactlyOnceWith(2);
+  });
+
+  it('without onSlideClick the slides are not a zoom target', () => {
+    render(<Carousel label="Fotos" slides={slides} />);
+    expect(screen.getByTestId('carousel-viewport')).not.toHaveClass('cursor-zoom-in');
   });
 });
